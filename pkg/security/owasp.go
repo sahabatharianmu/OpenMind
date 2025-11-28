@@ -16,49 +16,49 @@ import (
 
 // OWASPSecurityConfig holds OWASP security configuration
 type OWASPSecurityConfig struct {
-    ContentSecurityPolicy string
-    XFrameOptions         string
-    XContentTypeOptions   string
-    XXSSProtection        string
-    ReferrerPolicy        string
-    PermissionsPolicy     string
-    StrictTransportSecurity string
-    XPoweredBy            bool
-    ServerHeader          string
-    MaxRequestSize        int64
-    AllowedFileTypes      []string
-    MaxFileSize          int64
+	ContentSecurityPolicy   string
+	XFrameOptions           string
+	XContentTypeOptions     string
+	XXSSProtection          string
+	ReferrerPolicy          string
+	PermissionsPolicy       string
+	StrictTransportSecurity string
+	XPoweredBy              bool
+	ServerHeader            string
+	MaxRequestSize          int64
+	AllowedFileTypes        []string
+	MaxFileSize             int64
 }
 
 // DefaultOWASPSecurityConfig returns default OWASP security configuration
 func DefaultOWASPSecurityConfig() *OWASPSecurityConfig {
-    return &OWASPSecurityConfig{
-        ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net; style-src 'self' 'nonce-{nonce}' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https:;",
-        XFrameOptions:         "DENY",
-        XContentTypeOptions:   "nosniff",
-        XXSSProtection:        "1; mode=block",
-        ReferrerPolicy:        "strict-origin-when-cross-origin",
-        PermissionsPolicy:     "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()",
-        StrictTransportSecurity: "max-age=31536000; includeSubDomains; preload",
-        XPoweredBy:            false,
-        ServerHeader:          "SME-Tax-Platform",
-        MaxRequestSize:        10 * 1024 * 1024, // 10MB
-        AllowedFileTypes:      []string{".pdf", ".jpg", ".jpeg", ".png", ".xlsx", ".csv"},
-        MaxFileSize:          5 * 1024 * 1024, // 5MB
-    }
+	return &OWASPSecurityConfig{
+		ContentSecurityPolicy:   "default-src 'self'; script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net; style-src 'self' 'nonce-{nonce}' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https:;",
+		XFrameOptions:           "DENY",
+		XContentTypeOptions:     "nosniff",
+		XXSSProtection:          "1; mode=block",
+		ReferrerPolicy:          "strict-origin-when-cross-origin",
+		PermissionsPolicy:       "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()",
+		StrictTransportSecurity: "max-age=31536000; includeSubDomains; preload",
+		XPoweredBy:              false,
+		ServerHeader:            "SME-Tax-Platform",
+		MaxRequestSize:          10 * 1024 * 1024, // 10MB
+		AllowedFileTypes:        []string{".pdf", ".jpg", ".jpeg", ".png", ".xlsx", ".csv"},
+		MaxFileSize:             5 * 1024 * 1024, // 5MB
+	}
 }
 
 // SecurityHeadersMiddleware adds OWASP security headers
 func SecurityHeadersMiddleware(config *OWASPSecurityConfig) app.HandlerFunc {
-    return func(ctx context.Context, c *app.RequestContext) {
-        nonceBytes := make([]byte, 16)
-        rand.Read(nonceBytes)
-        nonce := base64.StdEncoding.EncodeToString(nonceBytes)
-        c.Set("csp_nonce", nonce)
-        if config.ContentSecurityPolicy != "" {
-            csp := strings.ReplaceAll(config.ContentSecurityPolicy, "{nonce}", nonce)
-            c.Response.Header.Set("Content-Security-Policy", csp)
-        }
+	return func(ctx context.Context, c *app.RequestContext) {
+		nonceBytes := make([]byte, 16)
+		rand.Read(nonceBytes)
+		nonce := base64.StdEncoding.EncodeToString(nonceBytes)
+		c.Set("csp_nonce", nonce)
+		if config.ContentSecurityPolicy != "" {
+			csp := strings.ReplaceAll(config.ContentSecurityPolicy, "{nonce}", nonce)
+			c.Response.Header.Set("Content-Security-Policy", csp)
+		}
 
 		// X-Frame-Options
 		if config.XFrameOptions != "" {
@@ -86,9 +86,9 @@ func SecurityHeadersMiddleware(config *OWASPSecurityConfig) app.HandlerFunc {
 		}
 
 		// Strict Transport Security (HTTPS only)
-        if config.StrictTransportSecurity != "" && strings.HasPrefix(string(c.Request.URI().Scheme()), "https") {
-            c.Response.Header.Set("Strict-Transport-Security", config.StrictTransportSecurity)
-        }
+		if config.StrictTransportSecurity != "" && strings.HasPrefix(string(c.Request.URI().Scheme()), "https") {
+			c.Response.Header.Set("Strict-Transport-Security", config.StrictTransportSecurity)
+		}
 
 		// Remove X-Powered-By if disabled
 		if !config.XPoweredBy {
@@ -100,8 +100,8 @@ func SecurityHeadersMiddleware(config *OWASPSecurityConfig) app.HandlerFunc {
 			c.Response.Header.Set("Server", config.ServerHeader)
 		}
 
-        c.Next(ctx)
-    }
+		c.Next(ctx)
+	}
 }
 
 // InputValidationMiddleware validates and sanitizes input
@@ -218,7 +218,7 @@ func CSRFProtectionMiddleware(tokenLength int) app.HandlerFunc {
 func FileUploadSecurityMiddleware(config *OWASPSecurityConfig) app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		contentType := string(c.Request.Header.ContentType())
-		
+
 		// Check if this is a multipart upload
 		if !strings.Contains(contentType, "multipart/form-data") {
 			c.Next(ctx)
@@ -232,7 +232,7 @@ func FileUploadSecurityMiddleware(config *OWASPSecurityConfig) app.HandlerFunc {
 		}
 
 		// TODO: Parse multipart data here and validate each file individually
-		
+
 		c.Next(ctx)
 	}
 }
@@ -241,20 +241,20 @@ func FileUploadSecurityMiddleware(config *OWASPSecurityConfig) app.HandlerFunc {
 func SecurityLoggingMiddleware() app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		start := time.Now()
-		
+
 		c.Next(ctx)
-		
+
 		duration := time.Since(start)
 		status := c.Response.StatusCode()
-		
+
 		// Log suspicious activities
 		if status >= 400 {
 			// Log security events
 			// In production, this would integrate with your logging system
-			fmt.Printf("[SECURITY] %s %s %d %v %s\n", 
-				string(c.Request.Header.Method()), 
-				string(c.Request.URI().Path()), 
-				status, 
+			fmt.Printf("[SECURITY] %s %s %d %v %s\n",
+				string(c.Request.Header.Method()),
+				string(c.Request.URI().Path()),
+				status,
 				duration,
 				c.ClientIP())
 		}
@@ -263,11 +263,11 @@ func SecurityLoggingMiddleware() app.HandlerFunc {
 
 func containsDangerousPatterns(input string) bool {
 	dangerousPatterns := []string{
-		"../", "..\\", "<script", "javascript:", "data:", "vbscript:", 
-		"onload=", "onerror=", "onclick=", "eval(", "expression(", 
+		"../", "..\\", "<script", "javascript:", "data:", "vbscript:",
+		"onload=", "onerror=", "onclick=", "eval(", "expression(",
 		"${", "#{", "<%", ">>>", "&&", "||", ";", "`", "$()",
 	}
-	
+
 	input = strings.ToLower(input)
 	for _, pattern := range dangerousPatterns {
 		if strings.Contains(input, pattern) {

@@ -1,3 +1,5 @@
+include .env
+
 # ==============================================================================
 # OS DETECTION & CONFIG
 # This block detects the operating system and sets the correct Air config file.
@@ -52,23 +54,23 @@ number ?= 1
 migration_up:
 	@echo "Running migrations up..."
 ifeq ($(force), true)
-	migrate -path ./pkg/embed/migrations -database postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable up force $(number)
+	migrate -path ./pkg/migrations -database postgres://${OPENMIND_DATABASE_USER}:${OPENMIND_DATABASE_PASSWORD}@${OPENMIND_DATABASE_HOST}:${OPENMIND_DATABASE_PORT}/${OPENMIND_DATABASE_DB_NAME}?sslmode=${OPENMIND_DATABASE_SSL_MODE} up force $(number)
 else
-	migrate -path ./pkg/embed/migrations -database postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable up
+	migrate -path ./pkg/migrations -database postgres://${OPENMIND_DATABASE_USER}:${OPENMIND_DATABASE_PASSWORD}@${OPENMIND_DATABASE_HOST}:${OPENMIND_DATABASE_PORT}/${OPENMIND_DATABASE_DB_NAME}?sslmode=${OPENMIND_DATABASE_SSL_MODE} up
 endif
 
 migration_down:
 	@echo "Running migrations down..."
-	migrate -path ./pkg/embed/migrations \
-		-database postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable \
+	migrate -path ./pkg/migrations \
+		-database postgres://${OPENMIND_DATABASE_USER}:${OPENMIND_DATABASE_PASSWORD}@${OPENMIND_DATABASE_HOST}:${OPENMIND_DATABASE_PORT}/${OPENMIND_DATABASE_DB_NAME}?sslmode=${OPENMIND_DATABASE_SSL_MODE} \
 		down $(number)
 
 migration_goto:
 	@echo "Migrating to specific version $(version)..."
-	migrate -path ./pkg/embed/migrations \
-		-database postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable \
+	migrate -path ./pkg/migrations \
+		-database postgres://${OPENMIND_DATABASE_USER}:${OPENMIND_DATABASE_PASSWORD}@${OPENMIND_DATABASE_HOST}:${OPENMIND_DATABASE_PORT}/${OPENMIND_DATABASE_DB_NAME}?sslmode=${OPENMIND_DATABASE_SSL_MODE} \
 		goto $(version)
 
 migration_create:
 	@echo "Creating migration file..."
-	migrate create -ext sql -dir ./pkg/embed/migrations -seq $(table)
+	migrate create -ext sql -dir ./pkg/migrations -seq $(table)

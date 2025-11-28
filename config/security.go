@@ -24,26 +24,26 @@ type SecurityConfig struct {
 	JWTRefreshExpiry time.Duration `mapstructure:"jwt_refresh_expiry"`
 
 	// Password settings
-	PasswordMinLength int  `mapstructure:"password_min_length"`
-	PasswordRequireUpper bool `mapstructure:"password_require_upper"`
-	PasswordRequireLower bool `mapstructure:"password_require_lower"`
-	PasswordRequireNumber bool `mapstructure:"password_require_number"`
+	PasswordMinLength      int  `mapstructure:"password_min_length"`
+	PasswordRequireUpper   bool `mapstructure:"password_require_upper"`
+	PasswordRequireLower   bool `mapstructure:"password_require_lower"`
+	PasswordRequireNumber  bool `mapstructure:"password_require_number"`
 	PasswordRequireSpecial bool `mapstructure:"password_require_special"`
 
 	// Session settings
-	SessionTimeout time.Duration `mapstructure:"session_timeout"`
-	SessionSecure  bool          `mapstructure:"session_secure"`
-	SessionHTTPOnly bool        `mapstructure:"session_httponly"`
+	SessionTimeout  time.Duration `mapstructure:"session_timeout"`
+	SessionSecure   bool          `mapstructure:"session_secure"`
+	SessionHTTPOnly bool          `mapstructure:"session_httponly"`
 
 	// File upload security
 	MaxFileSize      int64    `mapstructure:"max_file_size"`
 	AllowedFileTypes []string `mapstructure:"allowed_file_types"`
 
 	// API security
-	APIKeyHeader    string `mapstructure:"api_key_header"`
-	EnableAPIKey    bool   `mapstructure:"enable_api_key"`
-	EnableCSRF      bool   `mapstructure:"enable_csrf"`
-	EnableCSP       bool   `mapstructure:"enable_csp"`
+	APIKeyHeader string `mapstructure:"api_key_header"`
+	EnableAPIKey bool   `mapstructure:"enable_api_key"`
+	EnableCSRF   bool   `mapstructure:"enable_csrf"`
+	EnableCSP    bool   `mapstructure:"enable_csp"`
 
 	// Database security
 	DBMaxOpenConns    int           `mapstructure:"db_max_open_conns"`
@@ -59,10 +59,10 @@ type SecurityConfig struct {
 	HashCost      int    `mapstructure:"hash_cost"`
 
 	// Request limits
-	MaxRequestSize     int64         `mapstructure:"max_request_size"`
-	RequestTimeout     time.Duration `mapstructure:"request_timeout"`
-	MaxRequestPerIP    int           `mapstructure:"max_request_per_ip"`
-	MaxRequestPerUser  int           `mapstructure:"max_request_per_user"`
+	MaxRequestSize    int64         `mapstructure:"max_request_size"`
+	RequestTimeout    time.Duration `mapstructure:"request_timeout"`
+	MaxRequestPerIP   int           `mapstructure:"max_request_per_ip"`
+	MaxRequestPerUser int           `mapstructure:"max_request_per_user"`
 }
 
 // DefaultSecurityConfig returns default security configuration

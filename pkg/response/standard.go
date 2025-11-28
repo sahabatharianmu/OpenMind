@@ -1,8 +1,11 @@
 package response
 
 import (
+	"errors"
+
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
+	"github.com/sahabatharianmu/OpenMind/pkg/apperrors"
 )
 
 // StandardResponse represents a standard API response
@@ -126,4 +129,31 @@ func PaginatedResponse(c *app.RequestContext, data interface{}, page, limit int,
 		},
 	}
 	c.JSON(consts.StatusOK, response)
+}
+
+func HandleError(c *app.RequestContext, err error) {
+	appErr := &apperrors.AppError{}
+	if errors.As(err, &appErr) {
+		Error(c, appErr.Code, getErrorCode(appErr.Code), appErr.Message, nil)
+		return
+	}
+
+	InternalServerError(c, err.Error())
+}
+
+func getErrorCode(statusCode int) string {
+	switch statusCode {
+	case consts.StatusBadRequest:
+		return ErrorCodeBadRequest
+	case consts.StatusUnauthorized:
+		return ErrorCodeAuthentication
+	case consts.StatusForbidden:
+		return ErrorCodeAuthorization
+	case consts.StatusNotFound:
+		return ErrorCodeNotFound
+	case consts.StatusConflict:
+		return "CONFLICT"
+	default:
+		return ErrorCodeInternal
+	}
 }

@@ -31,40 +31,43 @@ func NewJWTService(cfg *config.Config) *JWTService {
 }
 
 // GenerateTokens generates both access and refresh tokens
-func (s *JWTService) GenerateTokens(userID uuid.UUID, email, role string) (accessToken, refreshToken string, err error) {
+func (s *JWTService) GenerateTokens(
+	userID uuid.UUID,
+	email, role string,
+) (accessToken, refreshToken string, err error) {
 	now := time.Now()
 
-	// Generate access token
 	accessClaims := JWTClaims{
 		UserID: userID,
 		Email:  email,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(s.config.JWT.AccessTokenExpiry)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(s.config.Security.JWTAccessExpiry)),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
-			Issuer:    "sme-tax-platform",
+			Issuer:    s.config.Application.Name,
 			Subject:   userID.String(),
 			ID:        uuid.New().String(),
 		},
 	}
 
-	accessToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString([]byte(s.config.JWT.SecretKey))
+	accessToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).
+		SignedString([]byte(s.config.Security.JWTSecretKey))
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// Generate refresh token
 	refreshClaims := jwt.RegisteredClaims{
-		ExpiresAt: jwt.NewNumericDate(now.Add(s.config.JWT.RefreshTokenExpiry)),
+		ExpiresAt: jwt.NewNumericDate(now.Add(s.config.Security.JWTRefreshExpiry)),
 		IssuedAt:  jwt.NewNumericDate(now),
 		NotBefore: jwt.NewNumericDate(now),
-		Issuer:    "sme-tax-platform",
+		Issuer:    s.config.Application.Name,
 		Subject:   userID.String(),
 		ID:        uuid.New().String(),
 	}
 
-	refreshToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString([]byte(s.config.JWT.SecretKey))
+	refreshToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).
+		SignedString([]byte(s.config.Security.JWTSecretKey))
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -78,7 +81,7 @@ func (s *JWTService) ValidateToken(tokenString string) (*JWTClaims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(s.config.JWT.SecretKey), nil
+		return []byte(s.config.Security.JWTSecretKey), nil
 	})
 
 	if err != nil {
@@ -94,12 +97,16 @@ func (s *JWTService) ValidateToken(tokenString string) (*JWTClaims, error) {
 
 // RefreshToken generates a new access token from a refresh token
 func (s *JWTService) RefreshToken(refreshToken string) (accessToken string, err error) {
-	token, err := jwt.ParseWithClaims(refreshToken, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(s.config.JWT.SecretKey), nil
-	})
+	token, err := jwt.ParseWithClaims(
+		refreshToken,
+		&jwt.RegisteredClaims{},
+		func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte(s.config.Security.JWTSecretKey), nil
+		},
+	)
 
 	if err != nil {
 		return "", fmt.Errorf("failed to parse refresh token: %w", err)

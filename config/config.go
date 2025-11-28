@@ -1,9 +1,8 @@
 package config
 
 import (
+	"errors"
 	"fmt"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/spf13/viper"
@@ -11,15 +10,22 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Redis    RedisConfig    `mapstructure:"redis"`
-	JWT      JWTConfig      `mapstructure:"jwt"`
-	Security SecurityConfig `mapstructure:"security"`
-	Email    EmailConfig    `mapstructure:"email"`
-	SMS      SMSConfig      `mapstructure:"sms"`
-	Storage  StorageConfig  `mapstructure:"storage"`
-	Payment  PaymentConfig  `mapstructure:"payment"`
+	Application ApplicationConfig `mapstructure:"application"`
+	Server      ServerConfig      `mapstructure:"server"`
+	Database    DatabaseConfig    `mapstructure:"database"`
+	Redis       RedisConfig       `mapstructure:"redis"`
+	Security    SecurityConfig    `mapstructure:"security"`
+	Email       EmailConfig       `mapstructure:"email"`
+	SMS         SMSConfig         `mapstructure:"sms"`
+	Storage     StorageConfig     `mapstructure:"storage"`
+	Payment     PaymentConfig     `mapstructure:"payment"`
+}
+
+// ApplicationConfig holds application configuration
+type ApplicationConfig struct {
+	Name        string `mapstructure:"name"`
+	Version     string `mapstructure:"version"`
+	Environment string `mapstructure:"environment"`
 }
 
 // ServerConfig holds server configuration
@@ -29,6 +35,7 @@ type ServerConfig struct {
 	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
 	IdleTimeout  time.Duration `mapstructure:"idle_timeout"`
+	ExitTimeout  time.Duration `mapstructure:"exit_timeout"`
 	Mode         string        `mapstructure:"mode"` // development, staging, production
 }
 
@@ -50,13 +57,6 @@ type RedisConfig struct {
 	Port     int    `mapstructure:"port"`
 	Password string `mapstructure:"password"`
 	DB       int    `mapstructure:"db"`
-}
-
-// JWTConfig holds JWT configuration
-type JWTConfig struct {
-	SecretKey          string        `mapstructure:"secret_key"`
-	AccessTokenExpiry  time.Duration `mapstructure:"access_token_expiry"`
-	RefreshTokenExpiry time.Duration `mapstructure:"refresh_token_expiry"`
 }
 
 // SecurityConfig is defined in security.go file
@@ -166,10 +166,10 @@ func LoadConfig() (*Config, error) {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config")
-	viper.AddConfigPath("/etc/smetax/")
+	viper.AddConfigPath("/etc/openmind/")
 
 	// Set environment variable prefix
-	viper.SetEnvPrefix("SMETAX")
+	viper.SetEnvPrefix("OPENMIND")
 	viper.AutomaticEnv()
 
 	// Set default values
@@ -177,7 +177,8 @@ func LoadConfig() (*Config, error) {
 
 	// Read config file if it exists
 	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if errors.As(err, &configFileNotFoundError) {
 			return nil, fmt.Errorf("error reading config file: %w", err)
 		}
 	}
@@ -187,21 +188,24 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("error unmarshaling config: %w", err)
 	}
 
-	// Override with environment variables
-	overrideWithEnv(&config)
-
 	return &config, nil
 }
 
 // setDefaults sets default configuration values
 func setDefaults() {
+	// Application defaults
+	viper.SetDefault("application.name", "OpenMind")
+	viper.SetDefault("application.version", "0.0.1")
+	viper.SetDefault("application.environment", "development")
+
 	// Server defaults
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("server.read_timeout", "30s")
 	viper.SetDefault("server.write_timeout", "30s")
 	viper.SetDefault("server.idle_timeout", "60s")
-	viper.SetDefault("server.mode", "development")
+	viper.SetDefault("server.exit_timeout", "60s")
+	viper.SetDefault("server.mode", viper.GetString("application.environment"))
 
 	// Database defaults
 	viper.SetDefault("database.host", "localhost")
@@ -218,10 +222,6 @@ func setDefaults() {
 	viper.SetDefault("redis.port", 6379)
 	viper.SetDefault("redis.password", "")
 	viper.SetDefault("redis.db", 0)
-
-	// JWT defaults
-	viper.SetDefault("jwt.access_token_expiry", "15m")
-	viper.SetDefault("jwt.refresh_token_expiry", "7d")
 
 	// Security defaults
 	securityConfig := DefaultSecurityConfig()
@@ -259,36 +259,4 @@ func setDefaults() {
 	viper.SetDefault("security.request_timeout", securityConfig.RequestTimeout)
 	viper.SetDefault("security.max_request_per_ip", securityConfig.MaxRequestPerIP)
 	viper.SetDefault("security.max_request_per_user", securityConfig.MaxRequestPerUser)
-}
-
-// overrideWithEnv overrides config with environment variables
-func overrideWithEnv(config *Config) {
-	if host := os.Getenv("SMETAX_SERVER_HOST"); host != "" {
-		config.Server.Host = host
-	}
-	if port := os.Getenv("SMETAX_SERVER_PORT"); port != "" {
-		if p, err := strconv.Atoi(port); err == nil {
-			config.Server.Port = p
-		}
-	}
-	if dbHost := os.Getenv("SMETAX_DATABASE_HOST"); dbHost != "" {
-		config.Database.Host = dbHost
-	}
-	if dbPort := os.Getenv("SMETAX_DATABASE_PORT"); dbPort != "" {
-		if p, err := strconv.Atoi(dbPort); err == nil {
-			config.Database.Port = p
-		}
-	}
-	if dbUser := os.Getenv("SMETAX_DATABASE_USER"); dbUser != "" {
-		config.Database.User = dbUser
-	}
-	if dbPass := os.Getenv("SMETAX_DATABASE_PASSWORD"); dbPass != "" {
-		config.Database.Password = dbPass
-	}
-	if dbName := os.Getenv("SMETAX_DATABASE_DB_NAME"); dbName != "" {
-		config.Database.DBName = dbName
-	}
-	if jwtSecret := os.Getenv("SMETAX_JWT_SECRET_KEY"); jwtSecret != "" {
-		config.JWT.SecretKey = jwtSecret
-	}
 }
