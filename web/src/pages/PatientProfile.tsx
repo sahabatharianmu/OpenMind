@@ -41,7 +41,6 @@ import appointmentService from "@/services/appointmentService";
 import clinicalNoteService from "@/services/clinicalNoteService";
 import invoiceService from "@/services/invoiceService";
 import { useAuth } from "@/contexts/AuthContext";
-import { logAuditEvent } from "@/hooks/useAuditLog";
 import { format } from "date-fns";
 import { Patient, Appointment, ClinicalNote, Invoice } from "@/types";
 
@@ -78,7 +77,6 @@ const PatientProfile = () => {
 
       if (patientData) {
         setPatient(patientData);
-        logAuditEvent("patient", patientData.id, "read");
         
         // Filter client-side for now (Optimize later by updating API/Services)
         setAppointments(allAppointments.filter(a => a.patient_id === id) || []);

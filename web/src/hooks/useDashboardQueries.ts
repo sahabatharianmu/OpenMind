@@ -3,6 +3,7 @@ import patientService from "@/services/patientService";
 import appointmentService from "@/services/appointmentService";
 import clinicalNoteService from "@/services/clinicalNoteService";
 import invoiceService from "@/services/invoiceService";
+import { auditLogService, type AuditLogFilters } from "@/services/auditLogService";
 import { CreatePatientRequest } from "@/services/patientService";
 
 export const usePatients = () => {
@@ -34,6 +35,14 @@ export const useInvoices = () => {
     queryKey: ["invoices"],
     queryFn: () => invoiceService.list(),
     staleTime: 60 * 1000,
+  });
+};
+
+export const useAuditLogs = (page: number = 1, pageSize: number = 20, filters?: AuditLogFilters) => {
+  return useQuery({
+    queryKey: ["audit-logs", page, pageSize, filters],
+    queryFn: () => auditLogService.list(page, pageSize, filters),
+    staleTime: 30 * 1000, // 30 seconds (audit logs change frequently)
   });
 };
 
