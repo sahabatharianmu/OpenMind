@@ -1,116 +1,144 @@
-# OpenMind
-Provide mental health professionals with a secure, sovereign, and affordable platform to manage their practice without trading patient privacy for convenience.
+# OpenMind 🧠
 
-# **📂 OpenMind Project Structure**
+**Open Source Clinic Management System (EMR) for Mental Health Professionals.**
 
-This directory tree illustrates the **Modular Monolith** architecture.
+[![CI](https://github.com/sahabatharianmu/OpenMind/actions/workflows/ci.yml/badge.svg)](https://github.com/sahabatharianmu/OpenMind/actions/workflows/ci.yml)
+[![Docker Image Version (latest semver)](https://img.shields.io/docker/v/sahabatharianmu/openmind?label=docker)](https://hub.docker.com/r/sahabatharianmu/openmind)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-**Key Highlights:**
+OpenMind is a secure, sovereign, and affordable platform designed to help therapists and clinics manage their practice without trading patient privacy for convenience. Built with a "Privacy First" architecture, all clinical notes are encrypted at the application layer.
 
-1. **pkg/crypto/**: This is the "Vault." It contains the AES-256-GCM logic. It is isolated so it can be audited easily without touching the rest of the app.  
-2. **internal/modules/**: This is where the feature logic lives. auth, clinical, and finance are separate folders, enforcing clean boundaries.  
-3. **web/**: The React Frontend lives inside the same repo (Monorepo), simplifying versioning.
+---
 
-## **🌳 Root Directory**
+## ✨ Key Features
+
+- **🔐 Privacy-First Clinical Notes**: AES-256-GCM encryption for all SOAP notes. Your data is encrypted _before_ it hits the database.
+- **📅 Appointment Scheduling**: Drag-and-drop calendar for managing sessions.
+- **busts Patient Management**: Comprehensive patient profiles, history, and intake forms.
+- **💰 Invoicing & Billing**: Generate invoices, track payments, and manage superbills.
+- **⚡ Modern Performance**: Built with Go (Fiber/Hertz) and React for blazing fast interactions.
+- **🐳 Self-Hostable**: Single Docker container for easy deployment anywhere.
+
+## 🛠️ Tech Stack
+
+- **Backend**: Go 1.25+ (Hertz Framework)
+- **Frontend**: React 18, TypeScript, TailwindCSS, Vite
+- **Database**: PostgreSQL 18+
+- **Infrastructure**: Docker, Docker Compose
+
+---
+
+## 🚀 Getting Started (Self-Hosting)
+
+You can run OpenMind on any server with Docker installed (VPS, Raspberry Pi, Home Lab).
+
+### Prerequisites
+
+- Docker & Docker Compose installed.
+
+### Quick Start
+
+1.  **Run with Docker Compose**:
+    Create a `docker-compose.yml` file (or use the one in this repo):
+
+    ```yaml
+    version: "3.8"
+    services:
+      openmind:
+        image: sahabatharianmu/openmind:latest
+        ports:
+          - "8080:8080"
+        environment:
+          - OPENMIND_DATABASE_HOST=postgres
+          - OPENMIND_DATABASE_USER=postgres
+          - OPENMIND_DATABASE_PASSWORD=postgres
+          - OPENMIND_DATABASE_DB_NAME=openmind
+          - OPENMIND_SECURITY_JWT_SECRET_KEY=change-this-secret
+        depends_on:
+          - postgres
+
+      postgres:
+        image: postgres:18-alpine
+        environment:
+          - POSTGRES_USER=postgres
+          - POSTGRES_PASSWORD=postgres
+          - POSTGRES_DB=openmind
+        volumes:
+          - openmind_data:/var/lib/postgresql/data
+
+    volumes:
+      openmind_data:
+    ```
+
+2.  **Start the Server**:
+
+    ```bash
+    docker-compose up -d
+    ```
+
+3.  **Access the App**:
+    Open your browser to `http://localhost:8080`.
+
+---
+
+## 💻 Local Development
+
+If you want to contribute or modify the code:
+
+1.  **Clone the Repo**:
+
+    ```bash
+    git clone https://github.com/sahabatharianmu/OpenMind.git
+    cd OpenMind
+    ```
+
+2.  **Setup Environment**:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+3.  **Start Services (DB)**:
+
+    ```bash
+    docker-compose up -d postgres
+    ```
+
+4.  **Run Backend**:
+
+    ```bash
+    go mod download
+    go run cmd/server/main.go
+    ```
+
+5.  **Run Frontend**:
+    ```bash
+    cd web
+    bun install
+    bun run dev
+    ```
+
+---
+
+## 📂 Project Structure
+
+This project follows a **Modular Monolith** architecture.
 
 ```
-openmind/  
-├── .github/  
-│   └── workflows/  
-│       └── ci-cd.yml          \# The GitHub Action we designed  
-├── cmd/  
-│   └── server/  
-│       └── main.go            \# Entry Point: Wires up Modules \+ Starts Hertz  
-├── config/  
-│   └── config.yaml            \# Local dev config (GitIgnored in prod)  
-├── deploy/  
-│   ├── docker-compose.yml     \# Self-hosting setup  
-│   └── Dockerfile             \# Multi-stage build  
-├── internal/                  \# 🔒 Private Application Code  
-│   ├── core/                  \# Shared Kernel  
-│   │   ├── database/          \# GORM connection & migration runner  
-│   │   ├── middleware/        \# Hertz Middleware (Auth, CORS, Logging)  
-│   │   └── eventbus/          \# RabbitMQ integration  
-│   └── modules/               \# 📦 The Modular Monolith Domains  
-│       ├── auth/              \# Login, Session, RBAC  
-│       ├── clinical/          \# Patients, SOAP Notes  
-│       │   ├── dto/           \# JSON Request/Response structs  
-│       │   ├── entity/        \# GORM Database Models  
-│       │   ├── handler/       \# Hertz HTTP Controllers  
-│       │   ├── service/       \# Business Logic (Calls Crypto)  
-│       │   └── repository/    \# Database Queries  
-│       └── finance/           \# Invoicing, Superbills  
-├── pkg/                       \# 🔓 Public/Shared Libraries  
-│   ├── crypto/                \# 🛡️ THE ENCRYPTION ENGINE  
-│   │   ├── vault.go           \# Encrypt() / Decrypt() logic  
-│   │   └── vault\_test.go      \# Security Unit Tests  
-│   └── pdf/                   \# Maroto PDF Generator wrappers  
-├── web/                       \# ⚛️ React Frontend  
-│   ├── public/  
-│   ├── src/  
-│   │   ├── api/               \# Axios/Fetch wrappers  
-│   │   ├── components/        \# Shared UI (Buttons, Layouts)  
-│   │   ├── features/          \# Feature-based folder structure  
-│   │   │   ├── auth/          \# Login Forms, Context  
-│   │   │   ├── clinical/      \# Note Editor, Patient List  
-│   │   │   └── finance/       \# Invoice Viewer  
-│   │   ├── lib/               \# 3rd party setup (TanStack Query, Mantine)  
-│   │   └── main.tsx  
-│   ├── package.json  
-│   └── vite.config.ts  
-├── go.mod                     \# Go Dependencies  
-├── go.sum  
-└── Makefile                   \# Shortcuts (make run, make test)
+openmind/
+├── cmd/server/        # Entry Point
+├── internal/
+│   ├── modules/       # Domain Logic (Auth, Clinical, Finance)
+│   ├── core/          # Shared Kernel (Router, DB, Middleware)
+├── pkg/crypto/        # Encryption Engine (AES-256-GCM)
+├── web/               # React Frontend (Vite)
+└── deploy/            # Docker Configs
 ```
 
-## **🔍 Deep Dive: Where the "Magic" Happens**
+## 🤝 Contributing
 
-### **1\. The Encryption Engine (pkg/crypto/vault.go)**
+Contributions are welcome! Please check out the [Issues](https://github.com/sahabatharianmu/OpenMind/issues) tab.
 
-This package has **zero dependencies** on the rest of the app. It does one thing: mathematically secure data.
+## 📄 License
 
-package crypto
-
-// Vault handles the AES-GCM encryption  
-type Vault interface {  
-    Encrypt(plaintext \[\]byte) (ciphertext \[\]byte, nonce \[\]byte, keyID string, err error)  
-    Decrypt(ciphertext \[\]byte, nonce \[\]byte, keyID string) (plaintext \[\]byte, err error)  
-}
-
-### **2\. The Clinical Service (internal/modules/clinical/service/note\_service.go)**
-
-This is where we **use** the encryption. Notice how the Service layer calls the Vault before asking the Repository to save.
-
-func (s \*NoteService) CreateNote(ctx context.Context, content string) error {  
-    // 1\. Encrypt the sensitive content  
-    encryptedData, nonce, keyID, err := s.vault.Encrypt(\[\]byte(content))  
-    if err \!= nil {  
-        return err  
-    }
-
-    // 2\. Prepare the entity  
-    note := entity.ClinicalNote{  
-        ContentEncrypted: encryptedData, // Blob  
-        Nonce:            nonce,         // Blob  
-        KeyID:            keyID,         // String  
-        // ...  
-    }
-
-    // 3\. Save to DB (DB never sees plain text)  
-    return s.repo.Create(ctx, \&note)  
-}
-
-### **3\. The React Feature Folder (web/src/features/clinical/)**
-
-We organize frontend code by **Feature**, not by technical type. This scales better than putting everything in components/.
-
-web/src/features/clinical/  
-├── components/  
-│   ├── NoteEditor.tsx         \# The Rich Text Editor  
-│   ├── PatientCard.tsx        \# Display component  
-│   └── SOAPTemplate.tsx       \# The Form Layout  
-├── hooks/  
-│   ├── usePatient.ts          \# TanStack Query (GET /api/patients)  
-│   └── useSaveNote.ts         \# TanStack Query Mutation (POST /api/notes)  
-└── routes/  
-    └── ClinicalRoutes.tsx     \# Route definitions  
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** - see the [LICENSE](LICENSE) file for details.
