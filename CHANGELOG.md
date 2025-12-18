@@ -1,3 +1,11 @@
+# [1.0.0-alpha.3](https://github.com/sahabatharianmu/OpenMind/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2025-12-18)
+
+
+### Features
+
+* add initial web client setup including authentication and basic layout. ([3fe3e7f](https://github.com/sahabatharianmu/OpenMind/commit/3fe3e7fed224c80a41cc92da359dbe4daeffb160))
+* Enhance clinical notes with encryption and addendum functionality ([c2457af](https://github.com/sahabatharianmu/OpenMind/commit/c2457af88e30f445763ad43cac139dd1e6698b24))
+
 # [1.0.0-alpha.2](https://github.com/sahabatharianmu/OpenMind/compare/v1.0.0-alpha.1...v1.0.0-alpha.2) (2025-12-18)
 
 
