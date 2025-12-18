@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield, Lock, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, Shield, Lock, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
@@ -148,9 +148,7 @@ const Auth = () => {
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/10 via-accent to-background flex-col justify-center items-center p-12">
         <div className="max-w-md text-center">
-          <div className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-8">
-            <Brain className="w-12 h-12 text-primary-foreground" />
-          </div>
+          <img src="/SahariIcon.svg" alt="OpenMind" className="w-20 h-20 mx-auto mb-8" />
           <h1 className="text-4xl font-bold mb-4">OpenMind Practice</h1>
           <p className="text-lg text-muted-foreground mb-8">
             Secure, sovereign, and private practice management for mental health professionals.
@@ -172,9 +170,7 @@ const Auth = () => {
       <div className="flex-1 flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mx-auto mb-4 lg:hidden">
-              <Brain className="w-7 h-7 text-primary-foreground" />
-            </div>
+            <img src="/SahariIcon.svg" alt="OpenMind" className="w-12 h-12 mx-auto mb-4 lg:hidden" />
             <CardTitle className="text-2xl">Welcome</CardTitle>
             <CardDescription>
               Sign in to your account or create a new practice

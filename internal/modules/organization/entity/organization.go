@@ -17,9 +17,8 @@ type Organization struct {
 }
 
 type OrganizationMember struct {
-	OrganizationID uuid.UUID      `gorm:"type:uuid;not null"        json:"organization_id"`
-	UserID         uuid.UUID      `gorm:"type:uuid;not null"        json:"user_id"`
-	Role           string         `gorm:"type:varchar(50);not null" json:"role"` // owner, admin, member
-	CreatedAt      time.Time      `                                 json:"created_at"`
-	DeletedAt      gorm.DeletedAt `gorm:"index"                     json:"deleted_at,omitempty"`
+	OrganizationID uuid.UUID `gorm:"type:uuid;not null"        json:"organization_id"`
+	UserID         uuid.UUID `gorm:"type:uuid;not null"        json:"user_id"`
+	Role           string    `gorm:"type:varchar(50);not null" json:"role"` // owner, admin, member
+	CreatedAt      time.Time `                                 json:"created_at"`
 }
