@@ -1,6 +1,19 @@
 # [1.0.0-alpha.4](https://github.com/sahabatharianmu/OpenMind/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2025-12-18)
 
 
+### Bug Fixes
+
+* Serve static files from the dist directory in the router ([046f221](https://github.com/sahabatharianmu/OpenMind/commit/046f221f269996b2adc3a3e788ab20a3e0b7c711))
+
+
+### Features
+
+* Add currency and locale support for organizations and invoices ([d8c86b4](https://github.com/sahabatharianmu/OpenMind/commit/d8c86b4d6c8a63704abe286d5d14c689d3c30a7d))
+* Enhance clinical notes and invoices with new features ([c3735a3](https://github.com/sahabatharianmu/OpenMind/commit/c3735a319300b92ee5ea79a25feb031a297533b3))
+
+# [1.0.0-alpha.4](https://github.com/sahabatharianmu/OpenMind/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2025-12-18)
+
+
 ### Features
 
 * Add currency and locale support for organizations and invoices ([d8c86b4](https://github.com/sahabatharianmu/OpenMind/commit/d8c86b4d6c8a63704abe286d5d14c689d3c30a7d))
