@@ -130,10 +130,12 @@ const Appointments = () => {
       setIsAddDialogOpen(false);
       resetForm();
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
+       const err = error as { response?: { data?: { error?: { message?: string } } }; message?: string };
+       const message = err.response?.data?.error?.message || err.message || "Failed to schedule appointment";
        toast({
         title: "Error",
-        description: error.response?.data?.error?.message || "Failed to schedule appointment.",
+        description: message,
         variant: "destructive",
       });
     } finally {

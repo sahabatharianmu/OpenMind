@@ -4,12 +4,22 @@ export interface Organization {
   id: string;
   name: string;
   type: string;
+  tax_id?: string;
+  npi?: string;
+  address?: string;
+  currency: string;
+  locale: string;
   member_count: number;
   created_at: string;
 }
 
 export interface UpdateOrganizationRequest {
   name: string;
+  tax_id?: string;
+  npi?: string;
+  address?: string;
+  currency?: string;
+  locale?: string;
 }
 
 export const organizationService = {

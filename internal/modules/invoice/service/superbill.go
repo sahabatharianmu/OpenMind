@@ -16,7 +16,23 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/props"
 	"github.com/sahabatharianmu/OpenMind/pkg/response"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
+
+func formatCurrency(amountCents int, currencyCode string, locale string) string {
+	tag, err := language.Parse(locale)
+	if err != nil {
+		tag = language.AmericanEnglish
+	}
+	p := message.NewPrinter(tag)
+	
+	amount := float64(amountCents) / 100.0
+	
+	// Basic implementation: currency code + formatted number
+	// In a full implementation, we'd use currency-specific symbols and positions.
+	return p.Sprintf("%s %.2f", currencyCode, amount)
+}
 
 func (s *invoiceService) GenerateSuperbill(
 	ctx context.Context,
@@ -122,7 +138,7 @@ func (s *invoiceService) GenerateSuperbill(
 		col.New(3).Add(text.New(cptCode)),
 		col.New(3).Add(text.New(icd10Code)),
 		col.New(3).
-			Add(text.New(fmt.Sprintf("$%.2f", float64(invoice.AmountCents)/100.0), props.Text{Align: align.Right})),
+			Add(text.New(formatCurrency(invoice.AmountCents, org.Currency, org.Locale), props.Text{Align: align.Right})),
 	)
 
 	m.AddRows(tableHead, tableRow)
@@ -132,7 +148,7 @@ func (s *invoiceService) GenerateSuperbill(
 		row.New(20).Add(
 			col.New(8).Add(text.New("TOTAL PAID", props.Text{Top: 10, Style: fontstyle.Bold, Align: align.Right})),
 			col.New(4).
-				Add(text.New(fmt.Sprintf("$%.2f", float64(invoice.AmountCents)/100.0), props.Text{Top: 10, Style: fontstyle.Bold, Align: align.Right})),
+				Add(text.New(formatCurrency(invoice.AmountCents, org.Currency, org.Locale), props.Text{Top: 10, Style: fontstyle.Bold, Align: align.Right})),
 		),
 	)
 
