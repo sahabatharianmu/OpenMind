@@ -10,22 +10,22 @@ import (
 // User represents a user in the system
 type User struct {
 	ID           uuid.UUID      `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
-	CreatedAt    time.Time      `gorm:"autoCreateTime"               json:"created_at"`
-	UpdatedAt    time.Time      `gorm:"autoUpdateTime"               json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `gorm:"index"                        json:"-"`
-	Email        string         `gorm:"uniqueIndex;not null"         json:"email"`
-	PasswordHash string         `gorm:"not null"                     json:"-"` // Never return password hash in JSON
-	Role         string         `gorm:"not null;default:'clinician'" json:"role"`
-	FullName     string         `gorm:"not null"                     json:"full_name"`
+	CreatedAt    time.Time      `gorm:"autoCreateTime"                                  json:"created_at"`
+	UpdatedAt    time.Time      `gorm:"autoUpdateTime"                                  json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index"                                           json:"-"`
+	Email        string         `gorm:"uniqueIndex;not null"                            json:"email"`
+	PasswordHash string         `gorm:"not null"                                        json:"-"` // Never return password hash in JSON
+	Role         string         `gorm:"not null;default:'clinician'"                    json:"role"`
+	FullName     string         `gorm:"not null"                                        json:"full_name"`
 }
 
 type Organization struct {
 	ID        uuid.UUID      `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
-	Name      string         `gorm:"not null"                                     json:"name"`
-	Type      string         `gorm:"not null;default:'clinic'"                    json:"type"`
-	CreatedAt time.Time      `gorm:"autoCreateTime"                               json:"created_at"`
-	UpdatedAt time.Time      `gorm:"autoUpdateTime"                               json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index"                                        json:"-"`
+	Name      string         `gorm:"not null"                                        json:"name"`
+	Type      string         `gorm:"not null;default:'clinic'"                       json:"type"`
+	CreatedAt time.Time      `gorm:"autoCreateTime"                                  json:"created_at"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime"                                  json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index"                                           json:"-"`
 }
 
 func (Organization) TableName() string {
@@ -33,10 +33,10 @@ func (Organization) TableName() string {
 }
 
 type OrganizationMember struct {
-	OrganizationID uuid.UUID `gorm:"primaryKey;type:uuid" json:"organization_id"`
-	UserID         uuid.UUID `gorm:"primaryKey;type:uuid" json:"user_id"`
+	OrganizationID uuid.UUID `gorm:"primaryKey;type:uuid"      json:"organization_id"`
+	UserID         uuid.UUID `gorm:"primaryKey;type:uuid"      json:"user_id"`
 	Role           string    `gorm:"not null;default:'member'" json:"role"`
-	CreatedAt      time.Time `gorm:"autoCreateTime"           json:"created_at"`
+	CreatedAt      time.Time `gorm:"autoCreateTime"            json:"created_at"`
 }
 
 func (OrganizationMember) TableName() string {
