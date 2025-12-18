@@ -12,7 +12,11 @@ import (
 )
 
 type PatientService interface {
-	Create(ctx context.Context, req dto.CreatePatientRequest, organizationID, createdBy uuid.UUID) (*dto.PatientResponse, error)
+	Create(
+		ctx context.Context,
+		req dto.CreatePatientRequest,
+		organizationID, createdBy uuid.UUID,
+	) (*dto.PatientResponse, error)
 	Update(ctx context.Context, id uuid.UUID, req dto.UpdatePatientRequest) (*dto.PatientResponse, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	Get(ctx context.Context, id uuid.UUID) (*dto.PatientResponse, error)
@@ -32,7 +36,11 @@ func NewPatientService(repo repository.PatientRepository, log logger.Logger) Pat
 	}
 }
 
-func (s *patientService) Create(ctx context.Context, req dto.CreatePatientRequest, organizationID, createdBy uuid.UUID) (*dto.PatientResponse, error) {
+func (s *patientService) Create(
+	ctx context.Context,
+	req dto.CreatePatientRequest,
+	organizationID, createdBy uuid.UUID,
+) (*dto.PatientResponse, error) {
 	dob, err := time.Parse("2006-01-02", req.DateOfBirth)
 	if err != nil {
 		return nil, err
@@ -63,7 +71,11 @@ func (s *patientService) Create(ctx context.Context, req dto.CreatePatientReques
 	return s.mapEntityToResponse(patient), nil
 }
 
-func (s *patientService) Update(ctx context.Context, id uuid.UUID, req dto.UpdatePatientRequest) (*dto.PatientResponse, error) {
+func (s *patientService) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	req dto.UpdatePatientRequest,
+) (*dto.PatientResponse, error) {
 	patient, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
@@ -114,7 +126,11 @@ func (s *patientService) Get(ctx context.Context, id uuid.UUID) (*dto.PatientRes
 	return s.mapEntityToResponse(patient), nil
 }
 
-func (s *patientService) List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.PatientResponse, int64, error) {
+func (s *patientService) List(
+	ctx context.Context,
+	organizationID uuid.UUID,
+	page, pageSize int,
+) ([]dto.PatientResponse, int64, error) {
 	offset := (page - 1) * pageSize
 	patients, total, err := s.repo.List(organizationID, pageSize, offset)
 	if err != nil {
