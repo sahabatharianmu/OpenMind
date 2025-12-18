@@ -2,6 +2,8 @@ import { Users, Calendar, FileText, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { isSameDay, parseISO, subDays, isWithinInterval, startOfMonth } from "date-fns";
 import { usePatients, useAppointments, useClinicalNotes, useInvoices } from "@/hooks/useDashboardQueries";
+import { useEffect, useState } from "react";
+import { organizationService, Organization } from "@/services/organizationService";
 
 interface Stats {
   activePatients: number;
@@ -15,6 +17,11 @@ const StatsCards = () => {
   const { data: appointments, isLoading: appointmentsLoading } = useAppointments();
   const { data: notes, isLoading: notesLoading } = useClinicalNotes();
   const { data: invoices, isLoading: invoicesLoading } = useInvoices();
+  const [organization, setOrganization] = useState<Organization | null>(null);
+
+  useEffect(() => {
+    organizationService.getMyOrganization().then(setOrganization).catch(console.error);
+  }, []);
 
   const loading = patientsLoading || appointmentsLoading || notesLoading || invoicesLoading;
 
@@ -78,7 +85,10 @@ const StatsCards = () => {
     },
     {
       label: "Revenue (MTD)",
-      value: `$${monthlyRevenue.toLocaleString()}`,
+      value: new Intl.NumberFormat(organization?.locale || "en-US", {
+        style: "currency",
+        currency: organization?.currency || "USD",
+      }).format(monthlyRevenue),
       icon: DollarSign,
       color: "text-chart-1",
       bg: "bg-chart-1/10",
