@@ -37,6 +37,13 @@ export interface Appointment {
   updated_at: string;
 }
 
+export interface Addendum {
+  id: string;
+  clinician_id: string;
+  content: string;
+  signed_at: string;
+}
+
 export interface ClinicalNote {
   id: string;
   organization_id: string;
@@ -50,6 +57,7 @@ export interface ClinicalNote {
   plan?: string;
   is_signed: boolean;
   signed_at?: string;
+  addendums?: Addendum[];
   created_at: string;
   updated_at: string;
 }

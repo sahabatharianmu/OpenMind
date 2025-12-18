@@ -9,13 +9,14 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/modules/invoice/entity"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/invoice/repository"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
+	"github.com/sahabatharianmu/OpenMind/pkg/response"
 )
 
 type InvoiceService interface {
 	Create(ctx context.Context, req dto.CreateInvoiceRequest, organizationID uuid.UUID) (*dto.InvoiceResponse, error)
-	Update(ctx context.Context, id uuid.UUID, req dto.UpdateInvoiceRequest) (*dto.InvoiceResponse, error)
-	Delete(ctx context.Context, id uuid.UUID) error
-	Get(ctx context.Context, id uuid.UUID) (*dto.InvoiceResponse, error)
+	Update(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, req dto.UpdateInvoiceRequest) (*dto.InvoiceResponse, error)
+	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
+	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.InvoiceResponse, error)
 	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.InvoiceResponse, int64, error)
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
@@ -83,11 +84,16 @@ func (s *invoiceService) Create(
 func (s *invoiceService) Update(
 	ctx context.Context,
 	id uuid.UUID,
+	organizationID uuid.UUID,
 	req dto.UpdateInvoiceRequest,
 ) (*dto.InvoiceResponse, error) {
 	invoice, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
+	}
+
+	if invoice.OrganizationID != organizationID {
+		return nil, response.ErrNotFound
 	}
 
 	if req.AmountCents != nil {
@@ -124,15 +130,29 @@ func (s *invoiceService) Update(
 	return s.mapEntityToResponse(invoice), nil
 }
 
-func (s *invoiceService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *invoiceService) Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error {
+	invoice, err := s.repo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	if invoice.OrganizationID != organizationID {
+		return response.ErrNotFound
+	}
+
 	return s.repo.Delete(id)
 }
 
-func (s *invoiceService) Get(ctx context.Context, id uuid.UUID) (*dto.InvoiceResponse, error) {
+func (s *invoiceService) Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.InvoiceResponse, error) {
 	invoice, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
+
+	if invoice.OrganizationID != organizationID {
+		return nil, response.ErrNotFound
+	}
+
 	return s.mapEntityToResponse(invoice), nil
 }
 
