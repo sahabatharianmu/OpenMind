@@ -7,10 +7,10 @@ import (
 )
 
 type CreateClinicalNoteRequest struct {
-	PatientID     uuid.UUID  `json:"patient_id" validate:"required"`
-	ClinicianID   uuid.UUID  `json:"clinician_id" validate:"required"`
+	PatientID     uuid.UUID  `json:"patient_id"     validate:"required"`
+	ClinicianID   uuid.UUID  `json:"clinician_id"   validate:"required"`
 	AppointmentID *uuid.UUID `json:"appointment_id"`
-	NoteType      string     `json:"note_type" validate:"required"`
+	NoteType      string     `json:"note_type"      validate:"required"`
 	Subjective    *string    `json:"subjective"`
 	Objective     *string    `json:"objective"`
 	Assessment    *string    `json:"assessment"`

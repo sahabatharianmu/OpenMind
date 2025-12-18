@@ -12,7 +12,11 @@ import (
 )
 
 type AppointmentService interface {
-	Create(ctx context.Context, req dto.CreateAppointmentRequest, organizationID uuid.UUID) (*dto.AppointmentResponse, error)
+	Create(
+		ctx context.Context,
+		req dto.CreateAppointmentRequest,
+		organizationID uuid.UUID,
+	) (*dto.AppointmentResponse, error)
 	Update(ctx context.Context, id uuid.UUID, req dto.UpdateAppointmentRequest) (*dto.AppointmentResponse, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	Get(ctx context.Context, id uuid.UUID) (*dto.AppointmentResponse, error)
@@ -32,7 +36,11 @@ func NewAppointmentService(repo repository.AppointmentRepository, log logger.Log
 	}
 }
 
-func (s *appointmentService) Create(ctx context.Context, req dto.CreateAppointmentRequest, organizationID uuid.UUID) (*dto.AppointmentResponse, error) {
+func (s *appointmentService) Create(
+	ctx context.Context,
+	req dto.CreateAppointmentRequest,
+	organizationID uuid.UUID,
+) (*dto.AppointmentResponse, error) {
 	startTime, err := time.Parse(time.RFC3339, req.StartTime)
 	if err != nil {
 		return nil, err
@@ -67,7 +75,11 @@ func (s *appointmentService) Create(ctx context.Context, req dto.CreateAppointme
 	return s.mapEntityToResponse(appointment), nil
 }
 
-func (s *appointmentService) Update(ctx context.Context, id uuid.UUID, req dto.UpdateAppointmentRequest) (*dto.AppointmentResponse, error) {
+func (s *appointmentService) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	req dto.UpdateAppointmentRequest,
+) (*dto.AppointmentResponse, error) {
 	appointment, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
@@ -119,7 +131,11 @@ func (s *appointmentService) Get(ctx context.Context, id uuid.UUID) (*dto.Appoin
 	return s.mapEntityToResponse(appointment), nil
 }
 
-func (s *appointmentService) List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.AppointmentResponse, int64, error) {
+func (s *appointmentService) List(
+	ctx context.Context,
+	organizationID uuid.UUID,
+	page, pageSize int,
+) ([]dto.AppointmentResponse, int64, error) {
 	offset := (page - 1) * pageSize
 	appointments, total, err := s.repo.List(organizationID, pageSize, offset)
 	if err != nil {

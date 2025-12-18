@@ -12,7 +12,11 @@ import (
 )
 
 type ClinicalNoteService interface {
-	Create(ctx context.Context, req dto.CreateClinicalNoteRequest, organizationID uuid.UUID) (*dto.ClinicalNoteResponse, error)
+	Create(
+		ctx context.Context,
+		req dto.CreateClinicalNoteRequest,
+		organizationID uuid.UUID,
+	) (*dto.ClinicalNoteResponse, error)
 	Update(ctx context.Context, id uuid.UUID, req dto.UpdateClinicalNoteRequest) (*dto.ClinicalNoteResponse, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	Get(ctx context.Context, id uuid.UUID) (*dto.ClinicalNoteResponse, error)
@@ -32,7 +36,11 @@ func NewClinicalNoteService(repo repository.ClinicalNoteRepository, log logger.L
 	}
 }
 
-func (s *clinicalNoteService) Create(ctx context.Context, req dto.CreateClinicalNoteRequest, organizationID uuid.UUID) (*dto.ClinicalNoteResponse, error) {
+func (s *clinicalNoteService) Create(
+	ctx context.Context,
+	req dto.CreateClinicalNoteRequest,
+	organizationID uuid.UUID,
+) (*dto.ClinicalNoteResponse, error) {
 	var signedAt *time.Time
 	if req.IsSigned {
 		now := time.Now()
@@ -61,7 +69,11 @@ func (s *clinicalNoteService) Create(ctx context.Context, req dto.CreateClinical
 	return s.mapEntityToResponse(note), nil
 }
 
-func (s *clinicalNoteService) Update(ctx context.Context, id uuid.UUID, req dto.UpdateClinicalNoteRequest) (*dto.ClinicalNoteResponse, error) {
+func (s *clinicalNoteService) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	req dto.UpdateClinicalNoteRequest,
+) (*dto.ClinicalNoteResponse, error) {
 	note, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
@@ -111,7 +123,11 @@ func (s *clinicalNoteService) Get(ctx context.Context, id uuid.UUID) (*dto.Clini
 	return s.mapEntityToResponse(note), nil
 }
 
-func (s *clinicalNoteService) List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.ClinicalNoteResponse, int64, error) {
+func (s *clinicalNoteService) List(
+	ctx context.Context,
+	organizationID uuid.UUID,
+	page, pageSize int,
+) ([]dto.ClinicalNoteResponse, int64, error) {
 	offset := (page - 1) * pageSize
 	notes, total, err := s.repo.List(organizationID, pageSize, offset)
 	if err != nil {

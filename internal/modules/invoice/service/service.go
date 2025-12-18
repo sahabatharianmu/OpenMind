@@ -32,7 +32,11 @@ func NewInvoiceService(repo repository.InvoiceRepository, log logger.Logger) Inv
 	}
 }
 
-func (s *invoiceService) Create(ctx context.Context, req dto.CreateInvoiceRequest, organizationID uuid.UUID) (*dto.InvoiceResponse, error) {
+func (s *invoiceService) Create(
+	ctx context.Context,
+	req dto.CreateInvoiceRequest,
+	organizationID uuid.UUID,
+) (*dto.InvoiceResponse, error) {
 	status := "pending"
 	if req.Status != "" {
 		status = req.Status
@@ -76,7 +80,11 @@ func (s *invoiceService) Create(ctx context.Context, req dto.CreateInvoiceReques
 	return s.mapEntityToResponse(invoice), nil
 }
 
-func (s *invoiceService) Update(ctx context.Context, id uuid.UUID, req dto.UpdateInvoiceRequest) (*dto.InvoiceResponse, error) {
+func (s *invoiceService) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	req dto.UpdateInvoiceRequest,
+) (*dto.InvoiceResponse, error) {
 	invoice, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
@@ -128,7 +136,11 @@ func (s *invoiceService) Get(ctx context.Context, id uuid.UUID) (*dto.InvoiceRes
 	return s.mapEntityToResponse(invoice), nil
 }
 
-func (s *invoiceService) List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.InvoiceResponse, int64, error) {
+func (s *invoiceService) List(
+	ctx context.Context,
+	organizationID uuid.UUID,
+	page, pageSize int,
+) ([]dto.InvoiceResponse, int64, error) {
 	offset := (page - 1) * pageSize
 	invoices, total, err := s.repo.List(organizationID, pageSize, offset)
 	if err != nil {

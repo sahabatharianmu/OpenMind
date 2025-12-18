@@ -66,7 +66,10 @@ func (r *clinicalNoteRepository) FindByID(id uuid.UUID) (*entity.ClinicalNote, e
 	return &note, nil
 }
 
-func (r *clinicalNoteRepository) List(organizationID uuid.UUID, limit, offset int) ([]entity.ClinicalNote, int64, error) {
+func (r *clinicalNoteRepository) List(
+	organizationID uuid.UUID,
+	limit, offset int,
+) ([]entity.ClinicalNote, int64, error) {
 	var notes []entity.ClinicalNote
 	var total int64
 
