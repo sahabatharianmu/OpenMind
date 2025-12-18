@@ -68,12 +68,13 @@ func main() {
 
 	jwtService := security.NewJWTService(cfg)
 	passwordService := crypto.NewPasswordService(cfg)
+	encryptService := crypto.NewEncryptionService(cfg)
 
 	authService := userService.NewAuthService(userRepo, jwtService, passwordService, appLogger)
 	userSvc := userService.NewUserService(userRepo, appLogger)
 	patientSvc := patientService.NewPatientService(patientRepo, appLogger)
 	appointmentSvc := service.NewAppointmentService(appointmentRepo, appLogger)
-	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, appLogger)
+	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, encryptService, appLogger)
 	invoiceSvc := invoiceService.NewInvoiceService(invoiceRepo, appLogger)
 	auditLogSvc := auditLogService.NewAuditLogService(auditLogRepo, appLogger)
 	organizationSvc := organizationService.NewOrganizationService(organizationRepo, appLogger)
@@ -81,8 +82,9 @@ func main() {
 		organizationRepo,
 		patientRepo,
 		appointmentRepo,
-		clinicalNoteRepo,
+		clinicalNoteSvc,
 		invoiceRepo,
+		auditLogSvc,
 		appLogger,
 	)
 
@@ -98,6 +100,7 @@ func main() {
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	auditMiddleware := middleware.NewAuditMiddleware(auditLogSvc)
+	rbacMiddleware := middleware.NewRBACMiddleware()
 
 	h := server.New(
 		server.WithHostPorts(fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)),
@@ -120,6 +123,7 @@ func main() {
 		exportHdlr,
 		authMiddleware,
 		auditMiddleware,
+		rbacMiddleware,
 	)
 
 	h.OnShutdown = append(h.OnShutdown, func(_ context.Context) {

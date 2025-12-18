@@ -88,6 +88,7 @@ const AuditLogs = () => {
                     <SelectItem value="appointment">Appointment</SelectItem>
                     <SelectItem value="clinical_note">Clinical Note</SelectItem>
                     <SelectItem value="invoice">Invoice</SelectItem>
+                    <SelectItem value="export">Data Export</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

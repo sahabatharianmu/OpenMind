@@ -29,7 +29,9 @@ import {
   Save, 
   CheckCircle2, 
   Lock,
-  FileText
+  FileText,
+  Plus,
+  Shield
 } from "lucide-react";
 import clinicalNoteService from "@/services/clinicalNoteService";
 import patientService from "@/services/patientService";
@@ -59,6 +61,9 @@ const NoteEditor = () => {
   const [isSigned, setIsSigned] = useState(false);
   const [signedAt, setSignedAt] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [addendums, setAddendums] = useState<any[]>([]);
+  const [newAddendum, setNewAddendum] = useState("");
+  const [addingAddendum, setAddingAddendum] = useState(false);
 
   useEffect(() => {
     fetchPatients();
@@ -90,6 +95,7 @@ const NoteEditor = () => {
         setIsSigned(data.is_signed);
         setSignedAt(data.signed_at || null);
         setCreatedAt(data.created_at);
+        setAddendums(data.addendums || []);
       }
     } catch (error) {
       toast({
@@ -164,6 +170,29 @@ const NoteEditor = () => {
     }
   };
 
+  const handleAddAddendum = async () => {
+    if (!id || !newAddendum.trim()) return;
+
+    setAddingAddendum(true);
+    try {
+      const data = await clinicalNoteService.addAddendum(id, newAddendum);
+      setAddendums([...addendums, data]);
+      setNewAddendum("");
+      toast({
+        title: "Addendum Added",
+        description: "The addendum has been successfully added to this note.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add addendum.",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingAddendum(false);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -191,6 +220,10 @@ const NoteEditor = () => {
               <h1 className="text-2xl font-bold">
                 {isNew ? "New Clinical Note" : "Edit Note"}
               </h1>
+              <Badge variant="outline" className="gap-1 bg-green-50 text-green-700 border-green-200">
+                <Shield className="w-3 h-3" />
+                AES-256 Encrypted
+              </Badge>
               {isSigned && (
                 <Badge className="gap-1">
                   <Lock className="w-3 h-3" />
@@ -349,6 +382,67 @@ const NoteEditor = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Addendums Section */}
+        {isSigned && (
+          <div className="space-y-6 mb-6">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Addendums
+            </h3>
+            
+            {addendums.length > 0 ? (
+              <div className="space-y-4">
+                {addendums.map((addendum, index) => (
+                  <Card key={addendum.id || index} className="border-l-4 border-l-primary">
+                    <CardHeader className="py-3">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-sm font-medium">
+                          Addendum #{index + 1}
+                        </CardTitle>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(addendum.signed_at), "MMMM d, yyyy 'at' h:mm a")}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm whitespace-pre-wrap">{addendum.content}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No addendums yet.</p>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Add New Addendum</CardTitle>
+                <CardDescription>
+                  Enter additional information or corrections for this signed note.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Textarea
+                  placeholder="Enter addendum content..."
+                  value={newAddendum}
+                  onChange={(e) => setNewAddendum(e.target.value)}
+                  className="min-h-[100px]"
+                />
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleAddAddendum} 
+                    disabled={addingAddendum || !newAddendum.trim()}
+                    className="gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    {addingAddendum ? "Adding..." : "Save Addendum"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Actions */}
         {!isSigned && (

@@ -1,12 +1,14 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
 	appointmentRepo "github.com/sahabatharianmu/OpenMind/internal/modules/appointment/repository"
-	clinicalNoteRepo "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/repository"
+	auditLogService "github.com/sahabatharianmu/OpenMind/internal/modules/audit_log/service"
+	clinicalNoteService "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/service"
 	invoiceRepo "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/repository"
 	organizationRepo "github.com/sahabatharianmu/OpenMind/internal/modules/organization/repository"
 	patientRepo "github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
@@ -20,29 +22,32 @@ type ExportService interface {
 }
 
 type exportService struct {
-	orgRepo          organizationRepo.OrganizationRepository
-	patientRepo      patientRepo.PatientRepository
-	appointmentRepo  appointmentRepo.AppointmentRepository
-	clinicalNoteRepo clinicalNoteRepo.ClinicalNoteRepository
-	invoiceRepo      invoiceRepo.InvoiceRepository
-	log              logger.Logger
+	orgRepo         organizationRepo.OrganizationRepository
+	patientRepo     patientRepo.PatientRepository
+	appointmentRepo appointmentRepo.AppointmentRepository
+	clinicalNoteSvc clinicalNoteService.ClinicalNoteService
+	invoiceRepo     invoiceRepo.InvoiceRepository
+	auditLogSvc     auditLogService.AuditLogService
+	log             logger.Logger
 }
 
 func NewExportService(
 	orgRepo organizationRepo.OrganizationRepository,
 	patientRepo patientRepo.PatientRepository,
 	appointmentRepo appointmentRepo.AppointmentRepository,
-	clinicalNoteRepo clinicalNoteRepo.ClinicalNoteRepository,
+	clinicalNoteSvc clinicalNoteService.ClinicalNoteService,
 	invoiceRepo invoiceRepo.InvoiceRepository,
+	auditLogSvc auditLogService.AuditLogService,
 	log logger.Logger,
 ) ExportService {
 	return &exportService{
-		orgRepo:          orgRepo,
-		patientRepo:      patientRepo,
-		appointmentRepo:  appointmentRepo,
-		clinicalNoteRepo: clinicalNoteRepo,
-		invoiceRepo:      invoiceRepo,
-		log:              log,
+		orgRepo:         orgRepo,
+		patientRepo:     patientRepo,
+		appointmentRepo: appointmentRepo,
+		clinicalNoteSvc: clinicalNoteSvc,
+		invoiceRepo:     invoiceRepo,
+		auditLogSvc:     auditLogSvc,
+		log:             log,
 	}
 }
 
@@ -75,7 +80,7 @@ func (s *exportService) ExportAllData(userID uuid.UUID) (map[string][]byte, erro
 	}
 
 	// Export clinical notes
-	notes, _, err := s.clinicalNoteRepo.List(org.ID, 1, 10000)
+	notes, _, err := s.clinicalNoteSvc.List(context.Background(), org.ID, 1, 10000)
 	if err != nil {
 		s.log.Error("Failed to fetch clinical notes for export", zap.Error(err))
 	} else {
@@ -100,6 +105,15 @@ func (s *exportService) ExportAllData(userID uuid.UUID) (map[string][]byte, erro
 	}
 	data, _ := json.MarshalIndent(orgData, "", "  ")
 	files["organization.json"] = data
+
+	// Export audit logs
+	logs, _, err := s.auditLogSvc.List(context.Background(), org.ID, 1, 10000, nil)
+	if err != nil {
+		s.log.Error("Failed to fetch audit logs for export", zap.Error(err))
+	} else {
+		data, _ = json.MarshalIndent(logs, "", "  ")
+		files["audit_logs.json"] = data
+	}
 
 	s.log.Info("Data export completed", zap.String("org_id", org.ID.String()), zap.Int("file_count", len(files)))
 

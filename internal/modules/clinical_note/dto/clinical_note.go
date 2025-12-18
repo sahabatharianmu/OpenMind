@@ -39,7 +39,20 @@ type ClinicalNoteResponse struct {
 	Assessment     *string    `json:"assessment"`
 	Plan           *string    `json:"plan"`
 	IsSigned       bool       `json:"is_signed"`
-	SignedAt       *time.Time `json:"signed_at"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	SignedAt       *time.Time         `json:"signed_at"`
+	Addendums      []AddendumResponse `json:"addendums,omitempty"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
+}
+
+type AddAddendumRequest struct {
+	Content     string    `json:"content" validate:"required"`
+	ClinicianID uuid.UUID `json:"clinician_id" validate:"required"`
+}
+
+type AddendumResponse struct {
+	ID          uuid.UUID `json:"id"`
+	ClinicianID uuid.UUID `json:"clinician_id"`
+	Content     string    `json:"content"`
+	SignedAt    time.Time `json:"signed_at"`
 }

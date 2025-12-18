@@ -38,6 +38,11 @@ const clinicalNoteService = {
     return response.data.data;
   },
 
+  addAddendum: async (id: string, content: string) => {
+    const response = await api.post<{ data: any }>(`/clinical-notes/${id}/addendums`, { content });
+    return response.data.data;
+  },
+
   delete: async (id: string) => {
     const response = await api.delete(`/clinical-notes/${id}`);
     return response.data;

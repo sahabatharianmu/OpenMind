@@ -9,6 +9,7 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/modules/patient/entity"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
+	"github.com/sahabatharianmu/OpenMind/pkg/response"
 )
 
 type PatientService interface {
@@ -17,9 +18,9 @@ type PatientService interface {
 		req dto.CreatePatientRequest,
 		organizationID, createdBy uuid.UUID,
 	) (*dto.PatientResponse, error)
-	Update(ctx context.Context, id uuid.UUID, req dto.UpdatePatientRequest) (*dto.PatientResponse, error)
-	Delete(ctx context.Context, id uuid.UUID) error
-	Get(ctx context.Context, id uuid.UUID) (*dto.PatientResponse, error)
+	Update(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, req dto.UpdatePatientRequest) (*dto.PatientResponse, error)
+	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
+	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.PatientResponse, error)
 	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.PatientResponse, int64, error)
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
@@ -74,11 +75,16 @@ func (s *patientService) Create(
 func (s *patientService) Update(
 	ctx context.Context,
 	id uuid.UUID,
+	organizationID uuid.UUID,
 	req dto.UpdatePatientRequest,
 ) (*dto.PatientResponse, error) {
 	patient, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
+	}
+
+	if patient.OrganizationID != organizationID {
+		return nil, response.ErrNotFound
 	}
 
 	if req.FirstName != "" {
@@ -114,15 +120,29 @@ func (s *patientService) Update(
 	return s.mapEntityToResponse(patient), nil
 }
 
-func (s *patientService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *patientService) Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error {
+	patient, err := s.repo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	if patient.OrganizationID != organizationID {
+		return response.ErrNotFound
+	}
+
 	return s.repo.Delete(id)
 }
 
-func (s *patientService) Get(ctx context.Context, id uuid.UUID) (*dto.PatientResponse, error) {
+func (s *patientService) Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.PatientResponse, error) {
 	patient, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
+
+	if patient.OrganizationID != organizationID {
+		return nil, response.ErrNotFound
+	}
+
 	return s.mapEntityToResponse(patient), nil
 }
 
