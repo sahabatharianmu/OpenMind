@@ -1,6 +1,9 @@
 package router
 
 import (
+	"context"
+
+	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/sahabatharianmu/OpenMind/internal/core/middleware"
 	appointmentHandler "github.com/sahabatharianmu/OpenMind/internal/modules/appointment/handler"
@@ -58,4 +61,16 @@ func RegisterRoutes(h *server.Hertz, authHandler *handler.AuthHandler, patientHa
 			invoices.DELETE("/:id", invoiceHandler.Delete)
 		}
 	}
+
+	h.Static("/assets", "./web/dist")
+	h.StaticFile("/favicon.ico", "./web/dist/favicon.ico")
+
+	h.NoRoute(func(ctx context.Context, c *app.RequestContext) {
+		path := string(c.Request.URI().Path())
+		if len(path) >= 4 && path[:4] == "/api" {
+			c.JSON(404, map[string]interface{}{"error": "Not Found"})
+			return
+		}
+		c.File("./web/dist/index.html")
+	})
 }

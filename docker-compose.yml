@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  openmind:
+    build: .
+    ports:
+      - "12366:8080"
+    environment:
+      - OPENMIND_DATABASE_HOST=postgres
+      - OPENMIND_DATABASE_PORT=5432
+      - OPENMIND_DATABASE_USER=postgres
+      - OPENMIND_DATABASE_PASSWORD=postgres
+      - OPENMIND_DATABASE_DB_NAME=openmind
+      - OPENMIND_SECURITY_JWT_SECRET_KEY=dev-secret-key-change-me
+      - OPENMIND_SERVER_PORT=8080
+      - OPENMIND_SERVER_MODE=release
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:18-alpine
+    ports:
+      - "12367:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=openmind
+    volumes:
+      - openmind_data:/var/lib/postgresql/data
+
+volumes:
+  openmind_data:

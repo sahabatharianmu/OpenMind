@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -173,17 +174,17 @@ func LoadConfig() (*Config, error) {
 	viper.AddConfigPath("./config")
 	viper.AddConfigPath("/etc/openmind/")
 
-	// Set environment variable prefix
 	viper.SetEnvPrefix("OPENMIND")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
-	// Set default values
 	setDefaults()
 
-	// Read config file if it exists
 	if err := viper.ReadInConfig(); err != nil {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
+			// Config file not found is fine, we might be running purely on Env vars
+		} else {
 			return nil, fmt.Errorf("error reading config file: %w", err)
 		}
 	}

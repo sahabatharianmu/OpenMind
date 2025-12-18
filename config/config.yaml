@@ -10,8 +10,8 @@ server:
 database:
   host: localhost
   port: 5432
-  user: irfansaf
-  password: irfan12345
+  user: user
+  password: password
   db_name: openmind
   ssl_mode: disable
   max_open_conns: 25
