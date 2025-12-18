@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/entity"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
 	"go.uber.org/zap"
@@ -13,6 +14,9 @@ type UserRepository interface {
 	Create(user *entity.User) error
 	CreateWithOrganization(user *entity.User, organization *entity.Organization) error
 	FindByEmail(email string) (*entity.User, error)
+	GetByID(id uuid.UUID) (*entity.User, error)
+	Update(user *entity.User) error
+	CountUsers() (int64, error)
 }
 
 type userRepository struct {
@@ -74,4 +78,34 @@ func (r *userRepository) FindByEmail(email string) (*entity.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *userRepository) GetByID(id uuid.UUID) (*entity.User, error) {
+	var user entity.User
+	err := r.db.Where("id = ?", id).First(&user).Error
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			r.log.Error("Failed to find user by ID", zap.Error(err), zap.String("id", id.String()))
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *userRepository) Update(user *entity.User) error {
+	if err := r.db.Save(user).Error; err != nil {
+		r.log.Error("Failed to update user", zap.Error(err), zap.String("id", user.ID.String()))
+		return err
+	}
+	return nil
+}
+
+func (r *userRepository) CountUsers() (int64, error) {
+	var count int64
+	err := r.db.Model(&entity.User{}).Count(&count).Error
+	if err != nil {
+		r.log.Error("Failed to count users", zap.Error(err))
+		return 0, err
+	}
+	return count, nil
 }

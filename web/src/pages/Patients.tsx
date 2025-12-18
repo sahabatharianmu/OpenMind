@@ -36,7 +36,6 @@ import {
 import patientService from "@/services/patientService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { logAuditEvent } from "@/hooks/useAuditLog";
 import { format } from "date-fns";
 import { Patient } from "@/types";
 
@@ -97,11 +96,6 @@ const Patients = () => {
         address: newAddress || undefined,
       });
 
-      // Log audit event (Needs update: logAuditEvent usually takes string ID. Backend response returns Patient object)
-      if (newPatient && newPatient.id) {
-        logAuditEvent("patient", newPatient.id, "create");
-      }
-      
       toast({
         title: "Patient Added",
         description: `${newFirstName} ${newLastName} has been added.`,
