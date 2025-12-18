@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,11 +6,176 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Building2, Shield, Database } from "lucide-react";
+import { User, Building2, Shield, Database, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { userService } from "@/services/userService";
+import { organizationService } from "@/services/organizationService";
+import { exportService } from "@/services/exportService";
+import type { UserProfile } from "@/services/userService";
+import type { Organization } from "@/services/organizationService";
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [fullName, setFullName] = useState("");
+  const [loading, setLoading] = useState(false);
+  
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [orgName, setOrgName] = useState("");
+  const [orgLoading, setOrgLoading] = useState(false);
+  
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  useEffect(() => {
+    loadProfile();
+    loadOrganization();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      const data = await userService.getProfile();
+      setProfile(data);
+      setFullName(data.full_name);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load profile",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadOrganization = async () => {
+    try {
+      const data = await organizationService.getMyOrganization();
+      setOrganization(data);
+      setOrgName(data.name);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load organization",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!fullName.trim()) {
+      toast({
+        title: "Error",
+        description: "Name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const updated = await userService.updateProfile({ full_name: fullName });
+      setProfile(updated);
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      toast({
+        title: "Error",
+        description: "All fields are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await userService.changePassword({
+        old_password: oldPassword,
+        new_password: newPassword,
+      });
+      
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      
+      toast({
+        title: "Success",
+        description: "Password changed successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to change password",
+        variant: "destructive",
+      });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleUpdateOrganization = async () => {
+    if (!orgName.trim()) {
+      toast({
+        title: "Error",
+        description: "Organization name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setOrgLoading(true);
+    try {
+      const updated = await organizationService.updateOrganization({ name: orgName });
+      setOrganization(updated);
+      toast({
+        title: "Success",
+        description: "Organization updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update organization",
+        variant: "destructive",
+      });
+    } finally {
+      setOrgLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -46,7 +212,7 @@ const Settings = () => {
               <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
                 <CardDescription>
-                  View your personal information. Editing is currently disabled during system upgrade.
+                  Update your personal information
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -54,8 +220,9 @@ const Settings = () => {
                   <Label htmlFor="fullName">Full Name</Label>
                   <Input
                     id="fullName"
-                    value={user?.full_name || "User"}
-                    disabled
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter your full name"
                   />
                 </div>
                 <div className="space-y-2">
@@ -63,11 +230,17 @@ const Settings = () => {
                   <Input
                     id="email"
                     type="email"
-                    value={user?.email || ""}
+                    value={profile?.email || user?.email || ""}
                     disabled
                     className="bg-muted"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Email cannot be changed
+                  </p>
                 </div>
+                <Button onClick={handleUpdateProfile} disabled={loading}>
+                  {loading ? "Saving..." : "Save Changes"}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -75,15 +248,48 @@ const Settings = () => {
           <TabsContent value="practice">
             <Card>
               <CardHeader>
-                <CardTitle>Practice Details</CardTitle>
+                <CardTitle>Organization Details</CardTitle>
                 <CardDescription>
-                  View your practice information.
+                  Manage your practice information
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                 <div className="p-4 bg-muted/50 rounded-lg text-center">
-                    <p className="text-muted-foreground">Practice settings migration in progress.</p>
-                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="orgName">Organization Name</Label>
+                  <Input
+                    id="orgName"
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    placeholder="Enter organization name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Type</Label>
+                  <Input
+                    value={organization?.type || "-"}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Member Count</Label>
+                  <Input
+                    value={organization?.member_count?.toString() || "0"}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Created</Label>
+                  <Input
+                    value={organization?.created_at ? new Date(organization.created_at).toLocaleDateString() : "-"}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <Button onClick={handleUpdateOrganization} disabled={orgLoading}>
+                  {orgLoading ? "Saving..." : "Save Changes"}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -99,13 +305,42 @@ const Settings = () => {
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium mb-1">Password</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Password updates are temporarily disabled.
-                    </p>
-                    <Button variant="outline" disabled>
-                      Change Password (Coming Soon)
-                    </Button>
+                    <h4 className="font-medium mb-3">Change Password</h4>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="oldPassword">Current Password</Label>
+                        <Input
+                          id="oldPassword"
+                          type="password"
+                          value={oldPassword}
+                          onChange={(e) => setOldPassword(e.target.value)}
+                          placeholder="Enter current password"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">New Password</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Enter new password (min 8 characters)"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Confirm new password"
+                        />
+                      </div>
+                      <Button onClick={handleChangePassword} disabled={passwordLoading}>
+                        {passwordLoading ? "Changing..." : "Change Password"}
+                      </Button>
+                    </div>
                   </div>
                   <Separator />
                   <div>
@@ -113,7 +348,10 @@ const Settings = () => {
                      <p className="text-sm text-muted-foreground mb-3">
                       Sign out of your session on this device.
                     </p>
-                    {/* Sign out is handled in sidebar, but good to have here too maybe? */}
+                    <Button variant="destructive" onClick={signOut} className="gap-2">
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -132,11 +370,39 @@ const Settings = () => {
                 <div>
                   <h4 className="font-medium mb-1">Clinic Takeout</h4>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Data export functionality is being upgraded to support the new database structure.
+                    Download all your practice data including patients, appointments, clinical notes, and invoices as a ZIP file.
                   </p>
-                  <Button disabled className="gap-2">
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        const blob = await exportService.exportAllData();
+                        
+                        const url = window.URL.createObjectURL(new Blob([blob], { type: "application/zip" }));
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `openmind-export-${new Date().toISOString().split("T")[0]}.zip`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        toast({
+                          title: "Success",
+                          description: "Data exported successfully",
+                        });
+                      } catch (error: any) {
+                        console.error("Export error:", error);
+                        toast({
+                          title: "Error",
+                          description: error.response?.data?.error?.message || "Failed to export data",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    className="gap-2"
+                  >
                     <Database className="w-4 h-4" />
-                    Download All Data (Coming Soon)
+                    Download All Data
                   </Button>
                 </div>
               </CardContent>
