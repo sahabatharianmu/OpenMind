@@ -17,6 +17,7 @@ type Appointment struct {
 	Status         string         `gorm:"not null;default:'scheduled'"                    json:"status"`
 	Type           string         `gorm:"column:appointment_type;not null"                json:"appointment_type"`
 	Mode           string         `gorm:"not null"                                        json:"mode"`
+	CPTCode        string         `gorm:"type:varchar(20)"                                json:"cpt_code"`
 	Notes          *string        `gorm:""                                                json:"notes"`
 	CreatedAt      time.Time      `gorm:"autoCreateTime"                                  json:"created_at"`
 	UpdatedAt      time.Time      `gorm:"autoUpdateTime"                                  json:"updated_at"`

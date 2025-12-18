@@ -18,7 +18,12 @@ type PatientService interface {
 		req dto.CreatePatientRequest,
 		organizationID, createdBy uuid.UUID,
 	) (*dto.PatientResponse, error)
-	Update(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, req dto.UpdatePatientRequest) (*dto.PatientResponse, error)
+	Update(
+		ctx context.Context,
+		id uuid.UUID,
+		organizationID uuid.UUID,
+		req dto.UpdatePatientRequest,
+	) (*dto.PatientResponse, error)
 	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
 	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.PatientResponse, error)
 	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.PatientResponse, int64, error)
@@ -133,7 +138,11 @@ func (s *patientService) Delete(ctx context.Context, id uuid.UUID, organizationI
 	return s.repo.Delete(id)
 }
 
-func (s *patientService) Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.PatientResponse, error) {
+func (s *patientService) Get(
+	ctx context.Context,
+	id uuid.UUID,
+	organizationID uuid.UUID,
+) (*dto.PatientResponse, error) {
 	patient, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
