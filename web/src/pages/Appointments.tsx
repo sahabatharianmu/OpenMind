@@ -55,6 +55,7 @@ const Appointments = () => {
   const [duration, setDuration] = useState("50");
   const [appointmentType, setAppointmentType] = useState("session");
   const [mode, setMode] = useState("in-person");
+  const [cptCode, setCptCode] = useState("90837");
 
   useEffect(() => {
     fetchData();
@@ -118,6 +119,7 @@ const Appointments = () => {
         end_time: endTime.toISOString(),
         appointment_type: appointmentType,
         mode: mode,
+        cpt_code: cptCode,
         status: 'scheduled'
       });
 
@@ -128,10 +130,10 @@ const Appointments = () => {
       setIsAddDialogOpen(false);
       resetForm();
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
        toast({
         title: "Error",
-        description: "Failed to schedule appointment.",
+        description: error.response?.data?.error?.message || "Failed to schedule appointment.",
         variant: "destructive",
       });
     } finally {
@@ -244,17 +246,28 @@ const Appointments = () => {
                     </Select>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Mode</Label>
-                  <Select value={mode} onValueChange={setMode}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="in-person">In-person</SelectItem>
-                      <SelectItem value="video">Video Call</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Mode</Label>
+                    <Select value={mode} onValueChange={setMode}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="in-person">In-person</SelectItem>
+                        <SelectItem value="video">Video Call</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cptCode">CPT Code</Label>
+                    <Input
+                      id="cptCode"
+                      placeholder="e.g. 90837"
+                      value={cptCode}
+                      onChange={(e) => setCptCode(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? "Scheduling..." : "Schedule Appointment"}
