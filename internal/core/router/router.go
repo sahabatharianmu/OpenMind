@@ -110,10 +110,14 @@ func RegisterRoutes(
 	}
 
 	// Static files mapping
+	// Map /assets prefix to the dist folder (Hertz will look in dist/assets)
+	h.Static("/assets", "./web/dist")
+	
+	// Map root-level files individually for maximum reliability
 	h.StaticFile("/SahariIcon.svg", "./web/dist/SahariIcon.svg")
 	h.StaticFile("/favicon.ico", "./web/dist/favicon.ico")
 	h.StaticFile("/robots.txt", "./web/dist/robots.txt")
-	h.Static("/assets", "./web/dist/assets")
+	h.StaticFile("/placeholder.svg", "./web/dist/placeholder.svg")
 
 	h.NoRoute(func(ctx context.Context, c *app.RequestContext) {
 		path := string(c.Request.URI().Path())
