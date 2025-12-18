@@ -1,3 +1,11 @@
+# [1.0.0-alpha.4](https://github.com/sahabatharianmu/OpenMind/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2025-12-18)
+
+
+### Features
+
+* Add currency and locale support for organizations and invoices ([d8c86b4](https://github.com/sahabatharianmu/OpenMind/commit/d8c86b4d6c8a63704abe286d5d14c689d3c30a7d))
+* Enhance clinical notes and invoices with new features ([c3735a3](https://github.com/sahabatharianmu/OpenMind/commit/c3735a319300b92ee5ea79a25feb031a297533b3))
+
 # [1.0.0-alpha.3](https://github.com/sahabatharianmu/OpenMind/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2025-12-18)
 
 
