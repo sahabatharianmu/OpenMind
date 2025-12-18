@@ -1,4 +1,3 @@
-import { Brain } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Footer = () => {
@@ -9,9 +8,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Brain className="w-4 h-4 text-primary-foreground" />
-              </div>
+              <img src="/SahariIcon.svg" alt="OpenMind" className="w-8 h-8" />
               <span className="font-bold">OpenMind</span>
             </Link>
             <p className="text-sm text-muted-foreground">

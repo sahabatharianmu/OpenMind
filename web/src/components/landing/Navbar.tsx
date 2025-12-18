@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Brain, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import {
@@ -23,9 +23,7 @@ const Navbar = () => {
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <Brain className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img src="/SahariIcon.svg" alt="OpenMind" className="w-10 h-10" />
           <span className="font-bold text-xl hidden sm:block">OpenMind</span>
         </Link>
 
