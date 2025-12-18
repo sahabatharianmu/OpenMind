@@ -2,6 +2,8 @@ package router
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
@@ -109,15 +111,26 @@ func RegisterRoutes(
 		}
 	}
 
-	h.Static("/assets", "./web/dist")
-	h.StaticFile("/favicon.ico", "./web/dist/favicon.ico")
-
 	h.NoRoute(func(ctx context.Context, c *app.RequestContext) {
 		path := string(c.Request.URI().Path())
 		if len(path) >= 4 && path[:4] == "/api" {
 			c.JSON(404, map[string]interface{}{"error": "Not Found"})
 			return
 		}
+
+		// Try to serve static file from dist first (e.g. SahariIcon.svg, robots.txt)
+		// Strip leading slash to make it relative for filepath.Join
+		relPath := path
+		if len(relPath) > 0 && relPath[0] == '/' {
+			relPath = relPath[1:]
+		}
+		distPath := filepath.Join("web/dist", filepath.Clean(relPath))
+		
+		if info, err := os.Stat(distPath); err == nil && !info.IsDir() {
+			c.File(distPath)
+			return
+		}
+
 		c.File("./web/dist/index.html")
 	})
 }
