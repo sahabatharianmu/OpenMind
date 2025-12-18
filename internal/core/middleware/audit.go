@@ -19,12 +19,14 @@ func NewAuditMiddleware(auditSvc auditLogService.AuditLogService) *AuditMiddlewa
 
 func (m *AuditMiddleware) Middleware() app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
-		// Get request details
 		method := string(c.Method())
 		path := string(c.Path())
 
-		// Only log write operations (POST, PUT, DELETE)
-		if method != "POST" && method != "PUT" && method != "DELETE" {
+		// Log all write operations (POST, PUT, DELETE) and sensitive READ (GET) operations
+		isWrite := method == "POST" || method == "PUT" || method == "DELETE"
+		isSensitiveRead := method == "GET" && isSensitivePath(path)
+
+		if !isWrite && !isSensitiveRead {
 			c.Next(ctx)
 			return
 		}
@@ -86,9 +88,30 @@ func methodToAction(method string) string {
 		return "update"
 	case "DELETE":
 		return "delete"
+	case "GET":
+		return "read"
 	default:
 		return "unknown"
 	}
+}
+
+func isSensitivePath(path string) bool {
+	// Path format: /api/v1/{resource}/{id?}
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) < 3 {
+		return false
+	}
+
+	resource := parts[2]
+	sensitiveResources := map[string]bool{
+		"patients":       true,
+		"clinical-notes": true,
+		"appointments":   true,
+		"invoices":       true,
+		"export":         true,
+	}
+
+	return sensitiveResources[resource]
 }
 
 func parseResourceFromPath(path string, c *app.RequestContext) (string, *uuid.UUID) {

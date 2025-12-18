@@ -29,6 +29,7 @@ func RegisterRoutes(
 	exportHandler *exportHandler.ExportHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	auditMiddleware *middleware.AuditMiddleware,
+	rbacMiddleware *middleware.RBACMiddleware,
 ) {
 	api := h.Group("/api")
 	v1 := api.Group("/v1")
@@ -55,48 +56,51 @@ func RegisterRoutes(
 		organizations := protected.Group("/organizations")
 		{
 			organizations.GET("/me", organizationHandler.GetMyOrganization)
-			organizations.PUT("/me", organizationHandler.UpdateOrganization)
+			organizations.PUT("/me", rbacMiddleware.HasRole("admin"), organizationHandler.UpdateOrganization)
 		}
 
-		protected.GET("/export", exportHandler.ExportData)
+		protected.GET("/export", rbacMiddleware.HasRole("admin"), exportHandler.ExportData)
 
 		patients := protected.Group("/patients")
 		{
-			patients.POST("", patientHandler.Create)
+			patients.POST("", rbacMiddleware.HasRole("clinician"), patientHandler.Create)
 			patients.GET("", patientHandler.List)
 			patients.GET("/:id", patientHandler.Get)
-			patients.PUT("/:id", patientHandler.Update)
-			patients.DELETE("/:id", patientHandler.Delete)
+			patients.PUT("/:id", rbacMiddleware.HasRole("clinician"), patientHandler.Update)
+			patients.DELETE("/:id", rbacMiddleware.HasRole("admin"), patientHandler.Delete)
 		}
 
 		appointments := protected.Group("/appointments")
 		{
-			appointments.POST("", appointmentHandler.Create)
+			appointments.POST("", rbacMiddleware.HasRole("clinician"), appointmentHandler.Create)
 			appointments.GET("", appointmentHandler.List)
 			appointments.GET("/:id", appointmentHandler.Get)
-			appointments.PUT("/:id", appointmentHandler.Update)
-			appointments.DELETE("/:id", appointmentHandler.Delete)
+			appointments.PUT("/:id", rbacMiddleware.HasRole("clinician"), appointmentHandler.Update)
+			appointments.DELETE("/:id", rbacMiddleware.HasRole("clinician"), appointmentHandler.Delete)
 		}
 
 		clinicalNotes := protected.Group("/clinical-notes")
+		clinicalNotes.Use(rbacMiddleware.HasRole("clinician"))
 		{
 			clinicalNotes.POST("", clinicalNoteHandler.Create)
 			clinicalNotes.GET("", clinicalNoteHandler.List)
 			clinicalNotes.GET("/:id", clinicalNoteHandler.Get)
 			clinicalNotes.PUT("/:id", clinicalNoteHandler.Update)
 			clinicalNotes.DELETE("/:id", clinicalNoteHandler.Delete)
+			clinicalNotes.POST("/:id/addendums", clinicalNoteHandler.AddAddendum)
 		}
 
 		invoices := protected.Group("/invoices")
 		{
-			invoices.POST("", invoiceHandler.Create)
+			invoices.POST("", rbacMiddleware.HasRole("admin"), invoiceHandler.Create)
 			invoices.GET("", invoiceHandler.List)
 			invoices.GET("/:id", invoiceHandler.Get)
-			invoices.PUT("/:id", invoiceHandler.Update)
-			invoices.DELETE("/:id", invoiceHandler.Delete)
+			invoices.PUT("/:id", rbacMiddleware.HasRole("admin"), invoiceHandler.Update)
+			invoices.DELETE("/:id", rbacMiddleware.HasRole("admin"), invoiceHandler.Delete)
 		}
 
 		auditLogs := protected.Group("/audit-logs")
+		auditLogs.Use(rbacMiddleware.HasRole("admin"))
 		{
 			auditLogs.GET("", auditLogHandler.List)
 		}

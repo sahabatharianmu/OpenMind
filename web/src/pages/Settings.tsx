@@ -361,16 +361,16 @@ const Settings = () => {
           <TabsContent value="data">
             <Card>
               <CardHeader>
-                <CardTitle>Data Export</CardTitle>
+                <CardTitle>Practice Sovereignty</CardTitle>
                 <CardDescription>
-                  Export your practice data.
+                  Your data belongs to you. Export your entire practice history for backup or migration.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h4 className="font-medium mb-1">Clinic Takeout</h4>
+                  <h4 className="font-medium mb-1">Clinic Takeout (Full Export)</h4>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Download all your practice data including patients, appointments, clinical notes, and invoices as a ZIP file.
+                    Download a comprehensive ZIP archive containing all patients, appointments, clinical notes (including addendums), invoices, and an immutable audit log of all system access.
                   </p>
                   <Button 
                     onClick={async () => {
