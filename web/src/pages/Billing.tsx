@@ -57,6 +57,7 @@ import { format } from "date-fns";
 import { InvoiceDetailDialog } from "@/components/billing/InvoiceDetailDialog";
 import { RevenueChart } from "@/components/billing/RevenueChart";
 import { exportInvoicesToCSV } from "@/components/billing/exportInvoices";
+import { organizationService, Organization } from "@/services/organizationService";
 import { Invoice, Patient, Appointment } from "@/types";
 
 // Extended types for UI
@@ -85,6 +86,7 @@ const Billing = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<UIInvoice | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [organization, setOrganization] = useState<Organization | null>(null);
 
   // New invoice form
   const [selectedPatient, setSelectedPatient] = useState("");
@@ -102,12 +104,14 @@ const Billing = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [invoicesData, patientsData, appointmentsData] = await Promise.all([
+      const [invoicesData, patientsData, appointmentsData, orgData] = await Promise.all([
         invoiceService.list(),
         patientService.list(),
-        appointmentService.list()
+        appointmentService.list(),
+        organizationService.getMyOrganization()
       ]);
 
+      setOrganization(orgData);
       const allPatients = patientsData || [];
       const allAppointments = appointmentsData || [];
       const allInvoices = invoicesData || [];
@@ -273,9 +277,9 @@ const Billing = () => {
   });
 
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(organization?.locale || "en-US", {
       style: "currency",
-      currency: "USD",
+      currency: organization?.currency || "USD",
     }).format(cents / 100);
   };
 
@@ -376,7 +380,7 @@ const Billing = () => {
                     </div>
                   )}
                   <div className="space-y-2">
-                    <Label htmlFor="amount">Amount ($)</Label>
+                    <Label htmlFor="amount">Amount ({organization?.currency || "$" })</Label>
                     <Input
                       id="amount"
                       type="number"
@@ -460,7 +464,11 @@ const Billing = () => {
 
         {/* Revenue Chart */}
         <div className="mb-6">
-          <RevenueChart invoices={invoices} />
+          <RevenueChart 
+            invoices={invoices} 
+            currency={organization?.currency} 
+            locale={organization?.locale} 
+          />
         </div>
 
         {/* Filters */}

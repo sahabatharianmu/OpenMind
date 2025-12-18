@@ -43,6 +43,11 @@ func (s *organizationService) GetMyOrganization(userID uuid.UUID) (*dto.Organiza
 		ID:          org.ID,
 		Name:        org.Name,
 		Type:        org.Type,
+		TaxID:       org.TaxID,
+		NPI:         org.NPI,
+		Address:     org.Address,
+		Currency:    org.Currency,
+		Locale:      org.Locale,
 		MemberCount: int(memberCount),
 		CreatedAt:   org.CreatedAt,
 	}, nil
@@ -59,6 +64,21 @@ func (s *organizationService) UpdateOrganization(
 	}
 
 	org.Name = req.Name
+	if req.TaxID != "" {
+		org.TaxID = req.TaxID
+	}
+	if req.NPI != "" {
+		org.NPI = req.NPI
+	}
+	if req.Address != "" {
+		org.Address = req.Address
+	}
+	if req.Currency != "" {
+		org.Currency = req.Currency
+	}
+	if req.Locale != "" {
+		org.Locale = req.Locale
+	}
 
 	if err := s.repo.Update(org); err != nil {
 		s.log.Error("UpdateOrganization failed: update error", zap.Error(err))
@@ -73,6 +93,11 @@ func (s *organizationService) UpdateOrganization(
 		ID:          org.ID,
 		Name:        org.Name,
 		Type:        org.Type,
+		TaxID:       org.TaxID,
+		NPI:         org.NPI,
+		Address:     org.Address,
+		Currency:    org.Currency,
+		Locale:      org.Locale,
 		MemberCount: int(memberCount),
 		CreatedAt:   org.CreatedAt,
 	}, nil
