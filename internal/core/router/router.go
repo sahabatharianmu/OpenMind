@@ -87,6 +87,8 @@ func RegisterRoutes(
 			clinicalNotes.PUT("/:id", clinicalNoteHandler.Update)
 			clinicalNotes.DELETE("/:id", clinicalNoteHandler.Delete)
 			clinicalNotes.POST("/:id/addendums", clinicalNoteHandler.AddAddendum)
+			clinicalNotes.POST("/:id/attachments", clinicalNoteHandler.UploadAttachment)
+			clinicalNotes.GET("/attachments/:attachment_id", clinicalNoteHandler.DownloadAttachment)
 		}
 
 		invoices := protected.Group("/invoices")
@@ -96,6 +98,7 @@ func RegisterRoutes(
 			invoices.GET("/:id", invoiceHandler.Get)
 			invoices.PUT("/:id", rbacMiddleware.HasRole("admin"), invoiceHandler.Update)
 			invoices.DELETE("/:id", rbacMiddleware.HasRole("admin"), invoiceHandler.Delete)
+			invoices.GET("/:id/superbill", invoiceHandler.DownloadSuperbill)
 		}
 
 		auditLogs := protected.Group("/audit-logs")

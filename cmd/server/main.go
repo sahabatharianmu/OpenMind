@@ -75,7 +75,14 @@ func main() {
 	patientSvc := patientService.NewPatientService(patientRepo, appLogger)
 	appointmentSvc := service.NewAppointmentService(appointmentRepo, appLogger)
 	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, encryptService, appLogger)
-	invoiceSvc := invoiceService.NewInvoiceService(invoiceRepo, appLogger)
+	invoiceSvc := invoiceService.NewInvoiceService(
+		invoiceRepo,
+		organizationRepo,
+		patientRepo,
+		appointmentRepo,
+		clinicalNoteRepo,
+		appLogger,
+	)
 	auditLogSvc := auditLogService.NewAuditLogService(auditLogRepo, appLogger)
 	organizationSvc := organizationService.NewOrganizationService(organizationRepo, appLogger)
 	exportSvc := exportService.NewExportService(

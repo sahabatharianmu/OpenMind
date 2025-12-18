@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,7 +19,12 @@ type AppointmentService interface {
 		req dto.CreateAppointmentRequest,
 		organizationID uuid.UUID,
 	) (*dto.AppointmentResponse, error)
-	Update(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, req dto.UpdateAppointmentRequest) (*dto.AppointmentResponse, error)
+	Update(
+		ctx context.Context,
+		id uuid.UUID,
+		organizationID uuid.UUID,
+		req dto.UpdateAppointmentRequest,
+	) (*dto.AppointmentResponse, error)
 	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
 	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.AppointmentResponse, error)
 	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.AppointmentResponse, int64, error)
@@ -67,6 +73,17 @@ func (s *appointmentService) Create(
 		Type:           req.Type,
 		Mode:           req.Mode,
 		Notes:          req.Notes,
+	}
+
+	// Conflict Detection
+	overlap, err := s.repo.CheckOverlap(organizationID, req.ClinicianID, startTime, endTime, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for schedule conflicts: %w", err)
+	}
+	if overlap {
+		return nil, response.NewConflict(
+			"Scheduling conflict: This clinician already has an appointment during this time.",
+		)
 	}
 
 	if err := s.repo.Create(appointment); err != nil {
@@ -118,6 +135,23 @@ func (s *appointmentService) Update(
 		appointment.Notes = req.Notes
 	}
 
+	// Conflict Detection for Update
+	overlap, err := s.repo.CheckOverlap(
+		organizationID,
+		appointment.ClinicianID,
+		appointment.StartTime,
+		appointment.EndTime,
+		&id,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for schedule conflicts: %w", err)
+	}
+	if overlap {
+		return nil, response.NewConflict(
+			"Scheduling conflict: This clinician already has an appointment during this time.",
+		)
+	}
+
 	if err := s.repo.Update(appointment); err != nil {
 		return nil, err
 	}
@@ -138,7 +172,11 @@ func (s *appointmentService) Delete(ctx context.Context, id uuid.UUID, organizat
 	return s.repo.Delete(id)
 }
 
-func (s *appointmentService) Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.AppointmentResponse, error) {
+func (s *appointmentService) Get(
+	ctx context.Context,
+	id uuid.UUID,
+	organizationID uuid.UUID,
+) (*dto.AppointmentResponse, error) {
 	appointment, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err

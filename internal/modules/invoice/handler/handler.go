@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/cloudwego/hertz/pkg/app"
@@ -179,4 +180,36 @@ func (h *InvoiceHandler) Delete(_ context.Context, c *app.RequestContext) {
 	}
 
 	c.JSON(consts.StatusOK, response.Success("Invoice deleted successfully", nil))
+}
+
+func (h *InvoiceHandler) DownloadSuperbill(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid invoice ID", nil)
+		return
+	}
+
+	pdfBytes, err := h.svc.GenerateSuperbill(context.Background(), id, orgID)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.Header("Content-Type", "application/pdf")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=superbill-%s.pdf", id.String()[:8]))
+	c.Write(pdfBytes)
 }

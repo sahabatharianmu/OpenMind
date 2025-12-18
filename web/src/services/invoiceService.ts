@@ -41,6 +41,13 @@ const invoiceService = {
     const response = await api.delete(`/invoices/${id}`);
     return response.data;
   },
+
+  downloadSuperbill: async (id: string) => {
+    const response = await api.get(`/invoices/${id}/superbill`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
 };
 
 export default invoiceService;

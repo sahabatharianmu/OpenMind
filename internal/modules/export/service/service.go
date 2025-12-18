@@ -86,6 +86,16 @@ func (s *exportService) ExportAllData(userID uuid.UUID) (map[string][]byte, erro
 	} else {
 		data, _ := json.MarshalIndent(notes, "", "  ")
 		files["clinical_notes.json"] = data
+
+		// Also export raw attachment files (decrypted)
+		for _, note := range notes {
+			for _, att := range note.Attachments {
+				_, data, _, err := s.clinicalNoteSvc.DownloadAttachment(context.Background(), att.ID, org.ID)
+				if err == nil {
+					files[fmt.Sprintf("attachments/%s_%s", att.ID.String()[:8], att.FileName)] = data
+				}
+			}
+		}
 	}
 
 	// Export invoices

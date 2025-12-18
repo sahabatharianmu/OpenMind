@@ -9,6 +9,7 @@ import (
 )
 
 type OrganizationRepository interface {
+	GetByID(id uuid.UUID) (*entity.Organization, error)
 	GetByUserID(userID uuid.UUID) (*entity.Organization, error)
 	GetMemberCount(orgID uuid.UUID) (int64, error)
 	Update(org *entity.Organization) error
@@ -24,6 +25,15 @@ func NewOrganizationRepository(db *gorm.DB, log logger.Logger) OrganizationRepos
 		db:  db,
 		log: log,
 	}
+}
+
+func (r *organizationRepository) GetByID(id uuid.UUID) (*entity.Organization, error) {
+	var org entity.Organization
+	if err := r.db.First(&org, "id = ?", id).Error; err != nil {
+		r.log.Error("Failed to get organization by ID", zap.Error(err), zap.String("id", id.String()))
+		return nil, err
+	}
+	return &org, nil
 }
 
 func (r *organizationRepository) GetByUserID(userID uuid.UUID) (*entity.Organization, error) {

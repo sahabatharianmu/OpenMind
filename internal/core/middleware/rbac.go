@@ -23,7 +23,7 @@ func (m *RBACMiddleware) HasRole(allowedRoles ...string) app.HandlerFunc {
 		}
 
 		role := roleVal.(string)
-		
+
 		// Admin can access everything
 		if role == "admin" {
 			c.Next(ctx)
@@ -47,4 +47,3 @@ func (m *RBACMiddleware) HasRole(allowedRoles ...string) app.HandlerFunc {
 		c.Next(ctx)
 	}
 }
-

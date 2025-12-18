@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/cloudwego/hertz/pkg/app"
@@ -222,4 +223,93 @@ func (h *ClinicalNoteHandler) AddAddendum(_ context.Context, c *app.RequestConte
 	}
 
 	c.JSON(consts.StatusCreated, response.Success("Addendum added successfully", resp))
+}
+
+func (h *ClinicalNoteHandler) UploadAttachment(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
+	idStr := c.Param("id")
+	noteID, err := uuid.Parse(idStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid clinical note ID", nil)
+		return
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		response.BadRequest(c, "No file uploaded", nil)
+		return
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		response.InternalServerError(c, "Failed to open file")
+		return
+	}
+	defer f.Close()
+
+	// Read file data into memory
+	data := make([]byte, file.Size)
+	if _, err := f.Read(data); err != nil {
+		response.InternalServerError(c, "Failed to read file")
+		return
+	}
+
+	resp, err := h.svc.UploadAttachment(
+		context.Background(),
+		noteID,
+		orgID,
+		file.Filename,
+		file.Header.Get("Content-Type"),
+		data,
+	)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.JSON(consts.StatusCreated, response.Success("Attachment uploaded successfully", resp))
+}
+
+func (h *ClinicalNoteHandler) DownloadAttachment(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
+	attachmentIDStr := c.Param("attachment_id")
+	attachmentID, err := uuid.Parse(attachmentIDStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid attachment ID", nil)
+		return
+	}
+
+	fileName, data, contentType, err := h.svc.DownloadAttachment(context.Background(), attachmentID, orgID)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.Header("Content-Type", contentType)
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	c.Write(data)
 }

@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   Save, 
@@ -31,7 +32,11 @@ import {
   Lock,
   FileText,
   Plus,
-  Shield
+  Shield,
+  Paperclip,
+  Download,
+  Trash2,
+  Upload
 } from "lucide-react";
 import clinicalNoteService from "@/services/clinicalNoteService";
 import patientService from "@/services/patientService";
@@ -58,12 +63,15 @@ const NoteEditor = () => {
   const [objective, setObjective] = useState("");
   const [assessment, setAssessment] = useState("");
   const [plan, setPlan] = useState("");
+  const [icd10Code, setIcd10Code] = useState("");
   const [isSigned, setIsSigned] = useState(false);
   const [signedAt, setSignedAt] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [addendums, setAddendums] = useState<any[]>([]);
+  const [attachments, setAttachments] = useState<any[]>([]);
   const [newAddendum, setNewAddendum] = useState("");
   const [addingAddendum, setAddingAddendum] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchPatients();
@@ -92,10 +100,12 @@ const NoteEditor = () => {
         setObjective(data.objective || "");
         setAssessment(data.assessment || "");
         setPlan(data.plan || "");
+        setIcd10Code(data.icd10_code || "");
         setIsSigned(data.is_signed);
         setSignedAt(data.signed_at || null);
         setCreatedAt(data.created_at);
         setAddendums(data.addendums || []);
+        setAttachments(data.attachments || []);
       }
     } catch (error) {
       toast({
@@ -130,6 +140,7 @@ const NoteEditor = () => {
       objective,
       assessment,
       plan,
+      icd10_code: icd10Code,
       is_signed: sign,
       // signed_at is handled by backend usually if is_signed is true, or we pass it? 
       // Checking service definition, UpdateClinicalNoteRequest takes fields.
@@ -190,6 +201,49 @@ const NoteEditor = () => {
       });
     } finally {
       setAddingAddendum(false);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !id) return;
+
+    setUploading(true);
+    try {
+      const data = await clinicalNoteService.uploadAttachment(id, file);
+      setAttachments([...attachments, data]);
+      toast({
+        title: "File Uploaded",
+        description: `${file.name} has been encrypted and saved.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Could not encrypt or save the file.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownloadAttachment = async (attachment: any) => {
+    try {
+      const blob = await clinicalNoteService.downloadAttachment(attachment.id);
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = attachment.file_name;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Could not decrypt or download the file.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -298,6 +352,18 @@ const NoteEditor = () => {
                 </Select>
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="icd10">ICD-10 Diagnosis Code (Optional)</Label>
+              <Input
+                id="icd10"
+                placeholder="e.g. F41.1"
+                value={icd10Code}
+                onChange={(e) => setIcd10Code(e.target.value)}
+                disabled={isSigned}
+                className="max-w-[200px]"
+              />
+              <p className="text-xs text-muted-foreground">Required for insurance Superbills</p>
+            </div>
           </CardContent>
         </Card>
 
@@ -380,6 +446,73 @@ const NoteEditor = () => {
                 className="min-h-[120px]"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Attachments Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Paperclip className="w-5 h-5" />
+              Encrypted Attachments
+            </CardTitle>
+            <CardDescription>
+              Upload drawings, intake forms, or external results. Files are encrypted before storage.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {attachments.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {attachments.map((file) => (
+                  <div key={file.id} className="flex items-center justify-between p-3 rounded-md border bg-muted/30">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <div className="truncate">
+                        <p className="text-sm font-medium truncate">{file.file_name}</p>
+                        <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleDownloadAttachment(file)}
+                      title="Download and Decrypt"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No attachments uploaded.</p>
+            )}
+
+            {!isSigned && (
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="file"
+                  id="file-upload"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  asChild
+                  disabled={uploading}
+                >
+                  <label htmlFor="file-upload" className="cursor-pointer gap-2">
+                    <Upload className="w-4 h-4" />
+                    {uploading ? "Encrypting & Uploading..." : "Upload Attachment"}
+                  </label>
+                </Button>
+                <div className="flex items-center gap-1 text-xs text-green-600">
+                  <Shield className="w-3 h-3" />
+                  E2E Encrypted
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

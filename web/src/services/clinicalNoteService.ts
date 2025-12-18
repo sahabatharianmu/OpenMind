@@ -43,6 +43,22 @@ const clinicalNoteService = {
     return response.data.data;
   },
 
+  uploadAttachment: async (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.post<{ data: any }>(`/clinical-notes/${id}/attachments`, formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return response.data.data;
+  },
+
+  downloadAttachment: async (attachmentId: string) => {
+    const response = await api.get(`/clinical-notes/attachments/${attachmentId}`, {
+      responseType: "blob"
+    });
+    return response.data;
+  },
+
   delete: async (id: string) => {
     const response = await api.delete(`/clinical-notes/${id}`);
     return response.data;

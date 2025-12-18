@@ -219,10 +219,28 @@ const Billing = () => {
   };
 
   const handleDownloadSuperbill = async (invoiceId: string) => {
-    toast({
-      title: "Coming Soon",
-      description: "Superbill generation will be available in a future update.",
-    });
+    try {
+      const blob = await invoiceService.downloadSuperbill(invoiceId);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `superbill-${invoiceId.substring(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Success",
+        description: "Superbill downloaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download Superbill.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleViewInvoice = (invoice: UIInvoice) => {

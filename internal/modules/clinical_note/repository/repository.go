@@ -15,8 +15,11 @@ type ClinicalNoteRepository interface {
 	Update(note *entity.ClinicalNote) error
 	Delete(id uuid.UUID) error
 	FindByID(id uuid.UUID) (*entity.ClinicalNote, error)
+	FindByAppointmentID(appointmentID uuid.UUID) (*entity.ClinicalNote, error)
 	List(organizationID uuid.UUID, limit, offset int) ([]entity.ClinicalNote, int64, error)
 	AddAddendum(addendum *entity.Addendum) error
+	AddAttachment(attachment *entity.Attachment) error
+	GetAttachmentByID(id uuid.UUID) (*entity.Attachment, error)
 	GetOrganizationID(userID uuid.UUID) (uuid.UUID, error)
 }
 
@@ -58,9 +61,24 @@ func (r *clinicalNoteRepository) Delete(id uuid.UUID) error {
 
 func (r *clinicalNoteRepository) FindByID(id uuid.UUID) (*entity.ClinicalNote, error) {
 	var note entity.ClinicalNote
-	if err := r.db.Preload("Addendums").First(&note, "id = ?", id).Error; err != nil {
+	if err := r.db.Preload("Addendums").Preload("Attachments").First(&note, "id = ?", id).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			r.log.Error("Failed to find clinical note", zap.Error(err), zap.String("id", id.String()))
+		}
+		return nil, err
+	}
+	return &note, nil
+}
+
+func (r *clinicalNoteRepository) FindByAppointmentID(appointmentID uuid.UUID) (*entity.ClinicalNote, error) {
+	var note entity.ClinicalNote
+	if err := r.db.Where("appointment_id = ?", appointmentID).First(&note).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			r.log.Error(
+				"Failed to find clinical note by appointment ID",
+				zap.Error(err),
+				zap.String("appointment_id", appointmentID.String()),
+			)
 		}
 		return nil, err
 	}
@@ -81,7 +99,7 @@ func (r *clinicalNoteRepository) List(
 		return nil, 0, err
 	}
 
-	if err := query.Preload("Addendums").Limit(limit).Offset(offset).Order("created_at desc").Find(&notes).Error; err != nil {
+	if err := query.Preload("Addendums").Preload("Attachments").Limit(limit).Offset(offset).Order("created_at desc").Find(&notes).Error; err != nil {
 		r.log.Error("Failed to list clinical notes", zap.Error(err))
 		return nil, 0, err
 	}
@@ -95,6 +113,25 @@ func (r *clinicalNoteRepository) AddAddendum(addendum *entity.Addendum) error {
 		return err
 	}
 	return nil
+}
+
+func (r *clinicalNoteRepository) AddAttachment(attachment *entity.Attachment) error {
+	if err := r.db.Create(attachment).Error; err != nil {
+		r.log.Error("Failed to add attachment", zap.Error(err), zap.String("note_id", attachment.NoteID.String()))
+		return err
+	}
+	return nil
+}
+
+func (r *clinicalNoteRepository) GetAttachmentByID(id uuid.UUID) (*entity.Attachment, error) {
+	var attachment entity.Attachment
+	if err := r.db.First(&attachment, "id = ?", id).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			r.log.Error("Failed to find attachment", zap.Error(err), zap.String("id", id.String()))
+		}
+		return nil, err
+	}
+	return &attachment, nil
 }
 
 func (r *clinicalNoteRepository) GetOrganizationID(userID uuid.UUID) (uuid.UUID, error) {
