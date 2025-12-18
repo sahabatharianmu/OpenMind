@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Brain, Shield, Lock, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -32,6 +31,8 @@ const Auth = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [setupStatus, setSetupStatus] = useState<{ is_setup_required: boolean; has_users: boolean } | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
   
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -43,6 +44,25 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+
+  // Check setup status on mount
+  useEffect(() => {
+    const checkSetupStatus = async () => {
+      try {
+        const response = await fetch("/api/v1/auth/setup/status");
+        const data = await response.json();
+        setSetupStatus(data.data);
+      } catch (error) {
+        console.error("Failed to check setup status:", error);
+        // Default to showing login if status check fails
+        setSetupStatus({ is_setup_required: false, has_users: true });
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+
+    checkSetupStatus();
+  }, []);
 
   useEffect(() => {
     if (user && !loading) {
@@ -121,6 +141,8 @@ const Auth = () => {
           title: "Welcome to OpenMind!",
           description: "Your account has been created successfully.",
         });
+        // Reload setup status to show login form
+        setSetupStatus({ is_setup_required: false, has_users: true });
       }
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -135,13 +157,15 @@ const Auth = () => {
     }
   };
 
-  if (loading) {
+  if (loading || statusLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse">Loading...</div>
       </div>
     );
   }
+
+  const isSetup = setupStatus?.is_setup_required ?? false;
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -175,122 +199,117 @@ const Auth = () => {
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mx-auto mb-4 lg:hidden">
               <Brain className="w-7 h-7 text-primary-foreground" />
             </div>
-            <CardTitle className="text-2xl">Welcome</CardTitle>
+            <CardTitle className="text-2xl">
+              {isSetup ? "Initial Setup" : "Welcome Back"}
+            </CardTitle>
             <CardDescription>
-              Sign in to your account or create a new practice
+              {isSetup 
+                ? "Create your admin account to get started" 
+                : "Sign in to your account"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
+            {isSetup ? (
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    placeholder="Dr. Jane Smith"
+                    value={signupFullName}
+                    onChange={(e) => setSignupFullName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-practice">Practice Name</Label>
+                  <Input
+                    id="signup-practice"
+                    type="text"
+                    placeholder="Mindful Therapy Center"
+                    value={signupPracticeName}
+                    onChange={(e) => setSignupPracticeName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="admin@practice.com"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-confirm">Confirm Password</Label>
+                  <Input
+                    id="signup-confirm"
+                    type="password"
+                    placeholder="••••••••"
+                    value={signupConfirmPassword}
+                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Creating account..." : "Create Admin Account"}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="dr.smith@practice.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Password</Label>
+                  <div className="relative">
                     <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="dr.smith@practice.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="login-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? "Signing in..." : "Sign In"}
-                  </Button>
-                </form>
-              </TabsContent>
-
-              <TabsContent value="signup">
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Dr. Jane Smith"
-                      value={signupFullName}
-                      onChange={(e) => setSignupFullName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-practice">Practice Name</Label>
-                    <Input
-                      id="signup-practice"
-                      type="text"
-                      placeholder="Mindful Therapy Center"
-                      value={signupPracticeName}
-                      onChange={(e) => setSignupPracticeName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="dr.smith@practice.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
+                      id="login-password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
                       required
                     />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-confirm">Confirm Password</Label>
-                    <Input
-                      id="signup-confirm"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signupConfirmPassword}
-                      onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? "Creating account..." : "Create Account"}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Signing in..." : "Sign In"}
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>

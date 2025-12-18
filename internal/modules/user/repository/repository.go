@@ -13,6 +13,7 @@ type UserRepository interface {
 	Create(user *entity.User) error
 	CreateWithOrganization(user *entity.User, organization *entity.Organization) error
 	FindByEmail(email string) (*entity.User, error)
+	CountUsers() (int64, error)
 }
 
 type userRepository struct {
@@ -74,4 +75,14 @@ func (r *userRepository) FindByEmail(email string) (*entity.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *userRepository) CountUsers() (int64, error) {
+	var count int64
+	err := r.db.Model(&entity.User{}).Count(&count).Error
+	if err != nil {
+		r.log.Error("Failed to count users", zap.Error(err))
+		return 0, err
+	}
+	return count, nil
 }

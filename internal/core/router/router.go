@@ -13,12 +13,21 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/handler"
 )
 
-func RegisterRoutes(h *server.Hertz, authHandler *handler.AuthHandler, patientHandler *patientHandler.PatientHandler, appointmentHandler *appointmentHandler.AppointmentHandler, clinicalNoteHandler *clinicalNoteHandler.ClinicalNoteHandler, invoiceHandler *invoiceHandler.InvoiceHandler, authMiddleware *middleware.AuthMiddleware) {
+func RegisterRoutes(
+	h *server.Hertz,
+	authHandler *handler.AuthHandler,
+	patientHandler *patientHandler.PatientHandler,
+	appointmentHandler *appointmentHandler.AppointmentHandler,
+	clinicalNoteHandler *clinicalNoteHandler.ClinicalNoteHandler,
+	invoiceHandler *invoiceHandler.InvoiceHandler,
+	authMiddleware *middleware.AuthMiddleware,
+) {
 	api := h.Group("/api")
 	v1 := api.Group("/v1")
 
 	auth := v1.Group("/auth")
 	{
+		auth.GET("/setup/status", authHandler.SetupStatus)
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
 	}
