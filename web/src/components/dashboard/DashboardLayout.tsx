@@ -80,7 +80,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0">
-              <Brain className="w-5 h-5 text-sidebar-primary-foreground" />
+              <img src="/SahariIcon.svg" alt="OpenMind" className="w-5 h-5" />
             </div>
             {!collapsed && <span className="font-bold text-sidebar-foreground">OpenMind</span>}
           </Link>
