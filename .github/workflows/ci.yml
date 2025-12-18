@@ -2,24 +2,48 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "alpha", "beta", "rc"]
     tags: ["v*"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "alpha", "beta", "rc"]
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/openmind
 
 jobs:
+  semantic-release:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/alpha' || github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/rc')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Semantic Release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: "1.23" # Matches Dockerfile
+          go-version: "1.25"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -39,7 +63,7 @@ jobs:
         run: go test -v ./...
 
   docker:
-    needs: test
+    needs: [test, semantic-release]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -64,9 +88,12 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=${{ github.ref == 'refs/tags/v*' && !contains(github.ref, '-') }}
-            type=raw,value=preview,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=preview,enable=${{ contains(github.ref, 'preview') }}
             type=raw,value=alpha,enable=${{ contains(github.ref, 'alpha') }}
             type=raw,value=beta,enable=${{ contains(github.ref, 'beta') }}
+            type=raw,value=rc,enable=${{ contains(github.ref, 'rc') }}
+            type=raw,value=v${{ needs.semantic-release.outputs.new_release_version }},enable=${{ needs.semantic-release.outputs.new_release_published == 'true' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
