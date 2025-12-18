@@ -24,3 +24,8 @@ type LoginResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
+
+type SetupStatusResponse struct {
+	IsSetupRequired bool `json:"is_setup_required"`
+	HasUsers        bool `json:"has_users"`
+}

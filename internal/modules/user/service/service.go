@@ -15,6 +15,7 @@ import (
 type AuthService interface {
 	Register(email, password, fullName, practiceName string) (*entity.User, error)
 	Login(email, password string) (*dto.LoginResponse, error)
+	SetupStatus() (*dto.SetupStatusResponse, error)
 }
 
 type authService struct {
@@ -69,7 +70,11 @@ func (s *authService) Register(email, password, fullName, practiceName string) (
 		return nil, err
 	}
 
-	s.log.Info("User registered successfully with organization", zap.String("email", email), zap.String("practice", practiceName))
+	s.log.Info(
+		"User registered successfully with organization",
+		zap.String("email", email),
+		zap.String("practice", practiceName),
+	)
 	return user, nil
 }
 
@@ -95,5 +100,18 @@ func (s *authService) Login(email, password string) (*dto.LoginResponse, error) 
 	return &dto.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+	}, nil
+}
+
+func (s *authService) SetupStatus() (*dto.SetupStatusResponse, error) {
+	count, err := s.repo.CountUsers()
+	if err != nil {
+		s.log.Error("SetupStatus failed: error counting users", zap.Error(err))
+		return nil, response.ErrInternalServerError
+	}
+
+	return &dto.SetupStatusResponse{
+		IsSetupRequired: count == 0,
+		HasUsers:        count > 0,
 	}, nil
 }
