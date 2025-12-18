@@ -22,9 +22,11 @@ interface Invoice {
 
 interface RevenueChartProps {
   invoices: Invoice[];
+  currency?: string;
+  locale?: string;
 }
 
-export const RevenueChart = ({ invoices }: RevenueChartProps) => {
+export const RevenueChart = ({ invoices, currency = "USD", locale = "en-US" }: RevenueChartProps) => {
   const chartData = useMemo(() => {
     const months: { month: string; start: Date; end: Date }[] = [];
     const now = new Date();
@@ -70,9 +72,9 @@ export const RevenueChart = ({ invoices }: RevenueChartProps) => {
             Revenue (Last 6 Months)
           </CardTitle>
           <span className="text-lg font-bold">
-            {new Intl.NumberFormat("en-US", {
+            {new Intl.NumberFormat(locale, {
               style: "currency",
-              currency: "USD",
+              currency: currency,
             }).format(totalRevenue)}
           </span>
         </div>
@@ -99,7 +101,11 @@ export const RevenueChart = ({ invoices }: RevenueChartProps) => {
                 tick={{ fontSize: 12 }}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(value) => `$${value}`}
+                tickFormatter={(value) => new Intl.NumberFormat(locale, {
+                  style: "currency",
+                  currency: currency,
+                  maximumFractionDigits: 0,
+                }).format(value)}
                 className="fill-muted-foreground"
               />
               <Tooltip
@@ -108,9 +114,9 @@ export const RevenueChart = ({ invoices }: RevenueChartProps) => {
                     return (
                       <div className="rounded-lg border bg-background p-2 shadow-sm">
                         <div className="text-sm font-medium">
-                          {new Intl.NumberFormat("en-US", {
+                          {new Intl.NumberFormat(locale, {
                             style: "currency",
-                            currency: "USD",
+                            currency: currency,
                           }).format(payload[0].value as number)}
                         </div>
                       </div>

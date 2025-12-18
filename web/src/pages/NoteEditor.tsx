@@ -169,11 +169,12 @@ const NoteEditor = () => {
       if (isNew) {
         navigate("/dashboard/notes");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving note:", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
        toast({
         title: "Error",
-        description: "Failed to save the note. " + (error.message || ""),
+        description: "Failed to save the note. " + message,
         variant: "destructive",
       });
     } finally {
