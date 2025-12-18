@@ -1,3 +1,11 @@
+# [1.0.0-alpha.2](https://github.com/sahabatharianmu/OpenMind/compare/v1.0.0-alpha.1...v1.0.0-alpha.2) (2025-12-18)
+
+
+### Features
+
+* Add user authentication with login, signup, and initial setup flow, including frontend UI and backend services. ([b507a4d](https://github.com/sahabatharianmu/OpenMind/commit/b507a4d609e2f27f2b64b177277ae5cc2f0d2257))
+* Implement audit log functionality with dedicated UI, backend modules, services, and database migrations. ([27f8138](https://github.com/sahabatharianmu/OpenMind/commit/27f8138503cdfa6a96148e8d452faf5cb7441a1e))
+
 # 1.0.0-alpha.1 (2025-12-18)
 
 
