@@ -91,6 +91,19 @@ func (h *ClinicalNoteHandler) List(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *ClinicalNoteHandler) Get(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -98,7 +111,7 @@ func (h *ClinicalNoteHandler) Get(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Get(context.Background(), id)
+	resp, err := h.svc.Get(context.Background(), id, orgID)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -108,6 +121,19 @@ func (h *ClinicalNoteHandler) Get(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *ClinicalNoteHandler) Update(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -121,7 +147,7 @@ func (h *ClinicalNoteHandler) Update(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Update(context.Background(), id, req)
+	resp, err := h.svc.Update(context.Background(), id, orgID, req)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -131,6 +157,19 @@ func (h *ClinicalNoteHandler) Update(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *ClinicalNoteHandler) Delete(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -138,10 +177,49 @@ func (h *ClinicalNoteHandler) Delete(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	if err := h.svc.Delete(context.Background(), id); err != nil {
+	if err := h.svc.Delete(context.Background(), id, orgID); err != nil {
 		response.HandleError(c, err)
 		return
 	}
 
 	c.JSON(consts.StatusOK, response.Success("Clinical note deleted successfully", nil))
+}
+
+func (h *ClinicalNoteHandler) AddAddendum(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
+	idStr := c.Param("id")
+	noteID, err := uuid.Parse(idStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid clinical note ID", nil)
+		return
+	}
+
+	var req dto.AddAddendumRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		response.BadRequest(c, "Invalid request body", map[string]interface{}{"error": err.Error()})
+		return
+	}
+
+	// Override clinician_id with current user for security
+	req.ClinicianID = userID
+
+	resp, err := h.svc.AddAddendum(context.Background(), noteID, orgID, req)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.JSON(consts.StatusCreated, response.Success("Addendum added successfully", resp))
 }

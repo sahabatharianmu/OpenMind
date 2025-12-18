@@ -87,6 +87,19 @@ func (h *PatientHandler) List(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *PatientHandler) Get(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -94,7 +107,7 @@ func (h *PatientHandler) Get(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Get(context.Background(), id)
+	resp, err := h.svc.Get(context.Background(), id, orgID)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -104,6 +117,19 @@ func (h *PatientHandler) Get(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *PatientHandler) Update(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -117,7 +143,7 @@ func (h *PatientHandler) Update(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Update(context.Background(), id, req)
+	resp, err := h.svc.Update(context.Background(), id, orgID, req)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -127,6 +153,19 @@ func (h *PatientHandler) Update(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *PatientHandler) Delete(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -134,7 +173,7 @@ func (h *PatientHandler) Delete(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	if err := h.svc.Delete(context.Background(), id); err != nil {
+	if err := h.svc.Delete(context.Background(), id, orgID); err != nil {
 		response.HandleError(c, err)
 		return
 	}

@@ -14,15 +14,33 @@ type ClinicalNote struct {
 	ClinicianID    uuid.UUID      `gorm:"type:uuid;not null"                              json:"clinician_id"`
 	AppointmentID  *uuid.UUID     `gorm:"type:uuid"                                       json:"appointment_id"`
 	NoteType       string         `gorm:"not null"                                        json:"note_type"`
-	Subjective     *string        `gorm:""                                                json:"subjective"`
-	Objective      *string        `gorm:""                                                json:"objective"`
-	Assessment     *string        `gorm:""                                                json:"assessment"`
-	Plan           *string        `gorm:""                                                json:"plan"`
+	Subjective     *string        `gorm:"-"                                               json:"subjective"`
+	Objective      *string        `gorm:"-"                                               json:"objective"`
+	Assessment     *string        `gorm:"-"                                               json:"assessment"`
+	Plan           *string        `gorm:"-"                                               json:"plan"`
+	ContentEncrypted []byte       `gorm:"type:bytea"                                      json:"-"`
+	KeyID            string       `gorm:"type:varchar(255)"                               json:"key_id"`
+	Nonce            []byte       `gorm:"type:bytea"                                      json:"-"`
 	IsSigned       bool           `gorm:"not null;default:false"                          json:"is_signed"`
 	SignedAt       *time.Time     `gorm:""                                                json:"signed_at"`
+	Addendums      []Addendum     `gorm:"foreignKey:NoteID"                               json:"addendums,omitempty"`
 	CreatedAt      time.Time      `gorm:"autoCreateTime"                                  json:"created_at"`
 	UpdatedAt      time.Time      `gorm:"autoUpdateTime"                                  json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `gorm:"index"                                           json:"-"`
+}
+
+type Addendum struct {
+	ID             uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
+	NoteID         uuid.UUID `gorm:"type:uuid;not null"                              json:"note_id"`
+	ClinicianID    uuid.UUID `gorm:"type:uuid;not null"                              json:"clinician_id"`
+	Content        string    `gorm:"-"                                               json:"content"`
+	ContentEncrypted []byte  `gorm:"type:bytea"                                      json:"-"`
+	Nonce          []byte    `gorm:"type:bytea"                                      json:"-"`
+	SignedAt       time.Time `gorm:"not null;autoCreateTime"                           json:"signed_at"`
+}
+
+func (Addendum) TableName() string {
+	return "clinical_note_addendums"
 }
 
 func (ClinicalNote) TableName() string {

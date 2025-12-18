@@ -9,6 +9,7 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/entity"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/repository"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
+	"github.com/sahabatharianmu/OpenMind/pkg/response"
 )
 
 type AppointmentService interface {
@@ -17,9 +18,9 @@ type AppointmentService interface {
 		req dto.CreateAppointmentRequest,
 		organizationID uuid.UUID,
 	) (*dto.AppointmentResponse, error)
-	Update(ctx context.Context, id uuid.UUID, req dto.UpdateAppointmentRequest) (*dto.AppointmentResponse, error)
-	Delete(ctx context.Context, id uuid.UUID) error
-	Get(ctx context.Context, id uuid.UUID) (*dto.AppointmentResponse, error)
+	Update(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, req dto.UpdateAppointmentRequest) (*dto.AppointmentResponse, error)
+	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
+	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.AppointmentResponse, error)
 	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.AppointmentResponse, int64, error)
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
@@ -78,11 +79,16 @@ func (s *appointmentService) Create(
 func (s *appointmentService) Update(
 	ctx context.Context,
 	id uuid.UUID,
+	organizationID uuid.UUID,
 	req dto.UpdateAppointmentRequest,
 ) (*dto.AppointmentResponse, error) {
 	appointment, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
+	}
+
+	if appointment.OrganizationID != organizationID {
+		return nil, response.NewNotFound("Appointment not found")
 	}
 
 	if req.StartTime != nil {
@@ -119,15 +125,29 @@ func (s *appointmentService) Update(
 	return s.mapEntityToResponse(appointment), nil
 }
 
-func (s *appointmentService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *appointmentService) Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error {
+	appointment, err := s.repo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	if appointment.OrganizationID != organizationID {
+		return response.ErrNotFound
+	}
+
 	return s.repo.Delete(id)
 }
 
-func (s *appointmentService) Get(ctx context.Context, id uuid.UUID) (*dto.AppointmentResponse, error) {
+func (s *appointmentService) Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.AppointmentResponse, error) {
 	appointment, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
+
+	if appointment.OrganizationID != organizationID {
+		return nil, response.ErrNotFound
+	}
+
 	return s.mapEntityToResponse(appointment), nil
 }
 
