@@ -14,6 +14,7 @@ import { organizationService } from "@/services/organizationService";
 import { exportService } from "@/services/exportService";
 import type { UserProfile } from "@/services/userService";
 import type { Organization } from "@/services/organizationService";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Settings = () => {
   const { user, signOut } = useAuth();
@@ -28,6 +29,8 @@ const Settings = () => {
   const [taxId, setTaxId] = useState("");
   const [npi, setNpi] = useState("");
   const [address, setAddress] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [locale, setLocale] = useState("en-US");
   const [orgLoading, setOrgLoading] = useState(false);
   
   const [oldPassword, setOldPassword] = useState("");
@@ -38,6 +41,7 @@ const Settings = () => {
   useEffect(() => {
     loadProfile();
     loadOrganization();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadProfile = async () => {
@@ -62,6 +66,8 @@ const Settings = () => {
       setTaxId(data.tax_id || "");
       setNpi(data.npi || "");
       setAddress(data.address || "");
+      setCurrency(data.currency || "USD");
+      setLocale(data.locale || "en-US");
     } catch (error) {
       toast({
         title: "Error",
@@ -89,10 +95,12 @@ const Settings = () => {
         title: "Success",
         description: "Profile updated successfully",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      const message = err.response?.data?.message || err.message || "Failed to update profile";
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to update profile",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -143,10 +151,12 @@ const Settings = () => {
         title: "Success",
         description: "Password changed successfully",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      const message = err.response?.data?.message || err.message || "Failed to change password";
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to change password",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -170,17 +180,21 @@ const Settings = () => {
         name: orgName,
         tax_id: taxId,
         npi: npi,
-        address: address
+        address: address,
+        currency: currency,
+        locale: locale
       });
       setOrganization(updated);
       toast({
         title: "Success",
         description: "Organization updated successfully",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      const message = err.response?.data?.message || err.message || "Failed to update organization";
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to update organization",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -312,6 +326,42 @@ const Settings = () => {
                   />
                 </div>
                 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="currency">Currency</Label>
+                    <Select value={currency} onValueChange={setCurrency}>
+                      <SelectTrigger id="currency">
+                        <SelectValue placeholder="Select currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD - US Dollar</SelectItem>
+                        <SelectItem value="EUR">EUR - Euro</SelectItem>
+                        <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                        <SelectItem value="IDR">IDR - Indonesian Rupiah</SelectItem>
+                        <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                        <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                        <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="locale">Display Locale (Date/Number Format)</Label>
+                    <Select value={locale} onValueChange={setLocale}>
+                      <SelectTrigger id="locale">
+                        <SelectValue placeholder="Select locale" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en-US">English (US)</SelectItem>
+                        <SelectItem value="en-GB">English (UK)</SelectItem>
+                        <SelectItem value="id-ID">Indonesian (Indonesia)</SelectItem>
+                        <SelectItem value="de-DE">German (Germany)</SelectItem>
+                        <SelectItem value="fr-FR">French (France)</SelectItem>
+                        <SelectItem value="ja-JP">Japanese (Japan)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <Separator />
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -435,11 +485,13 @@ const Settings = () => {
                           title: "Success",
                           description: "Data exported successfully",
                         });
-                      } catch (error: any) {
+                      } catch (error: unknown) {
                         console.error("Export error:", error);
+                        const err = error as { response?: { data?: { error?: { message?: string } } }; message?: string };
+                        const message = err.response?.data?.error?.message || err.message || "Failed to export data";
                         toast({
                           title: "Error",
-                          description: error.response?.data?.error?.message || "Failed to export data",
+                          description: message,
                           variant: "destructive",
                         });
                       }
