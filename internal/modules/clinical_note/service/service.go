@@ -23,18 +23,41 @@ type ClinicalNoteService interface {
 		req dto.CreateClinicalNoteRequest,
 		organizationID uuid.UUID,
 	) (*dto.ClinicalNoteResponse, error)
-	Update(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, req dto.UpdateClinicalNoteRequest) (*dto.ClinicalNoteResponse, error)
+	Update(
+		ctx context.Context,
+		id uuid.UUID,
+		organizationID uuid.UUID,
+		req dto.UpdateClinicalNoteRequest,
+	) (*dto.ClinicalNoteResponse, error)
 	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
 	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.ClinicalNoteResponse, error)
 	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.ClinicalNoteResponse, int64, error)
-	AddAddendum(ctx context.Context, noteID uuid.UUID, organizationID uuid.UUID, req dto.AddAddendumRequest) (*dto.AddendumResponse, error)
+	AddAddendum(
+		ctx context.Context,
+		noteID uuid.UUID,
+		organizationID uuid.UUID,
+		req dto.AddAddendumRequest,
+	) (*dto.AddendumResponse, error)
+	UploadAttachment(
+		ctx context.Context,
+		noteID uuid.UUID,
+		organizationID uuid.UUID,
+		fileName string,
+		contentType string,
+		data []byte,
+	) (*dto.AttachmentResponse, error)
+	DownloadAttachment(
+		ctx context.Context,
+		attachmentID uuid.UUID,
+		organizationID uuid.UUID,
+	) (string, []byte, string, error)
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
 
 type clinicalNoteService struct {
-	repo         repository.ClinicalNoteRepository
-	encryptSvc   *crypto.EncryptionService
-	log          logger.Logger
+	repo       repository.ClinicalNoteRepository
+	encryptSvc *crypto.EncryptionService
+	log        logger.Logger
 }
 
 func NewClinicalNoteService(
@@ -166,7 +189,11 @@ func (s *clinicalNoteService) Delete(ctx context.Context, id uuid.UUID, organiza
 	return s.repo.Delete(id)
 }
 
-func (s *clinicalNoteService) Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.ClinicalNoteResponse, error) {
+func (s *clinicalNoteService) Get(
+	ctx context.Context,
+	id uuid.UUID,
+	organizationID uuid.UUID,
+) (*dto.ClinicalNoteResponse, error) {
 	note, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
@@ -235,14 +262,93 @@ func (s *clinicalNoteService) AddAddendum(
 		return nil, fmt.Errorf("failed to encrypt addendum: %w", err)
 	}
 
-	// We need a repository method to save addendum. 
-	// For now, let's assume we can add it via the note or a new repo method.
-	// PRD says Modular Monolith, let's update the repository interface if needed.
 	if err := s.repo.AddAddendum(addendum); err != nil {
 		return nil, err
 	}
 
 	return s.mapAddendumEntityToResponse(addendum), nil
+}
+
+func (s *clinicalNoteService) UploadAttachment(
+	ctx context.Context,
+	noteID uuid.UUID,
+	organizationID uuid.UUID,
+	fileName string,
+	contentType string,
+	data []byte,
+) (*dto.AttachmentResponse, error) {
+	note, err := s.repo.FindByID(noteID)
+	if err != nil {
+		return nil, err
+	}
+
+	if note.OrganizationID != organizationID {
+		return nil, response.ErrNotFound
+	}
+
+	if note.IsSigned {
+		return nil, response.NewForbidden("Cannot add attachment to a signed note")
+	}
+
+	// Encrypt the file content
+	encryptedBase64, err := s.encryptSvc.Encrypt(base64.StdEncoding.EncodeToString(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt file: %w", err)
+	}
+
+	encryptedBytes, _ := base64.StdEncoding.DecodeString(encryptedBase64)
+	const nonceSize = 12
+
+	attachment := &entity.Attachment{
+		ID:            uuid.New(),
+		NoteID:        noteID,
+		FileName:      fileName,
+		ContentType:   contentType,
+		Size:          int64(len(data)),
+		DataEncrypted: encryptedBytes,
+		Nonce:         encryptedBytes[:nonceSize],
+	}
+
+	if err := s.repo.AddAttachment(attachment); err != nil {
+		return nil, err
+	}
+
+	return s.mapAttachmentEntityToResponse(attachment), nil
+}
+
+func (s *clinicalNoteService) DownloadAttachment(
+	ctx context.Context,
+	attachmentID uuid.UUID,
+	organizationID uuid.UUID,
+) (string, []byte, string, error) {
+	attachment, err := s.repo.GetAttachmentByID(attachmentID)
+	if err != nil {
+		return "", nil, "", err
+	}
+
+	// Verify organization via the note
+	note, err := s.repo.FindByID(attachment.NoteID)
+	if err != nil {
+		return "", nil, "", err
+	}
+
+	if note.OrganizationID != organizationID {
+		return "", nil, "", response.ErrNotFound
+	}
+
+	// Decrypt the file content
+	encryptedBase64 := base64.StdEncoding.EncodeToString(attachment.DataEncrypted)
+	decryptedBase64, err := s.encryptSvc.Decrypt(encryptedBase64)
+	if err != nil {
+		return "", nil, "", fmt.Errorf("failed to decrypt file: %w", err)
+	}
+
+	decryptedBytes, err := base64.StdEncoding.DecodeString(decryptedBase64)
+	if err != nil {
+		return "", nil, "", fmt.Errorf("failed to decode decrypted file: %w", err)
+	}
+
+	return attachment.FileName, decryptedBytes, attachment.ContentType, nil
 }
 
 func (s *clinicalNoteService) GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
@@ -359,14 +465,25 @@ func (s *clinicalNoteService) decryptNote(n *entity.ClinicalNote) error {
 	return nil
 }
 
+func (s *clinicalNoteService) mapAttachmentEntityToResponse(a *entity.Attachment) *dto.AttachmentResponse {
+	return &dto.AttachmentResponse{
+		ID:          a.ID,
+		FileName:    a.FileName,
+		ContentType: a.ContentType,
+		Size:        a.Size,
+		CreatedAt:   a.CreatedAt,
+	}
+}
+
 func (s *clinicalNoteService) mapEntityToResponse(n *entity.ClinicalNote) *dto.ClinicalNoteResponse {
 	var addendums []dto.AddendumResponse
 	for _, a := range n.Addendums {
-		// Decrypt addendum content before mapping if needed
-		// In List/Get we already call decryptNote which should decrypt addendums?
-		// No, decryptNote only decrypts the main note fields.
-		// I'll add decryption for addendums in decryptNote.
 		addendums = append(addendums, *s.mapAddendumEntityToResponse(&a))
+	}
+
+	var attachments []dto.AttachmentResponse
+	for _, a := range n.Attachments {
+		attachments = append(attachments, *s.mapAttachmentEntityToResponse(&a))
 	}
 
 	return &dto.ClinicalNoteResponse{
@@ -383,6 +500,7 @@ func (s *clinicalNoteService) mapEntityToResponse(n *entity.ClinicalNote) *dto.C
 		IsSigned:       n.IsSigned,
 		SignedAt:       n.SignedAt,
 		Addendums:      addendums,
+		Attachments:    attachments,
 		CreatedAt:      n.CreatedAt,
 		UpdatedAt:      n.UpdatedAt,
 	}

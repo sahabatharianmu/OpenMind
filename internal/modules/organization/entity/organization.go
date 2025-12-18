@@ -11,6 +11,9 @@ type Organization struct {
 	ID        uuid.UUID      `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
 	Name      string         `gorm:"type:varchar(255);not null"                       json:"name"`
 	Type      string         `gorm:"type:varchar(50);not null"                        json:"type"`
+	TaxID     string         `gorm:"type:varchar(50)"                                 json:"tax_id"`
+	NPI       string         `gorm:"type:varchar(50)"                                 json:"npi"`
+	Address   string         `gorm:"type:text"                                        json:"address"`
 	CreatedAt time.Time      `                                                        json:"created_at"`
 	UpdatedAt time.Time      `                                                        json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index"                                            json:"deleted_at,omitempty"`

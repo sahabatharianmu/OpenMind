@@ -25,6 +25,9 @@ const Settings = () => {
   
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [orgName, setOrgName] = useState("");
+  const [taxId, setTaxId] = useState("");
+  const [npi, setNpi] = useState("");
+  const [address, setAddress] = useState("");
   const [orgLoading, setOrgLoading] = useState(false);
   
   const [oldPassword, setOldPassword] = useState("");
@@ -56,6 +59,9 @@ const Settings = () => {
       const data = await organizationService.getMyOrganization();
       setOrganization(data);
       setOrgName(data.name);
+      setTaxId(data.tax_id || "");
+      setNpi(data.npi || "");
+      setAddress(data.address || "");
     } catch (error) {
       toast({
         title: "Error",
@@ -160,7 +166,12 @@ const Settings = () => {
 
     setOrgLoading(true);
     try {
-      const updated = await organizationService.updateOrganization({ name: orgName });
+      const updated = await organizationService.updateOrganization({ 
+        name: orgName,
+        tax_id: taxId,
+        npi: npi,
+        address: address
+      });
       setOrganization(updated);
       toast({
         title: "Success",
@@ -248,44 +259,78 @@ const Settings = () => {
           <TabsContent value="practice">
             <Card>
               <CardHeader>
-                <CardTitle>Organization Details</CardTitle>
+                <CardTitle>Practice Information</CardTitle>
                 <CardDescription>
-                  Manage your practice information
+                  Manage your clinical and billing details. These are used for PDF Superbills.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="orgName">Organization Name</Label>
-                  <Input
-                    id="orgName"
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                    placeholder="Enter organization name"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="orgName">Organization / Practice Name</Label>
+                    <Input
+                      id="orgName"
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      placeholder="Enter organization name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Type</Label>
+                    <Input
+                      value={organization?.type || "-"}
+                      disabled
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="taxId">Tax ID / EIN</Label>
+                    <Input
+                      id="taxId"
+                      value={taxId}
+                      onChange={(e) => setTaxId(e.target.value)}
+                      placeholder="Enter Tax ID"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="npi">National Provider Identifier (NPI)</Label>
+                    <Input
+                      id="npi"
+                      value={npi}
+                      onChange={(e) => setNpi(e.target.value)}
+                      placeholder="Enter NPI"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Type</Label>
+                  <Label htmlFor="address">Practice Address</Label>
                   <Input
-                    value={organization?.type || "-"}
-                    disabled
-                    className="bg-muted"
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Street, City, State, ZIP"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Member Count</Label>
-                  <Input
-                    value={organization?.member_count?.toString() || "0"}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Created</Label>
-                  <Input
-                    value={organization?.created_at ? new Date(organization.created_at).toLocaleDateString() : "-"}
-                    disabled
-                    className="bg-muted"
-                  />
+                
+                <Separator />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>Member Count</Label>
+                    <Input
+                      value={organization?.member_count?.toString() || "0"}
+                      disabled
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Created</Label>
+                    <Input
+                      value={organization?.created_at ? new Date(organization.created_at).toLocaleDateString() : "-"}
+                      disabled
+                      className="bg-muted"
+                    />
+                  </div>
                 </div>
                 <Button onClick={handleUpdateOrganization} disabled={orgLoading}>
                   {orgLoading ? "Saving..." : "Save Changes"}
