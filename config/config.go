@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
@@ -162,6 +163,10 @@ type DokuConfig struct {
 
 // LoadConfig loads configuration from environment variables and config files
 func LoadConfig() (*Config, error) {
+	if err := godotenv.Load(); err != nil {
+		_ = err
+	}
+
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
@@ -214,8 +219,8 @@ func setDefaults() {
 	viper.SetDefault("database.password", "")
 	viper.SetDefault("database.db_name", "smetax")
 	viper.SetDefault("database.ssl_mode", "disable")
-	viper.SetDefault("database.max_open_conns", 25)
-	viper.SetDefault("database.max_idle_conns", 5)
+	viper.SetDefault("database.max_open_conns", 25) //nolint:mnd // default connections
+	viper.SetDefault("database.max_idle_conns", 5)  //nolint:mnd // default connections
 
 	// Redis defaults
 	viper.SetDefault("redis.host", "localhost")

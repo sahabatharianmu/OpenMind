@@ -74,3 +74,11 @@ migration_goto:
 migration_create:
 	@echo "Creating migration file..."
 	migrate create -ext sql -dir ./pkg/migrations -seq $(table)
+
+# ==============================================================================
+# SCAFFOLDING
+# ==============================================================================
+
+module:
+	@echo "Creating module $(name)..."
+	@go run cmd/scaffold/main.go -name $(name)

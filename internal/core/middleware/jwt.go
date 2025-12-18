@@ -130,7 +130,7 @@ func RequireRole(roles ...string) app.HandlerFunc {
 
 // OptionalAuthMiddleware creates an optional authentication middleware
 // It validates the token if present but doesn't require it
-func OptionalAuthMiddleware(cfg *config.Config, logger logger.Logger) app.HandlerFunc {
+func OptionalAuthMiddleware(cfg *config.Config, _ logger.Logger) app.HandlerFunc {
 	jwtService := security.NewJWTService(cfg)
 
 	return func(ctx context.Context, c *app.RequestContext) {

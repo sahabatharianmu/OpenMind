@@ -34,7 +34,7 @@ func NewJWTService(cfg *config.Config) *JWTService {
 func (s *JWTService) GenerateTokens(
 	userID uuid.UUID,
 	email, role string,
-) (accessToken, refreshToken string, err error) {
+) (string, string, error) {
 	now := time.Now()
 
 	accessClaims := JWTClaims{
@@ -51,7 +51,7 @@ func (s *JWTService) GenerateTokens(
 		},
 	}
 
-	accessToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).
+	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).
 		SignedString([]byte(s.config.Security.JWTSecretKey))
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
@@ -66,7 +66,7 @@ func (s *JWTService) GenerateTokens(
 		ID:        uuid.New().String(),
 	}
 
-	refreshToken, err = jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).
+	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).
 		SignedString([]byte(s.config.Security.JWTSecretKey))
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
@@ -96,7 +96,7 @@ func (s *JWTService) ValidateToken(tokenString string) (*JWTClaims, error) {
 }
 
 // RefreshToken generates a new access token from a refresh token
-func (s *JWTService) RefreshToken(refreshToken string) (accessToken string, err error) {
+func (s *JWTService) RefreshToken(refreshToken string) (string, error) {
 	token, err := jwt.ParseWithClaims(
 		refreshToken,
 		&jwt.RegisteredClaims{},

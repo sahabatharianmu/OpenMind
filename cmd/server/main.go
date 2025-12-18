@@ -9,9 +9,21 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/core/database"
 	"github.com/sahabatharianmu/OpenMind/internal/core/middleware"
 	"github.com/sahabatharianmu/OpenMind/internal/core/router"
-	"github.com/sahabatharianmu/OpenMind/internal/modules/auth/handler"
-	"github.com/sahabatharianmu/OpenMind/internal/modules/auth/repository"
-	"github.com/sahabatharianmu/OpenMind/internal/modules/auth/service"
+	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/handler"
+	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/repository"
+	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/service"
+	clinicalNoteHandler "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/handler"
+	clinicalNoteRepository "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/repository"
+	clinicalNoteService "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/service"
+	invoiceHandler "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/handler"
+	invoiceRepository "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/repository"
+	invoiceService "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/service"
+	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
+	patientRepository "github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
+	patientService "github.com/sahabatharianmu/OpenMind/internal/modules/patient/service"
+	userHandler "github.com/sahabatharianmu/OpenMind/internal/modules/user/handler"
+	userRepository "github.com/sahabatharianmu/OpenMind/internal/modules/user/repository"
+	userService "github.com/sahabatharianmu/OpenMind/internal/modules/user/service"
 	"github.com/sahabatharianmu/OpenMind/pkg/crypto"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
 	"github.com/sahabatharianmu/OpenMind/pkg/security"
@@ -31,18 +43,34 @@ func main() {
 		zap.String("environment", cfg.Application.Environment),
 	)
 
-	database.InitDB(cfg)
+	database.InitDB(cfg, appLogger)
 	db := database.GetDB()
 
 	if err := database.RunMigrations(db, appLogger); err != nil {
 		appLogger.Fatal("Failed to run database migrations", zap.Error(err))
 	}
 
-	userRepo := repository.NewUserRepository(db, appLogger)
+	userRepo := userRepository.NewUserRepository(db, appLogger)
+	patientRepo := patientRepository.NewPatientRepository(db, appLogger)
+	appointmentRepo := repository.NewAppointmentRepository(db, appLogger)
+	clinicalNoteRepo := clinicalNoteRepository.NewClinicalNoteRepository(db, appLogger)
+	invoiceRepo := invoiceRepository.NewInvoiceRepository(db, appLogger)
+
 	jwtService := security.NewJWTService(cfg)
 	passwordService := crypto.NewPasswordService(cfg)
-	authService := service.NewAuthService(userRepo, jwtService, passwordService, appLogger)
-	authHandler := handler.NewAuthHandler(authService)
+
+	authService := userService.NewAuthService(userRepo, jwtService, passwordService, appLogger)
+	patientSvc := patientService.NewPatientService(patientRepo, appLogger)
+	appointmentSvc := service.NewAppointmentService(appointmentRepo, appLogger)
+	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, appLogger)
+	invoiceSvc := invoiceService.NewInvoiceService(invoiceRepo, appLogger)
+
+	authHandler := userHandler.NewAuthHandler(authService)
+	patientHdlr := patientHandler.NewPatientHandler(patientSvc)
+	appointmentHdlr := handler.NewAppointmentHandler(appointmentSvc)
+	clinicalNoteHdlr := clinicalNoteHandler.NewClinicalNoteHandler(clinicalNoteSvc)
+	invoiceHdlr := invoiceHandler.NewInvoiceHandler(invoiceSvc)
+
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 
 	h := server.New(
@@ -53,9 +81,9 @@ func main() {
 		server.WithExitWaitTime(cfg.Server.ExitTimeout),
 	)
 
-	router.RegisterRoutes(h, authHandler, authMiddleware)
+	router.RegisterRoutes(h, authHandler, patientHdlr, appointmentHdlr, clinicalNoteHdlr, invoiceHdlr, authMiddleware)
 
-	h.OnShutdown = append(h.OnShutdown, func(ctx context.Context) {
+	h.OnShutdown = append(h.OnShutdown, func(_ context.Context) {
 		appLogger.Info("Shutting down server gracefully...")
 
 		// TODO: Add other cleanup logic here (e.g., closing Database connections, Redis, etc.)

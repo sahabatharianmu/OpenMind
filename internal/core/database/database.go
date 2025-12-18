@@ -3,7 +3,6 @@ package database
 import (
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -21,7 +20,7 @@ import (
 var DB *gorm.DB
 
 // InitDB initializes the database connection
-func InitDB(cfg *config.Config) {
+func InitDB(cfg *config.Config, log logger.Logger) {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=UTC",
 		cfg.Database.Host,
 		cfg.Database.User,
@@ -36,12 +35,12 @@ func InitDB(cfg *config.Config) {
 		Logger: gormlogger.Default.LogMode(gormlogger.Info),
 	})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatal("Failed to connect to database", zap.Error(err))
 	}
 
 	sqlDB, err := DB.DB()
 	if err != nil {
-		log.Fatalf("Failed to get database instance: %v", err)
+		log.Fatal("Failed to get database instance", zap.Error(err))
 	}
 
 	// Set connection pool settings
@@ -49,7 +48,7 @@ func InitDB(cfg *config.Config) {
 	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	log.Println("Database connection established successfully")
+	log.Info("Database connection established successfully")
 }
 
 // GetDB returns the database instance

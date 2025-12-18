@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	mathrand "math/rand"
 	"strings"
 	"time"
 
@@ -17,7 +17,7 @@ import (
 // Security returns a comprehensive security middleware
 func Security() app.HandlerFunc {
 	config := security.DefaultOWASPSecurityConfig()
-	return security.SecurityHeadersMiddleware(config)
+	return security.HeadersMiddleware(config)
 }
 
 // InputValidation returns input validation middleware
@@ -32,18 +32,18 @@ func RateLimit(requests int, window time.Duration) app.HandlerFunc {
 
 // CSRFProtection returns CSRF protection middleware
 func CSRFProtection() app.HandlerFunc {
-	return security.CSRFProtectionMiddleware(32)
+	return security.CSRFProtectionMiddleware(32) //nolint:mnd
 }
 
 // FileUploadSecurity returns file upload security middleware
-func FileUploadSecurity(cfg *config.Config) app.HandlerFunc {
+func FileUploadSecurity(_ *config.Config) app.HandlerFunc {
 	owaspConfig := security.DefaultOWASPSecurityConfig()
 	return security.FileUploadSecurityMiddleware(owaspConfig)
 }
 
 // SecurityLogging returns security logging middleware
 func SecurityLogging() app.HandlerFunc {
-	return security.SecurityLoggingMiddleware()
+	return security.LoggingMiddleware()
 }
 
 // CORS returns a CORS middleware that handles preflight and sets headers
@@ -140,7 +140,7 @@ func RequestSizeLimit(maxSize int64) app.HandlerFunc {
 }
 
 // TimeoutMiddleware adds request timeout protection
-func TimeoutMiddleware(timeout time.Duration) app.HandlerFunc {
+func TimeoutMiddleware(_ time.Duration) app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		// For now, just call next without timeout handling
 		// TODO: Implement proper timeout handling compatible with Hertz
@@ -165,15 +165,18 @@ func RequestIDMiddleware() app.HandlerFunc {
 
 // generateRequestID generates a unique request ID
 func generateRequestID() string {
-	return fmt.Sprintf("%d-%s", time.Now().UnixNano(), randomString(8))
+	return fmt.Sprintf("%d-%s", time.Now().UnixNano(), randomString(8)) //nolint:mnd
 }
 
 // randomString generates a random string
 func randomString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
+		return ""
+	}
 	for i := range b {
-		b[i] = charset[mathrand.Intn(len(charset))]
+		b[i] = charset[int(b[i])%len(charset)]
 	}
 	return string(b)
 }

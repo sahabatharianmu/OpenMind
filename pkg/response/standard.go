@@ -5,7 +5,6 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
-	"github.com/sahabatharianmu/OpenMind/pkg/apperrors"
 )
 
 // StandardResponse represents a standard API response
@@ -132,9 +131,34 @@ func PaginatedResponse(c *app.RequestContext, data interface{}, page, limit int,
 }
 
 func HandleError(c *app.RequestContext, err error) {
-	appErr := &apperrors.AppError{}
+	appErr := &AppError{}
 	if errors.As(err, &appErr) {
 		Error(c, appErr.Code, getErrorCode(appErr.Code), appErr.Message, nil)
+		return
+	}
+
+	if errors.Is(err, ErrNotFound) {
+		Error(c, consts.StatusNotFound, ErrorCodeNotFound, err.Error(), nil)
+		return
+	}
+
+	if errors.Is(err, ErrUnauthorized) {
+		Error(c, consts.StatusUnauthorized, ErrorCodeAuthentication, err.Error(), nil)
+		return
+	}
+
+	if errors.Is(err, ErrForbidden) {
+		Error(c, consts.StatusForbidden, ErrorCodeAuthorization, err.Error(), nil)
+		return
+	}
+
+	if errors.Is(err, ErrInvalidInput) {
+		Error(c, consts.StatusBadRequest, ErrorCodeBadRequest, err.Error(), nil)
+		return
+	}
+
+	if errors.Is(err, ErrConflict) {
+		Error(c, consts.StatusConflict, "CONFLICT", err.Error(), nil)
 		return
 	}
 
@@ -152,7 +176,7 @@ func getErrorCode(statusCode int) string {
 	case consts.StatusNotFound:
 		return ErrorCodeNotFound
 	case consts.StatusConflict:
-		return "CONFLICT"
+		return ErrorCodeConflict
 	default:
 		return ErrorCodeInternal
 	}

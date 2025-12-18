@@ -72,31 +72,30 @@ func DefaultSecurityConfig() *SecurityConfig {
 		CORSAllowOrigins: []string{"http://localhost:3000", "https://smatax.id"},
 		CORSAllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		CORSAllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization", "X-CSRF-Token", "X-Request-ID"},
-		CORSMaxAge:       86400, // 24 hours
-
+		CORSMaxAge:       86400, // 24 hours //nolint:mnd // standard max age
 		// Rate limiting
-		RateLimitRequests: 100,
+		RateLimitRequests: 100, //nolint:mnd // default limit
 		RateLimitWindow:   time.Minute,
 
 		// JWT settings
 		JWTSecretKey:     "your-secret-key-change-this-in-production",
-		JWTAccessExpiry:  15 * time.Minute,
+		JWTAccessExpiry:  15 * time.Minute, //nolint:mnd // default expiry
 		JWTRefreshExpiry: 7 * 24 * time.Hour,
 
 		// Password settings
-		PasswordMinLength:      8,
+		PasswordMinLength:      8, //nolint:mnd // standard min length
 		PasswordRequireUpper:   true,
 		PasswordRequireLower:   true,
 		PasswordRequireNumber:  true,
 		PasswordRequireSpecial: true,
 
 		// Session settings
-		SessionTimeout:  30 * time.Minute,
+		SessionTimeout:  30 * time.Minute, //nolint:mnd // default timeout
 		SessionSecure:   true,
 		SessionHTTPOnly: true,
 
 		// File upload security
-		MaxFileSize:      5 * 1024 * 1024, // 5MB
+		MaxFileSize:      5 * 1024 * 1024, // 5MB //nolint:mnd // default size
 		AllowedFileTypes: []string{".pdf", ".jpg", ".jpeg", ".png", ".xlsx", ".csv"},
 
 		// API security
@@ -106,8 +105,8 @@ func DefaultSecurityConfig() *SecurityConfig {
 		EnableCSP:    true,
 
 		// Database security
-		DBMaxOpenConns:    25,
-		DBMaxIdleConns:    5,
+		DBMaxOpenConns:    25, //nolint:mnd // default connections
+		DBMaxIdleConns:    5,  //nolint:mnd // default connections
 		DBConnMaxLifetime: time.Hour,
 
 		// Logging and monitoring
@@ -116,13 +115,13 @@ func DefaultSecurityConfig() *SecurityConfig {
 
 		// Encryption settings
 		EncryptionKey: "your-encryption-key-change-this-in-production",
-		HashCost:      12, // bcrypt cost factor
+		HashCost:      12, // bcrypt cost factor //nolint:mnd // standard cost
 
 		// Request limits
-		MaxRequestSize:    10 * 1024 * 1024, // 10MB
-		RequestTimeout:    30 * time.Second,
-		MaxRequestPerIP:   1000,
-		MaxRequestPerUser: 100,
+		MaxRequestSize:    10 * 1024 * 1024, // 10MB //nolint:mnd // default size
+		RequestTimeout:    30 * time.Second, //nolint:mnd // default timeout
+		MaxRequestPerIP:   1000,             //nolint:mnd // default limit
+		MaxRequestPerUser: 100,              //nolint:mnd // default limit
 	}
 }
 
