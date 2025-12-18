@@ -1,5 +1,6 @@
 import api from "@/api/client";
 import { ClinicalNote } from "@/types";
+import type { PaginatedResponse } from "@/types/api";
 
 export interface CreateClinicalNoteRequest {
   patient_id: string;
@@ -18,7 +19,7 @@ export interface UpdateClinicalNoteRequest extends Partial<CreateClinicalNoteReq
 
 const clinicalNoteService = {
   list: async () => {
-    const response = await api.get<{ data: { items: ClinicalNote[] } }>("/clinical-notes");
+    const response = await api.get<{ data: PaginatedResponse<ClinicalNote> }>("/clinical-notes");
     return response.data.data.items;
   },
 

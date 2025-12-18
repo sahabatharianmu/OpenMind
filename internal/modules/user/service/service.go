@@ -16,6 +16,7 @@ type AuthService interface {
 	Register(email, password, fullName, practiceName string) (*entity.User, error)
 	Login(email, password string) (*dto.LoginResponse, error)
 	SetupStatus() (*dto.SetupStatusResponse, error)
+	ChangePassword(userID uuid.UUID, oldPassword, newPassword string) error
 }
 
 type authService struct {
@@ -114,4 +115,35 @@ func (s *authService) SetupStatus() (*dto.SetupStatusResponse, error) {
 		IsSetupRequired: count == 0,
 		HasUsers:        count > 0,
 	}, nil
+}
+
+func (s *authService) ChangePassword(userID uuid.UUID, oldPassword, newPassword string) error {
+	user, err := s.repo.GetByID(userID)
+	if err != nil {
+		s.log.Error("ChangePassword failed: user not found", zap.Error(err))
+		return response.ErrNotFound
+	}
+
+	// Verify old password
+	if verifyErr := s.passwordService.VerifyPassword(oldPassword, user.PasswordHash); verifyErr != nil {
+		s.log.Warn("ChangePassword failed: invalid old password", zap.String("user_id", userID.String()))
+		return response.ErrUnauthorized
+	}
+
+	// Hash new password
+	hashedPassword, err := s.passwordService.HashPassword(newPassword)
+	if err != nil {
+		s.log.Error("ChangePassword failed: password hashing error", zap.Error(err))
+		return err
+	}
+
+	// Update password
+	user.PasswordHash = hashedPassword
+	if err := s.repo.Update(user); err != nil {
+		s.log.Error("ChangePassword failed: update error", zap.Error(err))
+		return err
+	}
+
+	s.log.Info("Password changed successfully", zap.String("user_id", userID.String()))
+	return nil
 }

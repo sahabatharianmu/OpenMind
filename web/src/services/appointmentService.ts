@@ -1,5 +1,6 @@
 import api from "@/api/client";
 import { Appointment } from "@/types";
+import type { PaginatedResponse } from "@/types/api";
 
 export interface CreateAppointmentRequest {
   patient_id: string;
@@ -16,7 +17,7 @@ export interface UpdateAppointmentRequest extends Partial<CreateAppointmentReque
 
 const appointmentService = {
   list: async () => {
-    const response = await api.get<{ data: { items: Appointment[] } }>("/appointments");
+    const response = await api.get<{ data: PaginatedResponse<Appointment> }>("/appointments");
     return response.data.data.items;
   },
 
