@@ -1,7 +1,3 @@
--- Migration: Protect audit logs from deletion and updates
--- Description: Creates PostgreSQL triggers to prevent audit log modifications
---              Audit logs must remain immutable for HIPAA compliance
-
 -- Create function to prevent audit log deletion
 CREATE OR REPLACE FUNCTION prevent_audit_log_delete()
 RETURNS TRIGGER AS $$
