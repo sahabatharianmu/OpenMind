@@ -96,19 +96,19 @@ const StatsCards = () => {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {statsConfig.map((stat, index) => (
         <Card key={index} className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className="text-3xl font-bold mt-1">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.label}</p>
+                <p className="text-2xl sm:text-3xl font-bold mt-1 break-words">
                   {loading ? "..." : stat.value}
                 </p>
               </div>
-              <div className={`p-3 rounded-lg ${stat.bg}`}>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+              <div className={`p-2 sm:p-3 rounded-lg ${stat.bg} flex-shrink-0 ml-2`}>
+                <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
               </div>
             </div>
           </CardContent>

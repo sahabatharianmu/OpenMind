@@ -266,19 +266,20 @@ const NoteEditor = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8 max-w-4xl">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
           <Button 
             variant="ghost" 
             size="icon"
+            className="h-11 w-11 min-h-[44px] min-w-[44px]"
             onClick={() => navigate("/dashboard/notes")}
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-xl sm:text-2xl font-bold">
                 {isNew ? "New Clinical Note" : "Edit Note"}
               </h1>
               <Badge variant="outline" className="gap-1 bg-green-50 text-green-700 border-green-200">
@@ -340,7 +341,7 @@ const NoteEditor = () => {
                   onValueChange={setPatientId}
                   disabled={isSigned || !isNew}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11 min-h-[44px]">
                     <SelectValue placeholder="Select a patient" />
                   </SelectTrigger>
                   <SelectContent>
@@ -359,7 +360,7 @@ const NoteEditor = () => {
                   onValueChange={setNoteType}
                   disabled={isSigned}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11 min-h-[44px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -379,7 +380,7 @@ const NoteEditor = () => {
                 value={icd10Code}
                 onChange={(e) => setIcd10Code(e.target.value)}
                 disabled={isSigned}
-                className="max-w-[200px]"
+                className="h-11 min-h-[44px] max-w-[200px]"
               />
               <p className="text-xs text-muted-foreground">Required for insurance Superbills</p>
             </div>
@@ -425,7 +426,7 @@ const NoteEditor = () => {
                 value={subjective}
                 onChange={(e) => setSubjective(e.target.value)}
                 disabled={isSigned}
-                className="min-h-[120px]"
+                className="min-h-[120px] resize-y"
                 aria-label={isSigned ? "Subjective field is locked. This note is signed and cannot be edited." : "Subjective"}
               />
             </div>
@@ -457,7 +458,7 @@ const NoteEditor = () => {
                 value={objective}
                 onChange={(e) => setObjective(e.target.value)}
                 disabled={isSigned}
-                className="min-h-[120px]"
+                className="min-h-[120px] resize-y"
                 aria-label={isSigned ? "Objective field is locked. This note is signed and cannot be edited." : "Objective"}
               />
             </div>
@@ -489,7 +490,7 @@ const NoteEditor = () => {
                 value={assessment}
                 onChange={(e) => setAssessment(e.target.value)}
                 disabled={isSigned}
-                className="min-h-[120px]"
+                className="min-h-[120px] resize-y"
                 aria-label={isSigned ? "Assessment field is locked. This note is signed and cannot be edited." : "Assessment"}
               />
             </div>
@@ -521,7 +522,7 @@ const NoteEditor = () => {
                 value={plan}
                 onChange={(e) => setPlan(e.target.value)}
                 disabled={isSigned}
-                className="min-h-[120px]"
+                className="min-h-[120px] resize-y"
                 aria-label={isSigned ? "Plan field is locked. This note is signed and cannot be edited." : "Plan"}
               />
             </div>
@@ -554,6 +555,7 @@ const NoteEditor = () => {
                     <Button 
                       variant="ghost" 
                       size="icon" 
+                      className="h-10 w-10 min-h-[44px] min-w-[44px]"
                       onClick={() => handleDownloadAttachment(file)}
                       title="Download and Decrypt"
                     >
@@ -580,8 +582,9 @@ const NoteEditor = () => {
                   size="sm" 
                   asChild
                   disabled={uploading}
+                  className="h-11 min-h-[44px]"
                 >
-                  <label htmlFor="file-upload" className="cursor-pointer gap-2">
+                  <label htmlFor="file-upload" className="cursor-pointer gap-2 flex items-center justify-center">
                     <Upload className="w-4 h-4" />
                     {uploading ? "Encrypting & Uploading..." : "Upload Attachment"}
                   </label>
@@ -658,10 +661,11 @@ const NoteEditor = () => {
 
         {/* Actions */}
         {!isSigned && (
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t">
             <Button
               variant="outline"
               onClick={() => navigate("/dashboard/notes")}
+              className="h-11 min-h-[44px] w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -669,14 +673,14 @@ const NoteEditor = () => {
               variant="secondary"
               onClick={() => handleSave(false)}
               disabled={saving}
-              className="gap-2"
+              className="gap-2 h-11 min-h-[44px] w-full sm:w-auto"
             >
               <Save className="w-4 h-4" />
               Save Draft
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button disabled={saving || !patientId} className="gap-2">
+                <Button disabled={saving || !patientId} className="gap-2 h-11 min-h-[44px] w-full sm:w-auto">
                   <CheckCircle2 className="w-4 h-4" />
                   Sign & Lock
                 </Button>
