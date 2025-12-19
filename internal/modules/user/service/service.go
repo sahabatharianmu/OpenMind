@@ -1,10 +1,15 @@
 package service
 
 import (
+	"context"
+
 	"github.com/google/uuid"
+	orgRepo "github.com/sahabatharianmu/OpenMind/internal/modules/organization/repository"
+	"github.com/sahabatharianmu/OpenMind/internal/modules/tenant/service"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/dto"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/entity"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/repository"
+	"github.com/sahabatharianmu/OpenMind/pkg/constants"
 	"github.com/sahabatharianmu/OpenMind/pkg/crypto"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
 	"github.com/sahabatharianmu/OpenMind/pkg/response"
@@ -13,33 +18,39 @@ import (
 )
 
 type AuthService interface {
-	Register(email, password, fullName, practiceName string) (*entity.User, error)
+	Register(email, password, fullName, practiceName string) (*dto.RegisterResponse, error)
 	Login(email, password string) (*dto.LoginResponse, error)
 	ChangePassword(userID uuid.UUID, oldPassword, newPassword string) error
 }
 
 type authService struct {
 	repo            repository.UserRepository
+	orgRepo         orgRepo.OrganizationRepository
 	jwt             *security.JWTService
 	passwordService *crypto.PasswordService
+	tenantService   service.TenantService
 	log             logger.Logger
 }
 
 func NewAuthService(
 	repo repository.UserRepository,
+	orgRepo orgRepo.OrganizationRepository,
 	jwt *security.JWTService,
 	passwordService *crypto.PasswordService,
+	tenantService service.TenantService,
 	log logger.Logger,
 ) AuthService {
 	return &authService{
 		repo:            repo,
+		orgRepo:         orgRepo,
 		jwt:             jwt,
 		passwordService: passwordService,
+		tenantService:   tenantService,
 		log:             log,
 	}
 }
 
-func (s *authService) Register(email, password, fullName, practiceName string) (*entity.User, error) {
+func (s *authService) Register(email, password, fullName, practiceName string) (*dto.RegisterResponse, error) {
 	existingUser, _ := s.repo.FindByEmail(email)
 	if existingUser != nil {
 		s.log.Warn("Registration failed: email already registered", zap.String("email", email))
@@ -57,7 +68,7 @@ func (s *authService) Register(email, password, fullName, practiceName string) (
 		Email:        email,
 		PasswordHash: hashedPassword,
 		FullName:     fullName,
-		Role:         "clinician", // Default role
+		// Role is set in organization_members table, not here
 	}
 
 	organization := &entity.Organization{
@@ -70,8 +81,36 @@ func (s *authService) Register(email, password, fullName, practiceName string) (
 		return nil, err
 	}
 
-	s.log.Info("User registered successfully with organization", zap.String("email", email), zap.String("practice", practiceName))
-	return user, nil
+	// Create tenant for the new organization
+	ctx := context.Background()
+	_, err = s.tenantService.CreateTenantForOrganization(ctx, organization.ID)
+	if err != nil {
+		s.log.Error("Failed to create tenant for organization during registration",
+			zap.Error(err),
+			zap.String("organization_id", organization.ID.String()))
+		// Don't fail registration if tenant creation fails - it can be created later
+		// But log the error for monitoring
+	}
+
+	// Get role from organization_members (should be "owner" for creator)
+	role, err := s.orgRepo.GetMemberRole(organization.ID, user.ID)
+	if err != nil {
+		s.log.Error("Failed to get role after registration", zap.Error(err))
+		// Default to "owner" if we can't get it (first user is owner)
+		role = constants.RoleOwner
+	}
+
+	s.log.Info("User registered successfully with organization",
+		zap.String("email", email),
+		zap.String("practice", practiceName),
+		zap.String("organization_id", organization.ID.String()),
+		zap.String("role", role))
+
+	return &dto.RegisterResponse{
+		ID:    user.ID,
+		Email: user.Email,
+		Role:  role,
+	}, nil
 }
 
 func (s *authService) Login(email, password string) (*dto.LoginResponse, error) {
@@ -86,13 +125,27 @@ func (s *authService) Login(email, password string) (*dto.LoginResponse, error) 
 		return nil, response.ErrUnauthorized
 	}
 
-	accessToken, refreshToken, err := s.jwt.GenerateTokens(user.ID, user.Email, user.Role)
+	// Get user's organization and role from organization_members
+	org, err := s.orgRepo.GetByUserID(user.ID)
+	if err != nil {
+		s.log.Warn("Login failed: user has no organization", zap.String("email", email), zap.Error(err))
+		return nil, response.ErrUnauthorized
+	}
+
+	// Get role from organization_members table
+	role, err := s.orgRepo.GetMemberRole(org.ID, user.ID)
+	if err != nil {
+		s.log.Warn("Login failed: could not get user role", zap.String("email", email), zap.Error(err))
+		return nil, response.ErrUnauthorized
+	}
+
+	accessToken, refreshToken, err := s.jwt.GenerateTokens(user.ID, user.Email, role)
 	if err != nil {
 		s.log.Error("Login failed: token generation error", zap.Error(err))
 		return nil, response.ErrInternalServerError
 	}
 
-	s.log.Info("User logged in successfully", zap.String("email", email))
+	s.log.Info("User logged in successfully", zap.String("email", email), zap.String("role", role))
 	return &dto.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,

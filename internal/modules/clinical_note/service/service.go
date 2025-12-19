@@ -105,7 +105,7 @@ func (s *clinicalNoteService) Create(
 		SignedAt:       signedAt,
 	}
 
-	if err := s.encryptNote(note); err != nil {
+	if err := s.encryptNote(note, organizationID); err != nil {
 		return nil, fmt.Errorf("failed to encrypt note: %w", err)
 	}
 
@@ -161,7 +161,7 @@ func (s *clinicalNoteService) Update(
 		}
 	}
 
-	if err := s.encryptNote(note); err != nil {
+	if err := s.encryptNote(note, organizationID); err != nil {
 		return nil, fmt.Errorf("failed to encrypt note: %w", err)
 	}
 
@@ -203,7 +203,7 @@ func (s *clinicalNoteService) Get(
 		return nil, response.ErrNotFound
 	}
 
-	if err := s.decryptNote(note); err != nil {
+	if err := s.decryptNote(note, organizationID); err != nil {
 		return nil, fmt.Errorf("failed to decrypt note: %w", err)
 	}
 
@@ -223,7 +223,7 @@ func (s *clinicalNoteService) List(
 
 	var responses []dto.ClinicalNoteResponse
 	for i := range notes {
-		if err := s.decryptNote(&notes[i]); err != nil {
+		if err := s.decryptNote(&notes[i], organizationID); err != nil {
 			s.log.Error("Failed to decrypt note", zap.String("note_id", notes[i].ID.String()))
 		}
 		responses = append(responses, *s.mapEntityToResponse(&notes[i]))
@@ -258,7 +258,7 @@ func (s *clinicalNoteService) AddAddendum(
 		Content:     req.Content,
 	}
 
-	if err := s.encryptAddendum(addendum); err != nil {
+	if err := s.encryptAddendum(addendum, organizationID); err != nil {
 		return nil, fmt.Errorf("failed to encrypt addendum: %w", err)
 	}
 
@@ -290,8 +290,8 @@ func (s *clinicalNoteService) UploadAttachment(
 		return nil, response.NewForbidden("Cannot add attachment to a signed note")
 	}
 
-	// Encrypt the file content
-	encryptedBase64, err := s.encryptSvc.Encrypt(base64.StdEncoding.EncodeToString(data))
+	// Encrypt the file content with tenant-specific key (HIPAA compliant)
+	encryptedBase64, err := s.encryptSvc.Encrypt(base64.StdEncoding.EncodeToString(data), organizationID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt file: %w", err)
 	}
@@ -336,9 +336,9 @@ func (s *clinicalNoteService) DownloadAttachment(
 		return "", nil, "", response.ErrNotFound
 	}
 
-	// Decrypt the file content
+	// Decrypt the file content with tenant-specific key (HIPAA compliant)
 	encryptedBase64 := base64.StdEncoding.EncodeToString(attachment.DataEncrypted)
-	decryptedBase64, err := s.encryptSvc.Decrypt(encryptedBase64)
+	decryptedBase64, err := s.encryptSvc.Decrypt(encryptedBase64, organizationID)
 	if err != nil {
 		return "", nil, "", fmt.Errorf("failed to decrypt file: %w", err)
 	}
@@ -355,8 +355,9 @@ func (s *clinicalNoteService) GetOrganizationID(ctx context.Context, userID uuid
 	return s.repo.GetOrganizationID(userID)
 }
 
-func (s *clinicalNoteService) encryptAddendum(a *entity.Addendum) error {
-	encryptedBase64, err := s.encryptSvc.Encrypt(a.Content)
+func (s *clinicalNoteService) encryptAddendum(a *entity.Addendum, organizationID uuid.UUID) error {
+	// Use tenant-specific encryption key (HIPAA compliant)
+	encryptedBase64, err := s.encryptSvc.Encrypt(a.Content, organizationID)
 	if err != nil {
 		return err
 	}
@@ -377,13 +378,14 @@ func (s *clinicalNoteService) encryptAddendum(a *entity.Addendum) error {
 	return nil
 }
 
-func (s *clinicalNoteService) decryptAddendum(a *entity.Addendum) error {
+func (s *clinicalNoteService) decryptAddendum(a *entity.Addendum, organizationID uuid.UUID) error {
 	if len(a.ContentEncrypted) == 0 {
 		return nil
 	}
 
 	encryptedBase64 := base64.StdEncoding.EncodeToString(a.ContentEncrypted)
-	decryptedContent, err := s.encryptSvc.Decrypt(encryptedBase64)
+	// Use tenant-specific decryption key (HIPAA compliant)
+	decryptedContent, err := s.encryptSvc.Decrypt(encryptedBase64, organizationID)
 	if err != nil {
 		return err
 	}
@@ -401,7 +403,7 @@ func (s *clinicalNoteService) mapAddendumEntityToResponse(a *entity.Addendum) *d
 	}
 }
 
-func (s *clinicalNoteService) encryptNote(n *entity.ClinicalNote) error {
+func (s *clinicalNoteService) encryptNote(n *entity.ClinicalNote, organizationID uuid.UUID) error {
 	content := clinicalNoteContent{
 		Subjective: n.Subjective,
 		Objective:  n.Objective,
@@ -414,7 +416,8 @@ func (s *clinicalNoteService) encryptNote(n *entity.ClinicalNote) error {
 		return err
 	}
 
-	encryptedBase64, err := s.encryptSvc.Encrypt(string(jsonData))
+	// Use tenant-specific encryption key (HIPAA compliant)
+	encryptedBase64, err := s.encryptSvc.Encrypt(string(jsonData), organizationID)
 	if err != nil {
 		return err
 	}
@@ -437,10 +440,11 @@ func (s *clinicalNoteService) encryptNote(n *entity.ClinicalNote) error {
 	return nil
 }
 
-func (s *clinicalNoteService) decryptNote(n *entity.ClinicalNote) error {
+func (s *clinicalNoteService) decryptNote(n *entity.ClinicalNote, organizationID uuid.UUID) error {
 	if len(n.ContentEncrypted) > 0 {
 		encryptedBase64 := base64.StdEncoding.EncodeToString(n.ContentEncrypted)
-		decryptedJSON, err := s.encryptSvc.Decrypt(encryptedBase64)
+		// Use tenant-specific decryption key (HIPAA compliant)
+		decryptedJSON, err := s.encryptSvc.Decrypt(encryptedBase64, organizationID)
 		if err != nil {
 			return err
 		}
@@ -457,7 +461,7 @@ func (s *clinicalNoteService) decryptNote(n *entity.ClinicalNote) error {
 	}
 
 	for i := range n.Addendums {
-		if err := s.decryptAddendum(&n.Addendums[i]); err != nil {
+		if err := s.decryptAddendum(&n.Addendums[i], n.OrganizationID); err != nil {
 			s.log.Error("Failed to decrypt addendum", zap.String("addendum_id", n.Addendums[i].ID.String()))
 		}
 	}

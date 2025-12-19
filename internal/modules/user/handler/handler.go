@@ -25,16 +25,10 @@ func (h *AuthHandler) Register(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	user, err := h.svc.Register(req.Email, req.Password, req.FullName, req.PracticeName)
+	resp, err := h.svc.Register(req.Email, req.Password, req.FullName, req.PracticeName)
 	if err != nil {
 		response.HandleError(c, err)
 		return
-	}
-
-	resp := dto.RegisterResponse{
-		ID:    user.ID,
-		Email: user.Email,
-		Role:  user.Role,
 	}
 
 	response.Created(c, resp, "User registered successfully")
