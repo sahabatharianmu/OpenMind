@@ -78,7 +78,6 @@ func (s *importService) PreviewImport(
 	organizationID uuid.UUID,
 	userID uuid.UUID,
 ) (*dto.ImportPreviewResponse, error) {
-	// Decode base64 file data
 	fileData, err := base64.StdEncoding.DecodeString(req.FileData)
 	if err != nil {
 		return nil, fmt.Errorf("invalid file data: %w", err)
@@ -86,9 +85,9 @@ func (s *importService) PreviewImport(
 
 	switch req.Type {
 	case "patients":
-		return s.previewPatientsImport(ctx, fileData, req.FileName)
+		return s.previewPatientsImport(fileData, req.FileName)
 	case "notes":
-		return s.previewNotesImport(ctx, fileData, req.FileName, organizationID)
+		return s.previewNotesImport(fileData, req.FileName)
 	default:
 		return nil, fmt.Errorf("unsupported import type: %s", req.Type)
 	}
@@ -100,7 +99,6 @@ func (s *importService) ExecuteImport(
 	organizationID uuid.UUID,
 	userID uuid.UUID,
 ) (*dto.ImportExecuteResponse, error) {
-	// Decode base64 file data
 	fileData, err := base64.StdEncoding.DecodeString(req.FileData)
 	if err != nil {
 		return nil, fmt.Errorf("invalid file data: %w", err)
@@ -108,15 +106,14 @@ func (s *importService) ExecuteImport(
 
 	switch req.Type {
 	case "patients":
-		return s.executePatientsImport(ctx, fileData, req.FileName, organizationID, userID)
+		return s.executePatientsImport(fileData, req.FileName, organizationID, userID)
 	case "notes":
-		return s.executeNotesImport(ctx, fileData, req.FileName, organizationID, userID)
+		return s.executeNotesImport(fileData, req.FileName, organizationID, userID)
 	default:
 		return nil, fmt.Errorf("unsupported import type: %s", req.Type)
 	}
 }
 
-// Helper functions for CSV/XLSX parsing
 func isXLSXFile(fileName string) bool {
 	ext := strings.ToLower(filepath.Ext(fileName))
 	return ext == ".xlsx" || ext == ".xls"
@@ -141,99 +138,143 @@ func parseXLSX(fileData []byte) ([][]string, error) {
 		return nil, fmt.Errorf("no sheets found in XLSX file")
 	}
 
-	// Get all rows with cell values
 	rows, err := f.GetRows(sheetName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read rows: %w", err)
 	}
 
-	// Get the actual cell values with proper formatting
-	// Excel stores dates as numbers, but GetRows might return formatted strings
-	// We need to check both the string value and the numeric value
-	now := time.Now()
-	minReasonableYear := now.Year() - 150 // Allow dates up to 150 years in the past
-	maxReasonableYear := now.Year() + 100 // Allow dates up to 100 years in the future
-
-	// Get the total number of rows and columns
-	maxRow := len(rows)
-	if maxRow == 0 {
+	if len(rows) == 0 {
 		return rows, nil
 	}
+
+	maxCol := getMaxColumnCount(rows)
+	now := time.Now()
+	minReasonableYear := now.Year() - 150
+	maxReasonableYear := now.Year() + 100
+
+	convertExcelDates(rows, f, sheetName, maxCol, minReasonableYear, maxReasonableYear)
+
+	return rows, nil
+}
+
+// getMaxColumnCount returns the maximum column count across all rows
+func getMaxColumnCount(rows [][]string) int {
 	maxCol := 0
 	for _, row := range rows {
 		if len(row) > maxCol {
 			maxCol = len(row)
 		}
 	}
+	return maxCol
+}
 
-	// Convert Excel date numbers to properly formatted date strings
-	for i := 0; i < maxRow; i++ {
+// convertExcelDates converts Excel date formats to standardized YYYY-MM-DD format
+func convertExcelDates(
+	rows [][]string,
+	f *excelize.File,
+	sheetName string,
+	maxCol int,
+	minReasonableYear int,
+	maxReasonableYear int,
+) {
+	for i := 0; i < len(rows); i++ {
 		for j := 0; j < maxCol; j++ {
-			cellName, err := excelize.CoordinatesToCellName(j+1, i+1)
-			if err != nil {
-				continue
-			}
+			processExcelCell(rows, f, sheetName, i, j, minReasonableYear, maxReasonableYear)
+		}
+	}
+}
 
-			// Excel dates are stored as numbers, but GetRows returns formatted strings
-			// We need to get the raw numeric value using GetCellFormula or check the cell type
-			// First, try to get the cell value as a number
-			cellValue, err := f.GetCellValue(sheetName, cellName)
-			if err != nil {
-				continue
-			}
+// processExcelCell processes a single Excel cell to convert date formats
+func processExcelCell(
+	rows [][]string,
+	f *excelize.File,
+	sheetName string,
+	i, j int,
+	minReasonableYear int,
+	maxReasonableYear int,
+) {
+	cellName, err := excelize.CoordinatesToCellName(j+1, i+1)
+	if err != nil {
+		return
+	}
 
-			// Try to parse as Excel date serial number (numeric value)
-			if cellValue != "" {
-				if num, err := strconv.ParseFloat(cellValue, 64); err == nil {
-					// Excel dates are typically between 1 (1900-01-01) and ~50000 (2037+)
-					if num > 1 && num < 100000 {
-						// Convert Excel serial number to date
-						excelEpoch := time.Date(1899, 12, 30, 0, 0, 0, 0, time.UTC)
-						days := int(num)
-						date := excelEpoch.AddDate(0, 0, days)
-						// Check if the resulting date is reasonable
-						if date.Year() >= minReasonableYear && date.Year() <= maxReasonableYear {
-							// Update the cell in rows array
-							if i < len(rows) {
-								if j >= len(rows[i]) {
-									// Extend row if needed
-									for len(rows[i]) <= j {
-										rows[i] = append(rows[i], "")
-									}
-								}
-								rows[i][j] = date.Format("2006-01-02")
-							}
-							continue
-						}
-					}
-				}
-			}
+	cellValue, err := f.GetCellValue(sheetName, cellName)
+	if err != nil {
+		return
+	}
 
-			// If it's a string (formatted date), try to parse it with our date parser
-			// This handles cases where Excel returns formatted date strings like "01-15-90"
-			if i < len(rows) && j < len(rows[i]) {
-				cellStr := strings.TrimSpace(rows[i][j])
-				if cellStr != "" {
-					// Try to parse the string as a date
-					if t, err := parseDate(cellStr); err == nil {
-						// If it parses successfully, format it to standard YYYY-MM-DD
-						rows[i][j] = t.Format("2006-01-02")
-					} else {
-						// If parseDate fails, it might be a 2-digit year format from Excel
-						// Try to detect and convert 2-digit years to 4-digit years
-						// Pattern: MM-DD-YY or MM/DD/YY
-						if converted, ok := convertTwoDigitYear(cellStr); ok {
-							if t, err := parseDate(converted); err == nil {
-								rows[i][j] = t.Format("2006-01-02")
-							}
-						}
-					}
-				}
+	// Try Excel serial number conversion first
+	if converted := tryExcelSerialNumber(cellValue, minReasonableYear, maxReasonableYear); converted != "" {
+		updateCellValue(rows, i, j, converted)
+		return
+	}
+
+	// Try string date parsing
+	if i < len(rows) && j < len(rows[i]) {
+		cellStr := strings.TrimSpace(rows[i][j])
+		if cellStr != "" {
+			if converted := tryStringDateParsing(cellStr); converted != "" {
+				updateCellValue(rows, i, j, converted)
 			}
 		}
 	}
+}
 
-	return rows, nil
+// tryExcelSerialNumber attempts to convert Excel serial number to date string
+func tryExcelSerialNumber(cellValue string, minYear, maxYear int) string {
+	if cellValue == "" {
+		return ""
+	}
+
+	num, err := strconv.ParseFloat(cellValue, 64)
+	if err != nil {
+		return ""
+	}
+
+	// Excel dates are typically between 1 (1900-01-01) and ~50000 (2037+)
+	if num <= 1 || num >= 100000 {
+		return ""
+	}
+
+	excelEpoch := time.Date(1899, 12, 30, 0, 0, 0, 0, time.UTC)
+	days := int(num)
+	date := excelEpoch.AddDate(0, 0, days)
+
+	if date.Year() < minYear || date.Year() > maxYear {
+		return ""
+	}
+
+	return date.Format("2006-01-02")
+}
+
+// tryStringDateParsing attempts to parse string dates and convert to YYYY-MM-DD
+func tryStringDateParsing(cellStr string) string {
+	if t, err := parseDate(cellStr); err == nil {
+		return t.Format("2006-01-02")
+	}
+
+	// Try 2-digit year conversion
+	if converted, ok := convertTwoDigitYear(cellStr); ok {
+		if t, err := parseDate(converted); err == nil {
+			return t.Format("2006-01-02")
+		}
+	}
+
+	return ""
+}
+
+// updateCellValue updates a cell value in the rows array, extending the row if needed
+func updateCellValue(rows [][]string, i, j int, value string) {
+	if i >= len(rows) {
+		return
+	}
+
+	// Extend row if needed
+	for len(rows[i]) <= j {
+		rows[i] = append(rows[i], "")
+	}
+
+	rows[i][j] = value
 }
 
 func parseFile(fileData []byte, fileName string) ([][]string, error) {
@@ -245,7 +286,6 @@ func parseFile(fileData []byte, fileName string) ([][]string, error) {
 
 // Patient Import Functions
 func (s *importService) previewPatientsImport(
-	ctx context.Context,
 	fileData []byte,
 	fileName string,
 ) (*dto.ImportPreviewResponse, error) {
@@ -258,7 +298,6 @@ func (s *importService) previewPatientsImport(
 		return nil, fmt.Errorf("CSV file is empty")
 	}
 
-	// First row is header
 	headers := records[0]
 	headerMap := make(map[string]int)
 	for i, h := range headers {
@@ -280,73 +319,14 @@ func (s *importService) previewPatientsImport(
 
 	// Process rows (skip header)
 	for i := 1; i < len(records); i++ {
-		row := records[i]
+		rowMap := buildRowMap(records[i], headerMap)
 		rowNum := i + 1
 
-		// Build row map
-		rowMap := make(map[string]interface{})
-		for key, idx := range headerMap {
-			if idx < len(row) {
-				rowMap[key] = strings.TrimSpace(row[idx])
-			} else {
-				rowMap[key] = ""
-			}
-		}
+		rowErrors, rowWarnings, isValid := validatePatientRow(rowMap, rowNum)
+		errors = append(errors, rowErrors...)
+		warnings = append(warnings, rowWarnings...)
 
-		// Validate row
-		rowValid := true
-		firstName := getStringValue(rowMap, "first_name")
-		lastName := getStringValue(rowMap, "last_name")
-		dobStr := getStringValue(rowMap, "date_of_birth")
-
-		if firstName == "" {
-			errors = append(errors, dto.RowError{
-				Row:     rowNum,
-				Field:   "first_name",
-				Message: "First name is required",
-			})
-			rowValid = false
-		}
-
-		if lastName == "" {
-			errors = append(errors, dto.RowError{
-				Row:     rowNum,
-				Field:   "last_name",
-				Message: "Last name is required",
-			})
-			rowValid = false
-		}
-
-		if dobStr == "" {
-			errors = append(errors, dto.RowError{
-				Row:     rowNum,
-				Field:   "date_of_birth",
-				Message: "Date of birth is required",
-			})
-			rowValid = false
-		} else {
-			_, err := parseDate(dobStr)
-			if err != nil {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Field:   "date_of_birth",
-					Message: fmt.Sprintf("Invalid date format. Supported formats: YYYY-MM-DD, MM/DD/YYYY, M/D/YYYY, MM-DD-YYYY, M-D-YYYY. Got: %s", dobStr),
-				})
-				rowValid = false
-			}
-		}
-
-		// Validate email if provided
-		email := getStringValue(rowMap, "email")
-		if email != "" && !strings.Contains(email, "@") {
-			warnings = append(warnings, dto.RowWarning{
-				Row:     rowNum,
-				Field:   "email",
-				Message: "Email format appears invalid",
-			})
-		}
-
-		if rowValid {
+		if isValid {
 			validCount++
 			if len(preview) < 10 {
 				preview = append(preview, rowMap)
@@ -364,8 +344,64 @@ func (s *importService) previewPatientsImport(
 	}, nil
 }
 
+// validatePatientRow validates a patient row and returns errors, warnings, and validity status
+func validatePatientRow(rowMap map[string]interface{}, rowNum int) ([]dto.RowError, []dto.RowWarning, bool) {
+	var errors []dto.RowError
+	var warnings []dto.RowWarning
+	rowValid := true
+
+	firstName := getStringValue(rowMap, "first_name")
+	lastName := getStringValue(rowMap, "last_name")
+	dobStr := getStringValue(rowMap, "date_of_birth")
+
+	if firstName == "" {
+		errors = append(errors, dto.RowError{
+			Row:     rowNum,
+			Field:   "first_name",
+			Message: "First name is required",
+		})
+		rowValid = false
+	}
+
+	if lastName == "" {
+		errors = append(errors, dto.RowError{
+			Row:     rowNum,
+			Field:   "last_name",
+			Message: "Last name is required",
+		})
+		rowValid = false
+	}
+
+	if dobStr == "" {
+		errors = append(errors, dto.RowError{
+			Row:     rowNum,
+			Field:   "date_of_birth",
+			Message: "Date of birth is required",
+		})
+		rowValid = false
+	} else if _, err := parseDate(dobStr); err != nil {
+		errors = append(errors, dto.RowError{
+			Row:     rowNum,
+			Field:   "date_of_birth",
+			Message: fmt.Sprintf("Invalid date format. Supported formats: YYYY-MM-DD, MM/DD/YYYY, M/D/YYYY, MM-DD-YYYY, M-D-YYYY. Got: %s", dobStr),
+		})
+		rowValid = false
+	}
+
+	// Validate email if provided
+	email := getStringValue(rowMap, "email")
+	if email != "" && !strings.Contains(email, "@") {
+		warnings = append(warnings, dto.RowWarning{
+			Row:     rowNum,
+			Field:   "email",
+			Message: "Email format appears invalid",
+		})
+	}
+
+	return errors, warnings, rowValid
+}
+
 func (s *importService) executePatientsImport(
-	ctx context.Context,
 	fileData []byte,
 	fileName string,
 	organizationID uuid.UUID,
@@ -377,7 +413,7 @@ func (s *importService) executePatientsImport(
 	}
 
 	if len(records) == 0 {
-		return nil, fmt.Errorf("CSV file is empty")
+		return nil, fmt.Errorf("file is empty")
 	}
 
 	headers := records[0]
@@ -393,70 +429,13 @@ func (s *importService) executePatientsImport(
 	// Use transaction for atomicity
 	err = s.db.Transaction(func(tx *gorm.DB) error {
 		for i := 1; i < len(records); i++ {
-			row := records[i]
+			rowMap := buildRowMap(records[i], headerMap)
 			rowNum := i + 1
 
-			rowMap := make(map[string]interface{})
-			for key, idx := range headerMap {
-				if idx < len(row) {
-					rowMap[key] = strings.TrimSpace(row[idx])
-				} else {
-					rowMap[key] = ""
-				}
-			}
-
-			firstName := getStringValue(rowMap, "first_name")
-			lastName := getStringValue(rowMap, "last_name")
-			dobStr := getStringValue(rowMap, "date_of_birth")
-
-			// Validate required fields
-			if firstName == "" || lastName == "" || dobStr == "" {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Message: "Missing required fields: first_name, last_name, or date_of_birth",
-				})
+			patient, rowErr := s.validateAndCreatePatient(rowMap, rowNum, organizationID, userID)
+			if rowErr != nil {
+				errors = append(errors, *rowErr)
 				continue
-			}
-
-			dob, err := parseDate(dobStr)
-			if err != nil {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Field:   "date_of_birth",
-					Message: fmt.Sprintf("Invalid date format: %s. Supported formats: YYYY-MM-DD, MM/DD/YYYY, M/D/YYYY, MM-DD-YYYY, M-D-YYYY", dobStr),
-				})
-				continue
-			}
-
-			// Create patient
-			email := getStringValue(rowMap, "email")
-			phone := getStringValue(rowMap, "phone")
-			address := getStringValue(rowMap, "address")
-
-			var emailPtr *string
-			if email != "" {
-				emailPtr = &email
-			}
-			var phonePtr *string
-			if phone != "" {
-				phonePtr = &phone
-			}
-			var addressPtr *string
-			if address != "" {
-				addressPtr = &address
-			}
-
-			patient := &patientEntity.Patient{
-				ID:             uuid.New(),
-				OrganizationID: organizationID,
-				FirstName:      firstName,
-				LastName:       lastName,
-				DateOfBirth:    dob,
-				Email:          emailPtr,
-				Phone:          phonePtr,
-				Address:        addressPtr,
-				Status:         "active",
-				CreatedBy:      userID,
 			}
 
 			if err := tx.Create(patient).Error; err != nil {
@@ -472,7 +451,7 @@ func (s *importService) executePatientsImport(
 		}
 
 		// If too many errors, rollback
-		if len(errors) > len(records)/2 {
+		if len(errors) > (len(records)-1)/2 {
 			return fmt.Errorf("too many errors, rolling back transaction")
 		}
 
@@ -492,12 +471,76 @@ func (s *importService) executePatientsImport(
 	}, nil
 }
 
+// buildRowMap creates a map from row data using header mapping
+func buildRowMap(row []string, headerMap map[string]int) map[string]interface{} {
+	rowMap := make(map[string]interface{})
+	for key, idx := range headerMap {
+		if idx < len(row) {
+			rowMap[key] = strings.TrimSpace(row[idx])
+		} else {
+			rowMap[key] = ""
+		}
+	}
+	return rowMap
+}
+
+// validateAndCreatePatient validates patient data and creates the patient entity
+func (s *importService) validateAndCreatePatient(
+	rowMap map[string]interface{},
+	rowNum int,
+	organizationID uuid.UUID,
+	userID uuid.UUID,
+) (*patientEntity.Patient, *dto.RowError) {
+	firstName := getStringValue(rowMap, "first_name")
+	lastName := getStringValue(rowMap, "last_name")
+	dobStr := getStringValue(rowMap, "date_of_birth")
+
+	// Validate required fields
+	if firstName == "" || lastName == "" || dobStr == "" {
+		return nil, &dto.RowError{
+			Row:     rowNum,
+			Message: "Missing required fields: first_name, last_name, or date_of_birth",
+		}
+	}
+
+	dob, err := parseDate(dobStr)
+	if err != nil {
+		return nil, &dto.RowError{
+			Row:     rowNum,
+			Field:   "date_of_birth",
+			Message: fmt.Sprintf("Invalid date format: %s. Supported formats: YYYY-MM-DD, MM/DD/YYYY, M/D/YYYY, MM-DD-YYYY, M-D-YYYY", dobStr),
+		}
+	}
+
+	// Create patient entity
+	patient := &patientEntity.Patient{
+		ID:             uuid.New(),
+		OrganizationID: organizationID,
+		FirstName:      firstName,
+		LastName:       lastName,
+		DateOfBirth:    dob,
+		Email:          stringPtr(getStringValue(rowMap, "email")),
+		Phone:          stringPtr(getStringValue(rowMap, "phone")),
+		Address:        stringPtr(getStringValue(rowMap, "address")),
+		Status:         "active",
+		CreatedBy:      userID,
+	}
+
+	return patient, nil
+}
+
+// stringPtr returns a pointer to the string if it's not empty, otherwise nil
+func stringPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 // Clinical Note Import Functions
 func (s *importService) previewNotesImport(
-	ctx context.Context,
 	fileData []byte,
 	fileName string,
-	organizationID uuid.UUID,
 ) (*dto.ImportPreviewResponse, error) {
 	records, err := parseFile(fileData, fileName)
 	if err != nil {
@@ -508,7 +551,6 @@ func (s *importService) previewNotesImport(
 		return nil, fmt.Errorf("file is empty")
 	}
 
-	// First row is header
 	headers := records[0]
 	headerMap := make(map[string]int)
 	for i, h := range headers {
@@ -530,62 +572,14 @@ func (s *importService) previewNotesImport(
 
 	// Process rows (skip header)
 	for i := 1; i < len(records); i++ {
-		row := records[i]
+		rowMap := buildRowMap(records[i], headerMap)
 		rowNum := i + 1
 
-		// Build row map
-		rowMap := make(map[string]interface{})
-		for key, idx := range headerMap {
-			if idx < len(row) {
-				rowMap[key] = strings.TrimSpace(row[idx])
-			} else {
-				rowMap[key] = ""
-			}
-		}
+		rowErrors, rowWarnings, isValid := s.validateNoteRow(rowMap, rowNum)
+		errors = append(errors, rowErrors...)
+		warnings = append(warnings, rowWarnings...)
 
-		rowValid := true
-		patientIDStr := getStringValue(rowMap, "patient_id")
-		noteType := getStringValue(rowMap, "note_type")
-
-		// Validate patient_id
-		if patientIDStr == "" {
-			errors = append(errors, dto.RowError{
-				Row:     rowNum,
-				Field:   "patient_id",
-				Message: "Patient ID is required",
-			})
-			rowValid = false
-		} else {
-			if _, err := uuid.Parse(patientIDStr); err != nil {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Field:   "patient_id",
-					Message: "Invalid UUID format",
-				})
-				rowValid = false
-			} else {
-				_, err := s.patientRepo.FindByID(uuid.MustParse(patientIDStr))
-				if err != nil {
-					warnings = append(warnings, dto.RowWarning{
-						Row:     rowNum,
-						Field:   "patient_id",
-						Message: "Patient not found in database",
-					})
-				}
-			}
-		}
-
-		// Validate note_type
-		if noteType == "" {
-			errors = append(errors, dto.RowError{
-				Row:     rowNum,
-				Field:   "note_type",
-				Message: "Note type is required",
-			})
-			rowValid = false
-		}
-
-		if rowValid {
+		if isValid {
 			validCount++
 			if len(preview) < 10 {
 				preview = append(preview, rowMap)
@@ -603,8 +597,55 @@ func (s *importService) previewNotesImport(
 	}, nil
 }
 
+// validateNoteRow validates a clinical note row and returns errors, warnings, and validity status
+func (s *importService) validateNoteRow(rowMap map[string]interface{}, rowNum int) ([]dto.RowError, []dto.RowWarning, bool) {
+	var errors []dto.RowError
+	var warnings []dto.RowWarning
+	rowValid := true
+
+	patientIDStr := getStringValue(rowMap, "patient_id")
+	noteType := getStringValue(rowMap, "note_type")
+
+	// Validate patient_id
+	if patientIDStr == "" {
+		errors = append(errors, dto.RowError{
+			Row:     rowNum,
+			Field:   "patient_id",
+			Message: "Patient ID is required",
+		})
+		rowValid = false
+	} else if _, err := uuid.Parse(patientIDStr); err != nil {
+		errors = append(errors, dto.RowError{
+			Row:     rowNum,
+			Field:   "patient_id",
+			Message: "Invalid UUID format",
+		})
+		rowValid = false
+	} else {
+		_, err := s.patientRepo.FindByID(uuid.MustParse(patientIDStr))
+		if err != nil {
+			warnings = append(warnings, dto.RowWarning{
+				Row:     rowNum,
+				Field:   "patient_id",
+				Message: "Patient not found in database",
+			})
+		}
+	}
+
+	// Validate note_type
+	if noteType == "" {
+		errors = append(errors, dto.RowError{
+			Row:     rowNum,
+			Field:   "note_type",
+			Message: "Note type is required",
+		})
+		rowValid = false
+	}
+
+	return errors, warnings, rowValid
+}
+
 func (s *importService) executeNotesImport(
-	ctx context.Context,
 	fileData []byte,
 	fileName string,
 	organizationID uuid.UUID,
@@ -630,168 +671,7 @@ func (s *importService) executeNotesImport(
 	successCount := 0
 
 	err = s.db.Transaction(func(tx *gorm.DB) error {
-		for i := 1; i < len(records); i++ {
-			row := records[i]
-			rowNum := i + 1
-
-			rowMap := make(map[string]interface{})
-			for key, idx := range headerMap {
-				if idx < len(row) {
-					rowMap[key] = strings.TrimSpace(row[idx])
-				} else {
-					rowMap[key] = ""
-				}
-			}
-
-			patientIDStr := getStringValue(rowMap, "patient_id")
-			noteType := getStringValue(rowMap, "note_type")
-
-			// Validate patient_id
-			patientID, err := uuid.Parse(patientIDStr)
-			if err != nil {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Field:   "patient_id",
-					Message: "Invalid patient ID format",
-				})
-				continue
-			}
-
-			// Verify patient exists
-			_, err = s.patientRepo.FindByID(patientID)
-			if err != nil {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Field:   "patient_id",
-					Message: "Patient not found",
-				})
-				continue
-			}
-
-			// Validate note_type
-			if noteType == "" {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Field:   "note_type",
-					Message: "Note type is required",
-				})
-				continue
-			}
-
-			// Parse appointment_id if provided
-			var appointmentID *uuid.UUID
-			appointmentIDStr := getStringValue(rowMap, "appointment_id")
-			if appointmentIDStr != "" {
-				aptID, err := uuid.Parse(appointmentIDStr)
-				if err != nil {
-					errors = append(errors, dto.RowError{
-						Row:     rowNum,
-						Field:   "appointment_id",
-						Message: "Invalid appointment ID format",
-					})
-					continue
-				}
-				appointmentID = &aptID
-			}
-
-			// Parse is_signed
-			isSignedStr := strings.ToLower(getStringValue(rowMap, "is_signed"))
-			isSigned := isSignedStr == "true" || isSignedStr == "1" || isSignedStr == "yes"
-
-			var signedAt *time.Time
-			if isSigned {
-				now := time.Now()
-				signedAt = &now
-			}
-
-			icd10Code := getStringValue(rowMap, "icd10_code")
-			subjective := getStringValue(rowMap, "subjective")
-			objective := getStringValue(rowMap, "objective")
-			assessment := getStringValue(rowMap, "assessment")
-			plan := getStringValue(rowMap, "plan")
-
-			// Create clinical note entity
-			clinicalNote := &clinicalNoteEntity.ClinicalNote{
-				ID:             uuid.New(),
-				OrganizationID: organizationID,
-				PatientID:      patientID,
-				ClinicianID:    userID,
-				AppointmentID:  appointmentID,
-				NoteType:       noteType,
-				ICD10Code:      icd10Code,
-				Subjective:     &subjective,
-				Objective:      &objective,
-				Assessment:     &assessment,
-				Plan:           &plan,
-				IsSigned:       isSigned,
-				SignedAt:       signedAt,
-			}
-
-			// Encrypt the note content
-			content := clinicalNoteContent{
-				Subjective: clinicalNote.Subjective,
-				Objective:  clinicalNote.Objective,
-				Assessment: clinicalNote.Assessment,
-				Plan:       clinicalNote.Plan,
-			}
-
-			jsonData, err := json.Marshal(content)
-			if err != nil {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Message: fmt.Sprintf("Failed to marshal note content: %v", err),
-				})
-				continue
-			}
-
-			encryptedBase64, err := s.encryptSvc.Encrypt(string(jsonData))
-			if err != nil {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Message: fmt.Sprintf("Failed to encrypt note: %v", err),
-				})
-				continue
-			}
-
-			encryptedBytes, err := base64.StdEncoding.DecodeString(encryptedBase64)
-			if err != nil {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Message: fmt.Sprintf("Failed to decode encrypted data: %v", err),
-				})
-				continue
-			}
-
-			const nonceSize = 12
-			if len(encryptedBytes) < nonceSize {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Message: "Encrypted data too short",
-				})
-				continue
-			}
-
-			clinicalNote.ContentEncrypted = encryptedBytes
-			clinicalNote.Nonce = encryptedBytes[:nonceSize]
-			clinicalNote.KeyID = "v1"
-
-			if err := tx.Create(clinicalNote).Error; err != nil {
-				errors = append(errors, dto.RowError{
-					Row:     rowNum,
-					Message: fmt.Sprintf("Failed to create note: %v", err),
-				})
-				continue
-			}
-
-			importedIDs = append(importedIDs, clinicalNote.ID)
-			successCount++
-		}
-
-		if len(errors) > (len(records)-1)/2 {
-			return fmt.Errorf("too many errors, rolling back transaction")
-		}
-
-		return nil
+		return s.processNoteRows(records, headerMap, organizationID, userID, tx, &errors, &importedIDs, &successCount)
 	})
 
 	if err != nil {
@@ -807,11 +687,210 @@ func (s *importService) executeNotesImport(
 	}, nil
 }
 
+// processNoteRows processes all note rows in a transaction
+func (s *importService) processNoteRows(
+	records [][]string,
+	headerMap map[string]int,
+	organizationID uuid.UUID,
+	userID uuid.UUID,
+	tx *gorm.DB,
+	errors *[]dto.RowError,
+	importedIDs *[]uuid.UUID,
+	successCount *int,
+) error {
+	for i := 1; i < len(records); i++ {
+		rowMap := buildRowMap(records[i], headerMap)
+		rowNum := i + 1
+
+		clinicalNote, rowErr := s.validateAndCreateNote(rowMap, rowNum, organizationID, userID)
+		if rowErr != nil {
+			*errors = append(*errors, *rowErr)
+			continue
+		}
+
+		// Encrypt the note content
+		if err := s.encryptNoteContent(clinicalNote, rowNum, errors); err != nil {
+			continue
+		}
+
+		if err := tx.Create(clinicalNote).Error; err != nil {
+			*errors = append(*errors, dto.RowError{
+				Row:     rowNum,
+				Message: fmt.Sprintf("Failed to create note: %v", err),
+			})
+			continue
+		}
+
+		*importedIDs = append(*importedIDs, clinicalNote.ID)
+		*successCount++
+	}
+
+	if len(*errors) > (len(records)-1)/2 {
+		return fmt.Errorf("too many errors, rolling back transaction")
+	}
+
+	return nil
+}
+
+// validateAndCreateNote validates note data and creates the clinical note entity
+func (s *importService) validateAndCreateNote(
+	rowMap map[string]interface{},
+	rowNum int,
+	organizationID uuid.UUID,
+	userID uuid.UUID,
+) (*clinicalNoteEntity.ClinicalNote, *dto.RowError) {
+	patientIDStr := getStringValue(rowMap, "patient_id")
+	noteType := getStringValue(rowMap, "note_type")
+
+	// Validate patient_id
+	patientID, err := uuid.Parse(patientIDStr)
+	if err != nil {
+		return nil, &dto.RowError{
+			Row:     rowNum,
+			Field:   "patient_id",
+			Message: "Invalid patient ID format",
+		}
+	}
+
+	// Verify patient exists
+	_, err = s.patientRepo.FindByID(patientID)
+	if err != nil {
+		return nil, &dto.RowError{
+			Row:     rowNum,
+			Field:   "patient_id",
+			Message: "Patient not found",
+		}
+	}
+
+	// Validate note_type
+	if noteType == "" {
+		return nil, &dto.RowError{
+			Row:     rowNum,
+			Field:   "note_type",
+			Message: "Note type is required",
+		}
+	}
+
+	// Parse appointment_id if provided
+	appointmentID := parseOptionalUUID(getStringValue(rowMap, "appointment_id"), &err)
+	if err != nil {
+		return nil, &dto.RowError{
+			Row:     rowNum,
+			Field:   "appointment_id",
+			Message: "Invalid appointment ID format",
+		}
+	}
+
+	// Parse is_signed
+	isSignedStr := strings.ToLower(getStringValue(rowMap, "is_signed"))
+	isSigned := isSignedStr == "true" || isSignedStr == "1" || isSignedStr == "yes"
+
+	var signedAt *time.Time
+	if isSigned {
+		now := time.Now()
+		signedAt = &now
+	}
+
+	// Create clinical note entity
+	subjective := getStringValue(rowMap, "subjective")
+	objective := getStringValue(rowMap, "objective")
+	assessment := getStringValue(rowMap, "assessment")
+	plan := getStringValue(rowMap, "plan")
+
+	clinicalNote := &clinicalNoteEntity.ClinicalNote{
+		ID:             uuid.New(),
+		OrganizationID: organizationID,
+		PatientID:      patientID,
+		ClinicianID:    userID,
+		AppointmentID:  appointmentID,
+		NoteType:       noteType,
+		ICD10Code:      getStringValue(rowMap, "icd10_code"),
+		Subjective:     &subjective,
+		Objective:      &objective,
+		Assessment:     &assessment,
+		Plan:           &plan,
+		IsSigned:       isSigned,
+		SignedAt:       signedAt,
+	}
+
+	return clinicalNote, nil
+}
+
+// encryptNoteContent encrypts the clinical note content and sets encrypted fields
+func (s *importService) encryptNoteContent(
+	clinicalNote *clinicalNoteEntity.ClinicalNote,
+	rowNum int,
+	errors *[]dto.RowError,
+) error {
+	content := clinicalNoteContent{
+		Subjective: clinicalNote.Subjective,
+		Objective:  clinicalNote.Objective,
+		Assessment: clinicalNote.Assessment,
+		Plan:       clinicalNote.Plan,
+	}
+
+	jsonData, err := json.Marshal(content)
+	if err != nil {
+		*errors = append(*errors, dto.RowError{
+			Row:     rowNum,
+			Message: fmt.Sprintf("Failed to marshal note content: %v", err),
+		})
+		return err
+	}
+
+	encryptedBase64, err := s.encryptSvc.Encrypt(string(jsonData))
+	if err != nil {
+		*errors = append(*errors, dto.RowError{
+			Row:     rowNum,
+			Message: fmt.Sprintf("Failed to encrypt note: %v", err),
+		})
+		return err
+	}
+
+	encryptedBytes, err := base64.StdEncoding.DecodeString(encryptedBase64)
+	if err != nil {
+		*errors = append(*errors, dto.RowError{
+			Row:     rowNum,
+			Message: fmt.Sprintf("Failed to decode encrypted data: %v", err),
+		})
+		return err
+	}
+
+	const nonceSize = 12
+	if len(encryptedBytes) < nonceSize {
+		*errors = append(*errors, dto.RowError{
+			Row:     rowNum,
+			Message: "Encrypted data too short",
+		})
+		return fmt.Errorf("encrypted data too short")
+	}
+
+	clinicalNote.ContentEncrypted = encryptedBytes
+	clinicalNote.Nonce = encryptedBytes[:nonceSize]
+	clinicalNote.KeyID = "v1"
+
+	return nil
+}
+
+// parseOptionalUUID parses an optional UUID string, returns nil if empty
+func parseOptionalUUID(uuidStr string, errOut *error) *uuid.UUID {
+	if uuidStr == "" {
+		return nil
+	}
+
+	parsed, err := uuid.Parse(uuidStr)
+	if err != nil {
+		*errOut = err
+		return nil
+	}
+
+	return &parsed
+}
+
 func (s *importService) GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
 	return s.patientSvc.GetOrganizationID(ctx, userID)
 }
 
-// Helper functions
 func getStringValue(m map[string]interface{}, key string) string {
 	val, ok := m[key]
 	if !ok {
@@ -865,45 +944,45 @@ func convertTwoDigitYear(dateStr string) (string, bool) {
 		return "", false
 	}
 
-	// Check for MM-DD-YY pattern
-	if strings.Contains(dateStr, "-") {
-		parts := strings.Split(dateStr, "-")
-		if len(parts) == 3 {
-			yearStr := strings.TrimSpace(parts[2])
-			if len(yearStr) == 2 {
-				year, err := strconv.Atoi(yearStr)
-				if err == nil {
-					if year < 50 {
-						year += 2000
-					} else {
-						year += 1900
-					}
-					return fmt.Sprintf("%s-%s-%04d", parts[0], parts[1], year), true
-				}
-			}
-		}
+	if result, ok := convertTwoDigitYearWithSeparator(dateStr, "-"); ok {
+		return result, true
 	}
-
-	// Check for MM/DD/YY pattern
-	if strings.Contains(dateStr, "/") {
-		parts := strings.Split(dateStr, "/")
-		if len(parts) == 3 {
-			yearStr := strings.TrimSpace(parts[2])
-			if len(yearStr) == 2 {
-				year, err := strconv.Atoi(yearStr)
-				if err == nil {
-					if year < 50 {
-						year += 2000
-					} else {
-						year += 1900
-					}
-					return fmt.Sprintf("%s/%s/%04d", parts[0], parts[1], year), true
-				}
-			}
-		}
+	if result, ok := convertTwoDigitYearWithSeparator(dateStr, "/"); ok {
+		return result, true
 	}
 
 	return "", false
+}
+
+// convertTwoDigitYearWithSeparator converts a date string with 2-digit year using the given separator
+func convertTwoDigitYearWithSeparator(dateStr, separator string) (string, bool) {
+	if !strings.Contains(dateStr, separator) {
+		return "", false
+	}
+
+	parts := strings.Split(dateStr, separator)
+	if len(parts) != 3 {
+		return "", false
+	}
+
+	yearStr := strings.TrimSpace(parts[2])
+	if len(yearStr) != 2 {
+		return "", false
+	}
+
+	year, err := strconv.Atoi(yearStr)
+	if err != nil {
+		return "", false
+	}
+
+	// Convert 2-digit year to 4-digit year
+	if year < 50 {
+		year += 2000
+	} else {
+		year += 1900
+	}
+
+	return fmt.Sprintf("%s%s%s%04d", parts[0], separator, parts[1], year), true
 }
 
 // clinicalNoteContent matches the structure used in clinical_note service
