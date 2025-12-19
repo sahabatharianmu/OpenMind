@@ -20,6 +20,8 @@ import (
 	clinicalNoteService "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/service"
 	exportHandler "github.com/sahabatharianmu/OpenMind/internal/modules/export/handler"
 	exportService "github.com/sahabatharianmu/OpenMind/internal/modules/export/service"
+	importHandler "github.com/sahabatharianmu/OpenMind/internal/modules/import/handler"
+	importService "github.com/sahabatharianmu/OpenMind/internal/modules/import/service"
 	invoiceHandler "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/handler"
 	invoiceRepository "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/repository"
 	invoiceService "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/service"
@@ -94,6 +96,15 @@ func main() {
 		auditLogSvc,
 		appLogger,
 	)
+	importSvc := importService.NewImportService(
+		patientRepo,
+		clinicalNoteRepo,
+		patientSvc,
+		clinicalNoteSvc,
+		encryptService,
+		db,
+		appLogger,
+	)
 
 	authHandler := userHandler.NewAuthHandler(authService)
 	userHdlr := userHandler.NewUserHandler(userSvc, authService)
@@ -104,6 +115,7 @@ func main() {
 	auditLogHdlr := auditLogHandler.NewAuditLogHandler(auditLogSvc)
 	organizationHdlr := organizationHandler.NewOrganizationHandler(organizationSvc)
 	exportHdlr := exportHandler.NewExportHandler(exportSvc)
+	importHdlr := importHandler.NewImportHandler(importSvc)
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	auditMiddleware := middleware.NewAuditMiddleware(auditLogSvc)
@@ -128,6 +140,7 @@ func main() {
 		auditLogHdlr,
 		organizationHdlr,
 		exportHdlr,
+		importHdlr,
 		authMiddleware,
 		auditMiddleware,
 		rbacMiddleware,

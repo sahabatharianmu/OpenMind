@@ -61,8 +61,8 @@ func (s *exportService) ExportAllData(userID uuid.UUID) (map[string][]byte, erro
 
 	files := make(map[string][]byte)
 
-	// Export patients
-	patients, _, err := s.patientRepo.List(org.ID, 1, 10000) // Large page size for export
+	// Export patients - use large limit with offset 0 to get all records
+	patients, _, err := s.patientRepo.List(org.ID, 10000, 0)
 	if err != nil {
 		s.log.Error("Failed to fetch patients for export", zap.Error(err))
 	} else {
@@ -70,8 +70,8 @@ func (s *exportService) ExportAllData(userID uuid.UUID) (map[string][]byte, erro
 		files["patients.json"] = data
 	}
 
-	// Export appointments
-	appointments, _, err := s.appointmentRepo.List(org.ID, 1, 10000)
+	// Export appointments - use large limit with offset 0 to get all records
+	appointments, _, err := s.appointmentRepo.List(org.ID, 10000, 0)
 	if err != nil {
 		s.log.Error("Failed to fetch appointments for export", zap.Error(err))
 	} else {
@@ -98,8 +98,8 @@ func (s *exportService) ExportAllData(userID uuid.UUID) (map[string][]byte, erro
 		}
 	}
 
-	// Export invoices
-	invoices, _, err := s.invoiceRepo.List(org.ID, 1, 10000)
+	// Export invoices - use large limit with offset 0 to get all records
+	invoices, _, err := s.invoiceRepo.List(org.ID, 10000, 0)
 	if err != nil {
 		s.log.Error("Failed to fetch invoices for export", zap.Error(err))
 	} else {
@@ -107,11 +107,16 @@ func (s *exportService) ExportAllData(userID uuid.UUID) (map[string][]byte, erro
 		files["invoices.json"] = data
 	}
 
-	// Export organization info
+	// Export organization info - include all fields
 	orgData := map[string]interface{}{
-		"id":   org.ID,
-		"name": org.Name,
-		"type": org.Type,
+		"id":       org.ID,
+		"name":     org.Name,
+		"type":     org.Type,
+		"tax_id":   org.TaxID,
+		"npi":      org.NPI,
+		"address":  org.Address,
+		"currency": org.Currency,
+		"locale":   org.Locale,
 	}
 	data, _ := json.MarshalIndent(orgData, "", "  ")
 	files["organization.json"] = data
