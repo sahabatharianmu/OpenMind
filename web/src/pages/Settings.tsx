@@ -12,9 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 import { userService } from "@/services/userService";
 import { organizationService } from "@/services/organizationService";
 import { exportService } from "@/services/exportService";
+import { importService, type ImportPreviewResponse, type ImportExecuteResponse } from "@/services/importService";
 import type { UserProfile } from "@/services/userService";
 import type { Organization } from "@/services/organizationService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Upload, FileText, AlertCircle, CheckCircle2, XCircle, Download } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const Settings = () => {
   const { user, signOut } = useAuth();
@@ -37,6 +41,14 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Import state
+  const [importType, setImportType] = useState<"patients" | "appointments" | "notes">("patients");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewData, setPreviewData] = useState<ImportPreviewResponse | null>(null);
+  const [importResult, setImportResult] = useState<ImportExecuteResponse | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -106,6 +118,93 @@ const Settings = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePreviewImport = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "Error",
+        description: "Please select a file first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
+      const fileData = await fileToBase64(selectedFile);
+      const preview = await importService.previewImport({
+        type: importType,
+        file_data: fileData,
+        file_name: selectedFile.name,
+      });
+      setPreviewData(preview);
+    } catch (error: unknown) {
+      console.error("Preview error:", error);
+      const err = error as { response?: { data?: { error?: { message?: string } } }; message?: string };
+      const message = err.response?.data?.error?.message || err.message || "Failed to preview import";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleExecuteImport = async () => {
+    if (!selectedFile || !previewData) {
+      toast({
+        title: "Error",
+        description: "Please preview the import first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImportLoading(true);
+    try {
+      const fileData = await fileToBase64(selectedFile);
+      const result = await importService.executeImport({
+        type: importType,
+        file_data: fileData,
+        file_name: selectedFile.name,
+      });
+      setImportResult(result);
+      toast({
+        title: "Success",
+        description: `Imported ${result.success_count} of ${result.total_rows} records`,
+      });
+      // Reset for next import
+      setSelectedFile(null);
+      setPreviewData(null);
+    } catch (error: unknown) {
+      console.error("Import error:", error);
+      const err = error as { response?: { data?: { error?: { message?: string } } }; message?: string };
+      const message = err.response?.data?.error?.message || err.message || "Failed to execute import";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix if present
+        const base64 = result.includes(",") ? result.split(",")[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleChangePassword = async () => {
@@ -454,56 +553,374 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="data">
-            <Card>
-              <CardHeader>
-                <CardTitle>Practice Sovereignty</CardTitle>
-                <CardDescription>
-                  Your data belongs to you. Export your entire practice history for backup or migration.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h4 className="font-medium mb-1">Clinic Takeout (Full Export)</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Download a comprehensive ZIP archive containing all patients, appointments, clinical notes (including addendums), invoices, and an immutable audit log of all system access.
-                  </p>
-                  <Button 
-                    onClick={async () => {
-                      try {
-                        const blob = await exportService.exportAllData();
-                        
-                        const url = window.URL.createObjectURL(new Blob([blob], { type: "application/zip" }));
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `openmind-export-${new Date().toISOString().split("T")[0]}.zip`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                        
-                        toast({
-                          title: "Success",
-                          description: "Data exported successfully",
-                        });
-                      } catch (error: unknown) {
-                        console.error("Export error:", error);
-                        const err = error as { response?: { data?: { error?: { message?: string } } }; message?: string };
-                        const message = err.response?.data?.error?.message || err.message || "Failed to export data";
-                        toast({
-                          title: "Error",
-                          description: message,
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                    className="gap-2"
-                  >
-                    <Database className="w-4 h-4" />
-                    Download All Data
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Practice Sovereignty</CardTitle>
+                  <CardDescription>
+                    Your data belongs to you. Export your entire practice history for backup or migration.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="font-medium mb-1">Clinic Takeout (Full Export)</h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Download a comprehensive ZIP archive containing all patients, appointments, clinical notes (including addendums), invoices, and an immutable audit log of all system access.
+                    </p>
+                    <Button 
+                      onClick={async () => {
+                        try {
+                          const blob = await exportService.exportAllData();
+                          
+                          const url = window.URL.createObjectURL(new Blob([blob], { type: "application/zip" }));
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `openmind-export-${new Date().toISOString().split("T")[0]}.zip`;
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                          
+                          toast({
+                            title: "Success",
+                            description: "Data exported successfully",
+                          });
+                        } catch (error: unknown) {
+                          console.error("Export error:", error);
+                          const err = error as { response?: { data?: { error?: { message?: string } } }; message?: string };
+                          const message = err.response?.data?.error?.message || err.message || "Failed to export data";
+                          toast({
+                            title: "Error",
+                            description: message,
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      className="gap-2"
+                    >
+                      <Database className="w-4 h-4" />
+                      Download All Data
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Data Import</CardTitle>
+                  <CardDescription>
+                    Import patients, appointments, or clinical notes using our templates. Download a template, fill it with your data, then upload it here.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="importType">What would you like to import?</Label>
+                      <Select value={importType} onValueChange={(v) => {
+                        setImportType(v as "patients" | "notes");
+                        setSelectedFile(null);
+                        setPreviewData(null);
+                        setImportResult(null);
+                      }}>
+                        <SelectTrigger id="importType">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="patients">Patients (CSV/XLSX)</SelectItem>
+                          <SelectItem value="notes">Clinical Notes (CSV/XLSX)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="border rounded-lg p-4 bg-muted/50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-sm">Step 1: Download Template</h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Get the CSV or XLSX template file with the correct format
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const blob = await importService.downloadTemplate(importType, "csv");
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = importType === "patients" 
+                                  ? "patients-import-template.csv"
+                                  : "clinical-notes-import-template.csv";
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                                toast({
+                                  title: "Template Downloaded",
+                                  description: "Fill in the template with your data, then upload it below.",
+                                });
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to download template",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            className="gap-2"
+                          >
+                            <Download className="w-4 h-4" />
+                            CSV
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const blob = await importService.downloadTemplate(importType, "xlsx");
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = importType === "patients" 
+                                  ? "patients-import-template.xlsx"
+                                  : "clinical-notes-import-template.xlsx";
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                                toast({
+                                  title: "Template Downloaded",
+                                  description: "Fill in the template with your data, then upload it below.",
+                                });
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to download template",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            className="gap-2"
+                          >
+                            <Download className="w-4 h-4" />
+                            XLSX
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="importFile">Step 2: Upload Your File</Label>
+                      <div className="flex items-center gap-4">
+                        <Input
+                          id="importFile"
+                          type="file"
+                          accept={importType === "patients" ? ".csv,.xlsx" : ".csv,.xlsx"}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setSelectedFile(file);
+                              setPreviewData(null);
+                              setImportResult(null);
+                            }
+                          }}
+                          className="flex-1"
+                        />
+                        {selectedFile && (
+                          <span className="text-sm text-muted-foreground">
+                            {selectedFile.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {selectedFile && (
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handlePreviewImport}
+                          disabled={previewLoading}
+                          variant="outline"
+                          className="gap-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          {previewLoading ? "Previewing..." : "Step 3: Preview"}
+                        </Button>
+                        {previewData && (
+                          <Button
+                            onClick={handleExecuteImport}
+                            disabled={importLoading}
+                            className="gap-2"
+                          >
+                            <Upload className="w-4 h-4" />
+                            {importLoading ? "Importing..." : "Step 4: Import"}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {previewData && (
+                      <div className="space-y-4">
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            <div className="space-y-1">
+                              <div>Total Rows: {previewData.total_rows}</div>
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                Valid: {previewData.valid_rows}
+                              </div>
+                              {previewData.invalid_rows > 0 && (
+                                <div className="flex items-center gap-2">
+                                  <XCircle className="w-4 h-4 text-red-600" />
+                                  Invalid: {previewData.invalid_rows}
+                                </div>
+                              )}
+                            </div>
+                          </AlertDescription>
+                        </Alert>
+
+                        {previewData.errors && previewData.errors.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm">Errors</h4>
+                            <div className="border rounded-md max-h-48 overflow-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Row</TableHead>
+                                    <TableHead>Field</TableHead>
+                                    <TableHead>Message</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {previewData.errors.slice(0, 10).map((error, idx) => (
+                                    <TableRow key={idx}>
+                                      <TableCell>{error.row}</TableCell>
+                                      <TableCell>{error.field || "-"}</TableCell>
+                                      <TableCell className="text-sm">{error.message}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                            {previewData.errors.length > 10 && (
+                              <p className="text-xs text-muted-foreground">
+                                Showing first 10 errors. Total: {previewData.errors.length}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {previewData.warnings && previewData.warnings.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm">Warnings</h4>
+                            <div className="border rounded-md max-h-48 overflow-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Row</TableHead>
+                                    <TableHead>Field</TableHead>
+                                    <TableHead>Message</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {previewData.warnings.slice(0, 10).map((warning, idx) => (
+                                    <TableRow key={idx}>
+                                      <TableCell>{warning.row}</TableCell>
+                                      <TableCell>{warning.field || "-"}</TableCell>
+                                      <TableCell className="text-sm">{warning.message}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        )}
+
+                        {previewData.preview && previewData.preview.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm">Preview (First 10 rows)</h4>
+                            <div className="border rounded-md max-h-64 overflow-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    {Object.keys(previewData.preview[0]).map((key) => (
+                                      <TableHead key={key}>{key}</TableHead>
+                                    ))}
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {previewData.preview.map((row, idx) => (
+                                    <TableRow key={idx}>
+                                      {Object.values(row).map((val, cellIdx) => (
+                                        <TableCell key={cellIdx} className="text-sm">
+                                          {String(val || "-")}
+                                        </TableCell>
+                                      ))}
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {importResult && (
+                      <Alert className={importResult.error_count === 0 ? "border-green-500" : ""}>
+                        {importResult.error_count === 0 ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4" />
+                        )}
+                        <AlertDescription>
+                          <div className="space-y-1">
+                            <div className="font-medium">
+                              {importResult.error_count === 0 ? "Import Successful!" : "Import Completed with Errors"}
+                            </div>
+                            <div>Total: {importResult.total_rows}</div>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                              Imported: {importResult.success_count}
+                            </div>
+                            {importResult.error_count > 0 && (
+                              <div className="flex items-center gap-2">
+                                <XCircle className="w-4 h-4 text-red-600" />
+                                Errors: {importResult.error_count}
+                              </div>
+                            )}
+                            {importResult.errors && importResult.errors.length > 0 && (
+                              <div className="mt-2 border rounded-md max-h-32 overflow-auto">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Row</TableHead>
+                                      <TableHead>Field</TableHead>
+                                      <TableHead>Message</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {importResult.errors.slice(0, 5).map((error, idx) => (
+                                      <TableRow key={idx}>
+                                        <TableCell>{error.row}</TableCell>
+                                        <TableCell>{error.field || "-"}</TableCell>
+                                        <TableCell className="text-sm">{error.message}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            )}
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
