@@ -1,3 +1,12 @@
+# [1.0.0-alpha.5](https://github.com/sahabatharianmu/OpenMind/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2025-12-19)
+
+
+### Features
+
+* **import:** #OMDEV-7 Add CSV/XLSX import with template downloads, fix export bug, and standardize date parsing ([5922bb5](https://github.com/sahabatharianmu/OpenMind/commit/5922bb5b3b04f74a97f51937248e950d3cfd2803))
+* **mobile:** OMDEV-32 mobile-optimized UI with touch-friendly interactions ([46dc260](https://github.com/sahabatharianmu/OpenMind/commit/46dc26020b2b3bfa1d383cb26443bb2592c2f08a))
+* **OMDEV-5:** enhanced note locking UI feedback with visual indicators and tooltips ([0d8dc76](https://github.com/sahabatharianmu/OpenMind/commit/0d8dc76643ebb45d465848574ee70af99b0e4cdd))
+
 # [1.0.0-alpha.4](https://github.com/sahabatharianmu/OpenMind/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2025-12-18)
 
 
