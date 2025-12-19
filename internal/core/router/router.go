@@ -15,6 +15,7 @@ import (
 	organizationHandler "github.com/sahabatharianmu/OpenMind/internal/modules/organization/handler"
 	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/handler"
+	"github.com/sahabatharianmu/OpenMind/pkg/constants"
 )
 
 func RegisterRoutes(
@@ -32,6 +33,7 @@ func RegisterRoutes(
 	authMiddleware *middleware.AuthMiddleware,
 	auditMiddleware *middleware.AuditMiddleware,
 	rbacMiddleware *middleware.RBACMiddleware,
+	tenantMiddleware app.HandlerFunc,
 ) {
 	api := h.Group("/api")
 	v1 := api.Group("/v1")
@@ -43,6 +45,7 @@ func RegisterRoutes(
 	}
 	protected := v1.Group("/")
 	protected.Use(authMiddleware.Middleware())
+	protected.Use(tenantMiddleware) // Set tenant context after authentication
 	protected.Use(auditMiddleware.Middleware()) // Add audit logging
 	{
 		// User routes
@@ -57,13 +60,13 @@ func RegisterRoutes(
 		organizations := protected.Group("/organizations")
 		{
 			organizations.GET("/me", organizationHandler.GetMyOrganization)
-			organizations.PUT("/me", rbacMiddleware.HasRole("admin"), organizationHandler.UpdateOrganization)
+			organizations.PUT("/me", rbacMiddleware.HasRole(constants.RoleAdmin), organizationHandler.UpdateOrganization)
 		}
 
-		protected.GET("/export", rbacMiddleware.HasRole("admin"), exportHandler.ExportData)
+		protected.GET("/export", rbacMiddleware.HasRole(constants.RoleAdmin), exportHandler.ExportData)
 
 		imports := protected.Group("/import")
-		imports.Use(rbacMiddleware.HasRole("admin"))
+		imports.Use(rbacMiddleware.HasRole(constants.RoleAdmin))
 		{
 			imports.GET("/template/:type", importHandler.DownloadTemplate)
 			imports.POST("/preview", importHandler.PreviewImport)
@@ -72,24 +75,24 @@ func RegisterRoutes(
 
 		patients := protected.Group("/patients")
 		{
-			patients.POST("", rbacMiddleware.HasRole("clinician"), patientHandler.Create)
+			patients.POST("", rbacMiddleware.HasRole(constants.RoleClinician), patientHandler.Create)
 			patients.GET("", patientHandler.List)
 			patients.GET("/:id", patientHandler.Get)
-			patients.PUT("/:id", rbacMiddleware.HasRole("clinician"), patientHandler.Update)
-			patients.DELETE("/:id", rbacMiddleware.HasRole("admin"), patientHandler.Delete)
+			patients.PUT("/:id", rbacMiddleware.HasRole(constants.RoleClinician), patientHandler.Update)
+			patients.DELETE("/:id", rbacMiddleware.HasRole(constants.RoleAdmin), patientHandler.Delete)
 		}
 
 		appointments := protected.Group("/appointments")
 		{
-			appointments.POST("", rbacMiddleware.HasRole("clinician"), appointmentHandler.Create)
+			appointments.POST("", rbacMiddleware.HasRole(constants.RoleClinician), appointmentHandler.Create)
 			appointments.GET("", appointmentHandler.List)
 			appointments.GET("/:id", appointmentHandler.Get)
-			appointments.PUT("/:id", rbacMiddleware.HasRole("clinician"), appointmentHandler.Update)
-			appointments.DELETE("/:id", rbacMiddleware.HasRole("clinician"), appointmentHandler.Delete)
+			appointments.PUT("/:id", rbacMiddleware.HasRole(constants.RoleClinician), appointmentHandler.Update)
+			appointments.DELETE("/:id", rbacMiddleware.HasRole(constants.RoleClinician), appointmentHandler.Delete)
 		}
 
 		clinicalNotes := protected.Group("/clinical-notes")
-		clinicalNotes.Use(rbacMiddleware.HasRole("clinician"))
+		clinicalNotes.Use(rbacMiddleware.HasRole(constants.RoleClinician))
 		{
 			clinicalNotes.POST("", clinicalNoteHandler.Create)
 			clinicalNotes.GET("", clinicalNoteHandler.List)
@@ -103,16 +106,16 @@ func RegisterRoutes(
 
 		invoices := protected.Group("/invoices")
 		{
-			invoices.POST("", rbacMiddleware.HasRole("admin"), invoiceHandler.Create)
+			invoices.POST("", rbacMiddleware.HasRole(constants.RoleAdmin), invoiceHandler.Create)
 			invoices.GET("", invoiceHandler.List)
 			invoices.GET("/:id", invoiceHandler.Get)
-			invoices.PUT("/:id", rbacMiddleware.HasRole("admin"), invoiceHandler.Update)
-			invoices.DELETE("/:id", rbacMiddleware.HasRole("admin"), invoiceHandler.Delete)
+			invoices.PUT("/:id", rbacMiddleware.HasRole(constants.RoleAdmin), invoiceHandler.Update)
+			invoices.DELETE("/:id", rbacMiddleware.HasRole(constants.RoleAdmin), invoiceHandler.Delete)
 			invoices.GET("/:id/superbill", invoiceHandler.DownloadSuperbill)
 		}
 
 		auditLogs := protected.Group("/audit-logs")
-		auditLogs.Use(rbacMiddleware.HasRole("admin"))
+		auditLogs.Use(rbacMiddleware.HasRole(constants.RoleAdmin))
 		{
 			auditLogs.GET("", auditLogHandler.List)
 		}

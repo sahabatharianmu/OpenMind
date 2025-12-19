@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/entity"
+	"github.com/sahabatharianmu/OpenMind/pkg/constants"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -56,7 +57,7 @@ func (r *userRepository) CreateWithOrganization(user *entity.User, organization 
 		member := entity.OrganizationMember{
 			OrganizationID: organization.ID,
 			UserID:         user.ID,
-			Role:           "owner", // Creator is owner
+			Role:           constants.RoleOwner, // First user who creates organization is owner
 		}
 
 		if err := tx.Create(&member).Error; err != nil {

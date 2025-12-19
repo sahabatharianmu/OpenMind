@@ -31,6 +31,8 @@ import (
 	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
 	patientRepository "github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
 	patientService "github.com/sahabatharianmu/OpenMind/internal/modules/patient/service"
+	tenantRepository "github.com/sahabatharianmu/OpenMind/internal/modules/tenant/repository"
+	tenantService "github.com/sahabatharianmu/OpenMind/internal/modules/tenant/service"
 	userHandler "github.com/sahabatharianmu/OpenMind/internal/modules/user/handler"
 	userRepository "github.com/sahabatharianmu/OpenMind/internal/modules/user/repository"
 	userService "github.com/sahabatharianmu/OpenMind/internal/modules/user/service"
@@ -67,13 +69,34 @@ func main() {
 	invoiceRepo := invoiceRepository.NewInvoiceRepository(db, appLogger)
 	auditLogRepo := auditLogRepository.NewAuditLogRepository(db, appLogger)
 	organizationRepo := organizationRepository.NewOrganizationRepository(db, appLogger)
+	tenantRepo := tenantRepository.NewTenantRepository(db, appLogger)
+	tenantKeyRepo := tenantRepository.NewTenantEncryptionKeyRepository(db, appLogger)
 
 	jwtService := security.NewJWTService(cfg)
 	passwordService := crypto.NewPasswordService(cfg)
 	encryptService := crypto.NewEncryptionService(cfg)
+	
+	// Set tenant key repository for encryption service (HIPAA compliant)
+	encryptService.SetTenantKeyRepository(tenantKeyRepo)
 
-	authService := userService.NewAuthService(userRepo, jwtService, passwordService, appLogger)
-	userSvc := userService.NewUserService(userRepo, appLogger)
+	// Initialize tenant service first (needed for auth service)
+	tenantSvc := tenantService.NewTenantService(tenantRepo, db, appLogger)
+	
+	// Set encryption service and key repository for tenant key generation (HIPAA compliant)
+	tenantSvc.SetEncryptionService(encryptService)
+	tenantSvc.SetKeyRepository(tenantKeyRepo)
+
+	// Generate encryption keys for existing tenants (one-time operation)
+	// This ensures all existing tenants have encryption keys for HIPAA compliance
+	ctx := context.Background()
+	if err := tenantSvc.GenerateKeysForExistingTenants(ctx); err != nil {
+		appLogger.Warn("Failed to generate keys for existing tenants", zap.Error(err))
+		// Don't fail startup, but log the warning
+		// Keys will be generated on-demand when tenants are accessed
+	}
+
+	authService := userService.NewAuthService(userRepo, organizationRepo, jwtService, passwordService, tenantSvc, appLogger)
+	userSvc := userService.NewUserService(userRepo, organizationRepo, appLogger)
 	patientSvc := patientService.NewPatientService(patientRepo, appLogger)
 	appointmentSvc := service.NewAppointmentService(appointmentRepo, appLogger)
 	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, encryptService, appLogger)
@@ -120,6 +143,7 @@ func main() {
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	auditMiddleware := middleware.NewAuditMiddleware(auditLogSvc)
 	rbacMiddleware := middleware.NewRBACMiddleware()
+	tenantMiddleware := middleware.TenantContextMiddleware(tenantSvc, organizationRepo, appLogger)
 
 	h := server.New(
 		server.WithHostPorts(fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)),
@@ -144,6 +168,7 @@ func main() {
 		authMiddleware,
 		auditMiddleware,
 		rbacMiddleware,
+		tenantMiddleware,
 	)
 
 	h.OnShutdown = append(h.OnShutdown, func(_ context.Context) {

@@ -15,8 +15,8 @@ type User struct {
 	DeletedAt    gorm.DeletedAt `gorm:"index"                                           json:"-"`
 	Email        string         `gorm:"uniqueIndex;not null"                            json:"email"`
 	PasswordHash string         `gorm:"not null"                                        json:"-"` // Never return password hash in JSON
-	Role         string         `gorm:"not null;default:'clinician'"                    json:"role"`
 	FullName     string         `gorm:"not null"                                        json:"full_name"`
+	// Note: Role is now per-organization in organization_members table
 }
 
 type Organization struct {

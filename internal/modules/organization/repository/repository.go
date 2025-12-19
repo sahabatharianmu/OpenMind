@@ -12,6 +12,7 @@ type OrganizationRepository interface {
 	GetByID(id uuid.UUID) (*entity.Organization, error)
 	GetByUserID(userID uuid.UUID) (*entity.Organization, error)
 	GetMemberCount(orgID uuid.UUID) (int64, error)
+	GetMemberRole(organizationID, userID uuid.UUID) (string, error)
 	Update(org *entity.Organization) error
 }
 
@@ -63,6 +64,21 @@ func (r *organizationRepository) GetMemberCount(orgID uuid.UUID) (int64, error) 
 	}
 
 	return count, nil
+}
+
+func (r *organizationRepository) GetMemberRole(organizationID, userID uuid.UUID) (string, error) {
+	var member entity.OrganizationMember
+	err := r.db.Where("organization_id = ? AND user_id = ?", organizationID, userID).
+		First(&member).Error
+
+	if err != nil {
+		r.log.Error("Failed to get member role", zap.Error(err), 
+			zap.String("organization_id", organizationID.String()),
+			zap.String("user_id", userID.String()))
+		return "", err
+	}
+
+	return member.Role, nil
 }
 
 func (r *organizationRepository) Update(org *entity.Organization) error {

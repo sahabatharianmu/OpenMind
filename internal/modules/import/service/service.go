@@ -708,8 +708,8 @@ func (s *importService) processNoteRows(
 			continue
 		}
 
-		// Encrypt the note content
-		if err := s.encryptNoteContent(clinicalNote, rowNum, errors); err != nil {
+		// Encrypt the note content with tenant-specific key (HIPAA compliant)
+		if err := s.encryptNoteContent(clinicalNote, organizationID, rowNum, errors); err != nil {
 			continue
 		}
 
@@ -817,8 +817,10 @@ func (s *importService) validateAndCreateNote(
 }
 
 // encryptNoteContent encrypts the clinical note content and sets encrypted fields
+// Uses tenant-specific encryption key for HIPAA compliance
 func (s *importService) encryptNoteContent(
 	clinicalNote *clinicalNoteEntity.ClinicalNote,
+	organizationID uuid.UUID,
 	rowNum int,
 	errors *[]dto.RowError,
 ) error {
@@ -838,7 +840,8 @@ func (s *importService) encryptNoteContent(
 		return err
 	}
 
-	encryptedBase64, err := s.encryptSvc.Encrypt(string(jsonData))
+	// Use tenant-specific encryption key (HIPAA compliant)
+	encryptedBase64, err := s.encryptSvc.Encrypt(string(jsonData), organizationID)
 	if err != nil {
 		*errors = append(*errors, dto.RowError{
 			Row:     rowNum,
