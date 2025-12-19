@@ -10,6 +10,7 @@ import (
 	auditLogHandler "github.com/sahabatharianmu/OpenMind/internal/modules/audit_log/handler"
 	clinicalNoteHandler "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/handler"
 	exportHandler "github.com/sahabatharianmu/OpenMind/internal/modules/export/handler"
+	importHandler "github.com/sahabatharianmu/OpenMind/internal/modules/import/handler"
 	invoiceHandler "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/handler"
 	organizationHandler "github.com/sahabatharianmu/OpenMind/internal/modules/organization/handler"
 	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
@@ -27,6 +28,7 @@ func RegisterRoutes(
 	auditLogHandler *auditLogHandler.AuditLogHandler,
 	organizationHandler *organizationHandler.OrganizationHandler,
 	exportHandler *exportHandler.ExportHandler,
+	importHandler *importHandler.ImportHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	auditMiddleware *middleware.AuditMiddleware,
 	rbacMiddleware *middleware.RBACMiddleware,
@@ -60,6 +62,14 @@ func RegisterRoutes(
 		}
 
 		protected.GET("/export", rbacMiddleware.HasRole("admin"), exportHandler.ExportData)
+
+		imports := protected.Group("/import")
+		imports.Use(rbacMiddleware.HasRole("admin"))
+		{
+			imports.GET("/template/:type", importHandler.DownloadTemplate)
+			imports.POST("/preview", importHandler.PreviewImport)
+			imports.POST("/execute", importHandler.ExecuteImport)
+		}
 
 		patients := protected.Group("/patients")
 		{
