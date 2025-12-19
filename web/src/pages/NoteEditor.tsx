@@ -7,6 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -280,10 +286,19 @@ const NoteEditor = () => {
                 AES-256 Encrypted
               </Badge>
               {isSigned && (
-                <Badge className="gap-1">
-                  <Lock className="w-3 h-3" />
-                  Signed
-                </Badge>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge className="gap-1 bg-green-600 hover:bg-green-700">
+                        <Lock className="w-3 h-3" />
+                        Signed & Locked
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>This note is signed and locked. It cannot be edited for compliance.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
             {createdAt && (
@@ -295,13 +310,16 @@ const NoteEditor = () => {
         </div>
 
         {isSigned && (
-          <Card className="mb-6 border-primary/50 bg-primary/5">
+          <Card className="mb-6 border-green-200 bg-green-50/50">
             <CardContent className="p-4 flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-primary" />
-              <div>
-                <p className="font-medium">This note has been signed and locked</p>
-                <p className="text-sm text-muted-foreground">
-                  Signed on {signedAt && format(new Date(signedAt), "MMMM d, yyyy 'at' h:mm a")}
+              <div className="p-2 rounded-full bg-green-100">
+                <Lock className="w-5 h-5 text-green-700" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-green-900">This note is signed and locked</p>
+                <p className="text-sm text-green-700">
+                  Signed on {signedAt && format(new Date(signedAt), "MMMM d, yyyy 'at' h:mm a")}. 
+                  {" "}Fields are read-only for compliance. Use addendums to add additional information.
                 </p>
               </div>
             </CardContent>
@@ -381,9 +399,23 @@ const NoteEditor = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="subjective" className="text-base font-semibold">
-                Subjective
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="subjective" className="text-base font-semibold">
+                  Subjective
+                </Label>
+                {isSigned && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>This field is locked because the note is signed. Use addendums to add additional information.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">
                 Patient's reported symptoms, feelings, and concerns
               </p>
@@ -394,13 +426,28 @@ const NoteEditor = () => {
                 onChange={(e) => setSubjective(e.target.value)}
                 disabled={isSigned}
                 className="min-h-[120px]"
+                aria-label={isSigned ? "Subjective field is locked. This note is signed and cannot be edited." : "Subjective"}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="objective" className="text-base font-semibold">
-                Objective
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="objective" className="text-base font-semibold">
+                  Objective
+                </Label>
+                {isSigned && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>This field is locked because the note is signed. Use addendums to add additional information.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">
                 Clinical observations, mental status exam findings
               </p>
@@ -411,13 +458,28 @@ const NoteEditor = () => {
                 onChange={(e) => setObjective(e.target.value)}
                 disabled={isSigned}
                 className="min-h-[120px]"
+                aria-label={isSigned ? "Objective field is locked. This note is signed and cannot be edited." : "Objective"}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="assessment" className="text-base font-semibold">
-                Assessment
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="assessment" className="text-base font-semibold">
+                  Assessment
+                </Label>
+                {isSigned && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>This field is locked because the note is signed. Use addendums to add additional information.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">
                 Clinical interpretation, diagnosis, and progress evaluation
               </p>
@@ -428,13 +490,28 @@ const NoteEditor = () => {
                 onChange={(e) => setAssessment(e.target.value)}
                 disabled={isSigned}
                 className="min-h-[120px]"
+                aria-label={isSigned ? "Assessment field is locked. This note is signed and cannot be edited." : "Assessment"}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="plan" className="text-base font-semibold">
-                Plan
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="plan" className="text-base font-semibold">
+                  Plan
+                </Label>
+                {isSigned && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>This field is locked because the note is signed. Use addendums to add additional information.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">
                 Treatment plan, interventions, and next steps
               </p>
@@ -445,6 +522,7 @@ const NoteEditor = () => {
                 onChange={(e) => setPlan(e.target.value)}
                 disabled={isSigned}
                 className="min-h-[120px]"
+                aria-label={isSigned ? "Plan field is locked. This note is signed and cannot be edited." : "Plan"}
               />
             </div>
           </CardContent>
