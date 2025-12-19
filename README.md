@@ -1,12 +1,15 @@
 # OpenMind 🧠
 
-**Open Source Clinic Management System (EMR) for Mental Health Professionals.**
+**Proprietary Clinic Management System (EMR) for Mental Health Professionals - Cloud Version**
 
 [![CI](https://github.com/sahabatharianmu/OpenMind/actions/workflows/ci.yml/badge.svg)](https://github.com/sahabatharianmu/OpenMind/actions/workflows/ci.yml)
-[![Docker Image Version (latest semver)](https://img.shields.io/docker/v/sahabatharianmu/openmind?label=docker)](https://hub.docker.com/r/sahabatharianmu/openmind)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-OpenMind is a secure, sovereign, and affordable platform designed to help therapists and clinics manage their practice without trading patient privacy for convenience. Built with a "Privacy First" architecture, all clinical notes are encrypted at the application layer.
+> **⚠️ NOTICE: This is PRIVATE, PROPRIETARY source code owned by Sahari (PT Sahabat Harianmu).**  
+> This repository contains the cloud version of OpenMind Practice. Unauthorized access, copying, modification, or distribution is strictly prohibited.
+
+OpenMind is a secure, sovereign platform designed to help therapists and clinics manage their practice without trading patient privacy for convenience. Built with a "Privacy First" architecture, all clinical notes are encrypted at the application layer using AES-256-GCM encryption.
+
+**Copyright © 2025 Sahari (PT Sahabat Harianmu). All rights reserved.**
 
 ---
 
@@ -14,10 +17,10 @@ OpenMind is a secure, sovereign, and affordable platform designed to help therap
 
 - **🔐 Privacy-First Clinical Notes**: AES-256-GCM encryption for all SOAP notes. Your data is encrypted _before_ it hits the database.
 - **📅 Appointment Scheduling**: Drag-and-drop calendar for managing sessions.
-- **busts Patient Management**: Comprehensive patient profiles, history, and intake forms.
+- **👥 Patient Management**: Comprehensive patient profiles, history, and intake forms.
 - **💰 Invoicing & Billing**: Generate invoices, track payments, and manage superbills.
 - **⚡ Modern Performance**: Built with Go (Fiber/Hertz) and React for blazing fast interactions.
-- **🐳 Self-Hostable**: Single Docker container for easy deployment anywhere.
+- **🐳 Cloud-Ready**: Containerized architecture for scalable cloud deployment.
 
 ## 🛠️ Tech Stack
 
@@ -28,9 +31,9 @@ OpenMind is a secure, sovereign, and affordable platform designed to help therap
 
 ---
 
-## 🚀 Getting Started (Self-Hosting)
+## 🚀 Cloud Deployment
 
-You can run OpenMind on any server with Docker installed (VPS, Raspberry Pi, Home Lab).
+This is the cloud version of OpenMind Practice, designed for production cloud environments.
 
 ### Prerequisites
 
@@ -45,7 +48,7 @@ You can run OpenMind on any server with Docker installed (VPS, Raspberry Pi, Hom
     version: "3.8"
     services:
       openmind:
-        image: sahabatharianmu/openmind:latest
+        image: ghcr.io/sahabatharianmu/openmind:latest
         ports:
           - "8080:8080"
         environment:
@@ -81,14 +84,14 @@ You can run OpenMind on any server with Docker installed (VPS, Raspberry Pi, Hom
 
 ---
 
-## 💻 Local Development
+## 💻 Development Setup
 
-If you want to contribute or modify the code:
+**For Authorized Developers Only**
 
-1.  **Clone the Repo**:
+1.  **Clone the Repository**:
 
     ```bash
-    git clone https://github.com/sahabatharianmu/OpenMind.git
+    git clone <private-repo-url>
     cd OpenMind
     ```
 
@@ -135,10 +138,16 @@ openmind/
 └── deploy/            # Docker Configs
 ```
 
-## 🤝 Contributing
-
-Contributions are welcome! Please check out the [Issues](https://github.com/sahabatharianmu/OpenMind/issues) tab.
-
 ## 📄 License
 
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** - see the [LICENSE](LICENSE) file for details.
+This software is **PROPRIETARY** and **CONFIDENTIAL**. All rights reserved.
+
+Copyright © 2025 **Sahari (PT Sahabat Harianmu)**, also known as **Sahabat Harianmu**.
+
+This source code is private and proprietary. Unauthorized access, use, copying, modification, or distribution is strictly prohibited and may result in civil and criminal penalties.
+
+For licensing inquiries, please contact:
+- **Email**: contact@sahari.id
+- **Website**: https://sahari.id
+
+See the [LICENSE](LICENSE) file for complete terms and conditions.
