@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,4 +25,18 @@ type AuditLog struct {
 
 func (AuditLog) TableName() string {
 	return "audit_logs"
+}
+
+// BeforeUpdate is a GORM hook that prevents updates to audit logs
+// This provides application-level protection in addition to database triggers
+func (a *AuditLog) BeforeUpdate(tx *gorm.DB) error {
+	// Audit logs are immutable and cannot be updated
+	return errors.New("cannot update audit logs: audit logs are immutable for compliance and must be retained as-is")
+}
+
+// BeforeDelete is a GORM hook that prevents deletion of audit logs
+// This provides application-level protection in addition to database triggers
+func (a *AuditLog) BeforeDelete(tx *gorm.DB) error {
+	// Audit logs are immutable and cannot be deleted
+	return errors.New("cannot delete audit logs: audit logs are immutable for compliance and must be retained")
 }
