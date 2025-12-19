@@ -131,18 +131,18 @@ const Patients = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold">Patients</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Patients</h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
               {activeCount} active patient{activeCount !== 1 ? "s" : ""} in your practice
             </p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 h-11 min-h-[44px] w-full sm:w-auto">
                 <Plus className="w-4 h-4" />
                 Add Patient
               </Button>
@@ -156,13 +156,14 @@ const Patients = () => {
               </DialogHeader>
               <form onSubmit={handleAddPatient} className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                    <div className="space-y-2">
                     <Label htmlFor="firstName">First Name</Label>
                     <Input
                       id="firstName"
                       value={newFirstName}
                       onChange={(e) => setNewFirstName(e.target.value)}
                       required
+                      className="h-11 min-h-[44px]"
                     />
                   </div>
                   <div className="space-y-2">
@@ -172,6 +173,7 @@ const Patients = () => {
                       value={newLastName}
                       onChange={(e) => setNewLastName(e.target.value)}
                       required
+                      className="h-11 min-h-[44px]"
                     />
                   </div>
                 </div>
@@ -183,6 +185,7 @@ const Patients = () => {
                     value={newDob}
                     onChange={(e) => setNewDob(e.target.value)}
                     required
+                    className="h-11 min-h-[44px]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -192,6 +195,7 @@ const Patients = () => {
                     type="email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
+                    className="h-11 min-h-[44px]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -201,6 +205,7 @@ const Patients = () => {
                     type="tel"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
+                    className="h-11 min-h-[44px]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -209,9 +214,10 @@ const Patients = () => {
                     id="address"
                     value={newAddress}
                     onChange={(e) => setNewAddress(e.target.value)}
+                    className="h-11 min-h-[44px]"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button type="submit" className="w-full h-11 min-h-[44px]" disabled={isSubmitting}>
                   {isSubmitting ? "Adding..." : "Add Patient"}
                 </Button>
               </form>
@@ -220,7 +226,7 @@ const Patients = () => {
         </div>
 
         {/* Search */}
-        <Card className="mb-6">
+        <Card className="mb-4 sm:mb-6">
           <CardContent className="p-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -228,7 +234,7 @@ const Patients = () => {
                 placeholder="Search patients by name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
+                className="pl-9 h-11 min-h-[44px]"
               />
             </div>
           </CardContent>
@@ -277,7 +283,7 @@ const Patients = () => {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="h-10 w-10 min-h-[44px] min-w-[44px]">
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
