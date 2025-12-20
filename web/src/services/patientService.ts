@@ -15,6 +15,20 @@ export interface UpdatePatientRequest extends Partial<CreatePatientRequest> {
   status?: 'active' | 'inactive' | 'archived';
 }
 
+export interface AssignClinicianRequest {
+  clinician_id: string;
+  role: 'primary' | 'secondary';
+}
+
+export interface ClinicianAssignment {
+  clinician_id: string;
+  full_name: string;
+  email: string;
+  role: 'primary' | 'secondary';
+  assigned_at: string;
+  assigned_by: string;
+}
+
 const patientService = {
   list: async () => {
     const response = await api.get<{ data: PaginatedResponse<Patient> }>("/patients");
@@ -39,6 +53,21 @@ const patientService = {
   delete: async (id: string) => {
     const response = await api.delete(`/patients/${id}`);
     return response.data;
+  },
+
+  assignClinician: async (patientId: string, data: AssignClinicianRequest) => {
+    const response = await api.post<{ data: null }>(`/patients/${patientId}/assign`, data);
+    return response.data.data;
+  },
+
+  unassignClinician: async (patientId: string, clinicianId: string) => {
+    const response = await api.delete<{ data: null }>(`/patients/${patientId}/assign/${clinicianId}`);
+    return response.data.data;
+  },
+
+  getAssignedClinicians: async (patientId: string) => {
+    const response = await api.get<{ data: ClinicianAssignment[] }>(`/patients/${patientId}/assignments`);
+    return response.data.data;
   },
 };
 

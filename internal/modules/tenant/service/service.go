@@ -235,6 +235,12 @@ func (s *tenantService) MigrateSchema(ctx context.Context, schemaName string) er
 		return fmt.Errorf("failed to create tenant schema tables: %w", err)
 	}
 
+	// Fix foreign key constraints for assigned_clinicians table (in case they were created incorrectly)
+	if err := database.FixAssignedCliniciansConstraints(ctx, s.db, schemaName, s.log); err != nil {
+		s.log.Warn("Failed to fix assigned_clinicians constraints", zap.Error(err), zap.String("schema_name", schemaName))
+		// Don't fail the migration if constraint fix fails, but log it
+	}
+
 	s.log.Info("Tenant schema migrated successfully", zap.String("schema_name", schemaName))
 	return nil
 }
