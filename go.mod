@@ -3,7 +3,7 @@ module github.com/sahabatharianmu/OpenMind
 go 1.25.4
 
 require (
-	github.com/bytedance/sonic v1.14.0
+	github.com/bytedance/sonic v1.14.2
 	github.com/cloudwego/hertz v0.10.3
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang-migrate/migrate/v4 v4.19.0
@@ -21,10 +21,11 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/boombuler/barcode v1.0.1 // indirect
-	github.com/bytedance/gopkg v0.1.1 // indirect
-	github.com/bytedance/sonic/loader v0.3.0 // indirect
-	github.com/cloudwego/base64x v0.1.5 // indirect
+	github.com/bytedance/gopkg v0.1.3 // indirect
+	github.com/bytedance/sonic/loader v0.4.0 // indirect
+	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/cloudwego/gopkg v0.1.4 // indirect
 	github.com/cloudwego/netpoll v0.7.0 // indirect
 	github.com/f-amaral/go-async v0.3.0 // indirect
@@ -43,7 +44,8 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/johnfercher/go-tree v1.0.5 // indirect
-	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
+	github.com/klauspost/compress v1.18.1 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/nyaruka/phonenumbers v1.0.55 // indirect
@@ -56,16 +58,20 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
+	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/stripe/stripe-go/v78 v78.12.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tiendc/go-deepcopy v1.7.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasthttp v1.68.0 // indirect
 	github.com/xuri/efp v0.0.1 // indirect
 	github.com/xuri/excelize/v2 v2.10.0 // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect

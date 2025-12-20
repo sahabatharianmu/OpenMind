@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,10 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import UpgradeModal from "@/components/payment/UpgradeModal";
 
 const Pricing = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const planPrice = 29; // Monthly price in USD
 
   const features = [
     { name: "Patients", free: "Up to 10", paid: "Unlimited" },
@@ -24,9 +29,17 @@ const Pricing = () => {
   ];
 
   const handleUpgrade = () => {
-    // TODO: Implement upgrade flow (payment integration)
-    // For now, just show a message
-    alert("Upgrade flow coming soon! Contact support to upgrade your plan.");
+    // Check if user can upgrade (owner/admin only)
+    const canManagePaymentMethods = user?.role === "admin" || user?.role === "owner";
+    if (!canManagePaymentMethods) {
+      return;
+    }
+    setShowUpgradeModal(true);
+  };
+
+  const handleUpgradeSuccess = () => {
+    // Refresh user data or redirect
+    window.location.reload(); // Simple refresh for now
   };
 
   return (
@@ -124,6 +137,13 @@ const Pricing = () => {
             </Button>
           </CardContent>
         </Card>
+
+        <UpgradeModal
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          onSuccess={handleUpgradeSuccess}
+          planPrice={planPrice}
+        />
       </div>
     </DashboardLayout>
   );

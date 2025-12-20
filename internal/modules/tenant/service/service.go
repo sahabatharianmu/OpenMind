@@ -22,7 +22,6 @@ type TenantService interface {
 	SetSchemaForRequest(ctx context.Context, schemaName string) error
 	CreateSchema(ctx context.Context, schemaName string) error
 	DropSchema(ctx context.Context, schemaName string) error
-	MigrateSchema(ctx context.Context, schemaName string) error
 	GenerateSchemaName(organizationID uuid.UUID) string
 	SetEncryptionService(encryptionSvc *crypto.EncryptionService)
 	SetKeyRepository(keyRepo repository.TenantEncryptionKeyRepository)
@@ -31,11 +30,11 @@ type TenantService interface {
 }
 
 type tenantService struct {
-	repo            repository.TenantRepository
-	keyRepo         repository.TenantEncryptionKeyRepository
-	encryptionSvc   *crypto.EncryptionService
-	log             logger.Logger
-	db              *gorm.DB
+	repo          repository.TenantRepository
+	keyRepo       repository.TenantEncryptionKeyRepository
+	encryptionSvc *crypto.EncryptionService
+	log           logger.Logger
+	db            *gorm.DB
 }
 
 func NewTenantService(
@@ -44,9 +43,9 @@ func NewTenantService(
 	log logger.Logger,
 ) TenantService {
 	return &tenantService{
-		repo:  repo,
-		log:   log,
-		db:    db,
+		repo: repo,
+		log:  log,
+		db:   db,
 	}
 }
 
@@ -98,9 +97,10 @@ func (s *tenantService) CreateTenantForOrganization(ctx context.Context, organiz
 		return nil, fmt.Errorf("failed to create tenant record: %w", err)
 	}
 
-	// Run migrations for the new schema
-	if err := s.MigrateSchema(ctx, schemaName); err != nil {
-		s.log.Error("Failed to migrate tenant schema", zap.Error(err), zap.String("schema_name", schemaName))
+	// Run migrations for the new tenant schema
+	// Uses the same migration files as public schema, but in tenant schema context
+	if err := database.RunMigrations(s.db, s.log, schemaName); err != nil {
+		s.log.Error("Failed to run migrations for tenant schema", zap.Error(err), zap.String("schema_name", schemaName))
 		// Don't fail the entire operation, but log the error
 	}
 
@@ -161,21 +161,8 @@ func (s *tenantService) generateTenantEncryptionKey(ctx context.Context, tenantI
 }
 
 // GetTenantByOrganizationID retrieves tenant by organization ID
-// Also ensures required tables exist for existing tenant schemas
 func (s *tenantService) GetTenantByOrganizationID(ctx context.Context, organizationID uuid.UUID) (*entity.Tenant, error) {
-	tenant, err := s.repo.GetByOrganizationID(organizationID)
-	if err != nil || tenant == nil {
-		return tenant, err
-	}
-
-	// Ensure patient_handoffs table exists for existing tenant schemas
-	// This is needed when rolling out new features to existing tenants
-	if err := database.EnsurePatientHandoffsTable(ctx, s.db, tenant.SchemaName, s.log); err != nil {
-		s.log.Warn("Failed to ensure patient_handoffs table exists", zap.Error(err), zap.String("schema_name", tenant.SchemaName))
-		// Don't fail the operation, but log the warning
-	}
-
-	return tenant, nil
+	return s.repo.GetByOrganizationID(organizationID)
 }
 
 // GetTenantBySchemaName retrieves tenant by schema name
@@ -239,31 +226,6 @@ func (s *tenantService) DropSchema(ctx context.Context, schemaName string) error
 	return nil
 }
 
-// MigrateSchema runs migrations for a specific tenant schema
-func (s *tenantService) MigrateSchema(ctx context.Context, schemaName string) error {
-	// Import the database package to use tenant migration functions
-	// This creates all required tables in the tenant schema
-	if err := database.CreateTenantSchemaTables(ctx, s.db, schemaName, s.log); err != nil {
-		s.log.Error("Failed to create tenant schema tables", zap.Error(err), zap.String("schema_name", schemaName))
-		return fmt.Errorf("failed to create tenant schema tables: %w", err)
-	}
-
-	// Fix foreign key constraints for assigned_clinicians table (in case they were created incorrectly)
-	if err := database.FixAssignedCliniciansConstraints(ctx, s.db, schemaName, s.log); err != nil {
-		s.log.Warn("Failed to fix assigned_clinicians constraints", zap.Error(err), zap.String("schema_name", schemaName))
-		// Don't fail the migration if constraint fix fails, but log it
-	}
-
-	// Ensure patient_handoffs table exists (for existing tenant schemas when rolling out new features)
-	if err := database.EnsurePatientHandoffsTable(ctx, s.db, schemaName, s.log); err != nil {
-		s.log.Warn("Failed to ensure patient_handoffs table exists", zap.Error(err), zap.String("schema_name", schemaName))
-		// Don't fail the migration if table creation fails, but log it
-	}
-
-	s.log.Info("Tenant schema migrated successfully", zap.String("schema_name", schemaName))
-	return nil
-}
-
 // GetSchemaFromContext retrieves the schema name from context
 func GetSchemaFromContext(ctx context.Context) (string, bool) {
 	if schemaName, ok := ctx.Value("tenant_schema").(string); ok {
@@ -276,4 +238,3 @@ func GetSchemaFromContext(ctx context.Context) (string, bool) {
 func SetSchemaInContext(ctx context.Context, schemaName string) context.Context {
 	return context.WithValue(ctx, "tenant_schema", schemaName)
 }
-

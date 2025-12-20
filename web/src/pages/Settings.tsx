@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Building2, Shield, Database, LogOut, Sparkles, ArrowRight, CreditCard } from "lucide-react";
+import { User, Building2, Shield, Database, LogOut, Sparkles, ArrowRight, CreditCard, Wallet } from "lucide-react";
 import UsageDisplay from "@/components/subscription/UsageDisplay";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -359,6 +359,12 @@ const Settings = () => {
               <CreditCard className="w-4 h-4" />
               Subscription
             </TabsTrigger>
+            {canEditOrganization && (
+              <TabsTrigger value="payment-methods" className="gap-2">
+                <Wallet className="w-4 h-4" />
+                Payment Methods
+              </TabsTrigger>
+            )}
             <TabsTrigger value="security" className="gap-2">
               <Shield className="w-4 h-4" />
               Security
@@ -627,6 +633,24 @@ const Settings = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {canEditOrganization && (
+            <TabsContent value="payment-methods">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Payment Methods</CardTitle>
+                  <CardDescription>
+                    Manage your organization's payment methods for subscription billing
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => navigate("/dashboard/payment-methods")} className="w-full">
+                    Manage Payment Methods <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           <TabsContent value="data">
             <div className="space-y-6">
