@@ -32,4 +32,27 @@ export const organizationService = {
     const response = await api.put<{ data: Organization }>("/organizations/me", data);
     return response.data.data;
   },
+
+  listTeamMembers: async () => {
+    const response = await api.get<{ data: TeamMember[] }>("/organizations/me/members");
+    return response.data.data;
+  },
+
+  updateMemberRole: async (userId: string, role: string) => {
+    const response = await api.put<{ data: null }>(`/organizations/me/members/${userId}/role`, { role });
+    return response.data.data;
+  },
+
+  removeMember: async (userId: string) => {
+    const response = await api.delete<{ data: null }>(`/organizations/me/members/${userId}`);
+    return response.data.data;
+  },
 };
+
+export interface TeamMember {
+  user_id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  joined_at: string;
+}

@@ -15,6 +15,8 @@ import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
 import PatientProfile from "./pages/PatientProfile";
 import AuditLogs from "./pages/AuditLogs";
+import Teams from "./pages/Teams";
+import AcceptInvitation from "./pages/AcceptInvitation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ const App = () => (
             <Route path="/dashboard/billing" element={<Billing />} />
             <Route path="/dashboard/settings" element={<Settings />} />
             <Route path="/dashboard/audit-logs" element={<AuditLogs />} />
+            <Route path="/dashboard/teams" element={<Teams />} />
+            <Route path="/accept-invitation" element={<AcceptInvitation />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

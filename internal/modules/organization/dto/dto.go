@@ -27,3 +27,15 @@ type UpdateOrganizationRequest struct {
 	Currency string `json:"currency"`
 	Locale   string `json:"locale"`
 }
+
+type TeamMemberResponse struct {
+	UserID    uuid.UUID `json:"user_id"`
+	Email     string    `json:"email"`
+	FullName  string    `json:"full_name"`
+	Role      string    `json:"role"`
+	JoinedAt  time.Time `json:"joined_at"`
+}
+
+type UpdateMemberRoleRequest struct {
+	Role string `json:"role" binding:"required"`
+}

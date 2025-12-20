@@ -28,6 +28,7 @@ type ApplicationConfig struct {
 	Name        string `mapstructure:"name"`
 	Version     string `mapstructure:"version"`
 	Environment string `mapstructure:"environment"`
+	URL         string `mapstructure:"url"`
 }
 
 // ServerConfig holds server configuration
@@ -203,6 +204,7 @@ func setDefaults() {
 	viper.SetDefault("application.name", "OpenMind")
 	viper.SetDefault("application.version", "0.0.1")
 	viper.SetDefault("application.environment", "development")
+	viper.SetDefault("application.url", "http://localhost:8080")
 
 	// Server defaults
 	viper.SetDefault("server.host", "0.0.0.0")

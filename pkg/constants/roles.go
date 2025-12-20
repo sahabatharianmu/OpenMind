@@ -22,6 +22,13 @@ const (
 	// - Cannot create/edit or access admin functions
 	RoleMember = "member"
 
+	// RoleCaseManager - Case management access:
+	// - Similar to clinician but focused on case management
+	// - Can manage patient cases and coordination
+	// - View invoices (read-only)
+	// - Cannot access: audit logs, export/import, invoice management, org settings
+	RoleCaseManager = "case_manager"
+
 	// RoleOwner - Full access (same as admin)
 	// Assigned to the first user who creates the organization
 	// Used to distinguish organization owners from regular admins
@@ -31,10 +38,11 @@ const (
 // AllRoles returns a slice of all valid roles
 func AllRoles() []string {
 	return []string{
+		RoleOwner,
 		RoleAdmin,
 		RoleClinician,
+		RoleCaseManager,
 		RoleMember,
-		RoleOwner,
 	}
 }
 
