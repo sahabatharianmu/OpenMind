@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Building2, Shield, Database, LogOut } from "lucide-react";
+import { User, Building2, Shield, Database, LogOut, Sparkles, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { userService } from "@/services/userService";
@@ -23,6 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 const Settings = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Check if user can edit organization settings (admin or owner only)
   const canEditOrganization = user?.role === "admin" || user?.role === "owner";
@@ -304,6 +306,11 @@ const Settings = () => {
     }
   };
 
+  // Check if onboarding was skipped
+  const onboardingSkipped = localStorage.getItem("onboarding_skipped") === "true";
+  const onboardingCompleted = localStorage.getItem("onboarding_completed") === "true";
+  const showCompleteSetup = onboardingSkipped && !onboardingCompleted;
+
   return (
     <DashboardLayout>
       <div className="p-6 lg:p-8 max-w-4xl">
@@ -313,6 +320,29 @@ const Settings = () => {
             Manage your account and practice settings
           </p>
         </div>
+
+        {/* Complete Setup Banner */}
+        {showCompleteSetup && (
+          <Card className="mb-6 border-primary/50 bg-primary/5">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="rounded-full bg-primary/10 p-3">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold mb-1">Complete Your Setup</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Finish setting up your account to get the most out of OpenMind Practice.
+                  </p>
+                  <Button onClick={() => navigate("/onboarding")}>
+                    Complete Setup
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList>

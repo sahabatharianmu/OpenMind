@@ -50,13 +50,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         practice_name: practiceName,
       });
       
-      const { id, email: resEmail, role, full_name } = response.data.data; // response structure from backend
-      // Backend returns RegisterResponse: {id, email, role}. It doesn't return tokens immediately usually unless auto-login.
-      // My backend Register returns user object but NO tokens.
-      // So after register, we might need to Login or user has to login manually.
-      // Frontend Auth.tsx handles this: "Your account has been created successfully." -> User then switches to Sign In tab potentially?
-      // Looking at Auth.tsx handleSignup: it calls signUp. If no error, it shows toast. It DOES NOT auto-login.
-      // So we don't need to set user/tokens here.
+      const { id, email: resEmail, role, access_token, refresh_token } = response.data.data;
+      
+      // Store tokens for auto-login
+      if (access_token && refresh_token) {
+        localStorage.setItem("access_token", access_token);
+        localStorage.setItem("refresh_token", refresh_token);
+        
+        // Create user profile from response
+        const userProfile: User = {
+          id,
+          email: resEmail,
+          role,
+          full_name: fullName,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        setUser(userProfile);
+        localStorage.setItem("user_profile", JSON.stringify(userProfile));
+      }
 
       return { error: null };
     } catch (err: any) {

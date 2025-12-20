@@ -15,6 +15,7 @@ export interface Organization {
 
 export interface UpdateOrganizationRequest {
   name: string;
+  type?: string;
   tax_id?: string;
   npi?: string;
   address?: string;

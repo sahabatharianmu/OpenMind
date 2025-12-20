@@ -106,7 +106,7 @@ func main() {
 		// Keys will be generated on-demand when tenants are accessed
 	}
 
-	authService := userService.NewAuthService(userRepo, organizationRepo, jwtService, passwordService, tenantSvc, appLogger)
+	authService := userService.NewAuthService(userRepo, organizationRepo, jwtService, passwordService, tenantSvc, emailService, appLogger)
 	userSvc := userService.NewUserService(userRepo, organizationRepo, appLogger)
 	patientSvc := patientService.NewPatientService(patientRepo, patientHandoffRepo, userRepo, appLogger)
 	appointmentSvc := service.NewAppointmentService(appointmentRepo, patientRepo, userRepo, appLogger)
@@ -162,7 +162,7 @@ func main() {
 		appLogger,
 	)
 
-	authHandler := userHandler.NewAuthHandler(authService)
+	authHandler := userHandler.NewAuthHandler(authService, cfg.Application.URL)
 	userHdlr := userHandler.NewUserHandler(userSvc, authService)
 	patientHdlr := patientHandler.NewPatientHandler(patientSvc)
 	appointmentHdlr := handler.NewAppointmentHandler(appointmentSvc)

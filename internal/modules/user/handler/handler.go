@@ -11,11 +11,15 @@ import (
 )
 
 type AuthHandler struct {
-	svc service.AuthService
+	svc     service.AuthService
+	baseURL string
 }
 
-func NewAuthHandler(svc service.AuthService) *AuthHandler {
-	return &AuthHandler{svc: svc}
+func NewAuthHandler(svc service.AuthService, baseURL string) *AuthHandler {
+	return &AuthHandler{
+		svc:     svc,
+		baseURL: baseURL,
+	}
 }
 
 func (h *AuthHandler) Register(_ context.Context, c *app.RequestContext) {
@@ -25,7 +29,7 @@ func (h *AuthHandler) Register(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Register(req.Email, req.Password, req.FullName, req.PracticeName)
+	resp, err := h.svc.Register(req.Email, req.Password, req.FullName, req.PracticeName, h.baseURL)
 	if err != nil {
 		response.HandleError(c, err)
 		return

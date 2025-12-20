@@ -119,8 +119,10 @@ const Auth = () => {
       } else {
         toast({
           title: "Welcome to OpenMind!",
-          description: "Your account has been created successfully.",
+          description: "Your account has been created successfully. Let's get you set up!",
         });
+        // Redirect to onboarding after successful registration
+        navigate("/onboarding");
       }
     } catch (err) {
       if (err instanceof z.ZodError) {

@@ -10,9 +10,11 @@ type RegisterRequest struct {
 }
 
 type RegisterResponse struct {
-	ID    uuid.UUID `json:"id"`
-	Email string    `json:"email"`
-	Role  string    `json:"role"`
+	ID           uuid.UUID `json:"id"`
+	Email        string    `json:"email"`
+	Role         string    `json:"role"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
 }
 
 type LoginRequest struct {

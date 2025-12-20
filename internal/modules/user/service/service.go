@@ -11,6 +11,7 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/repository"
 	"github.com/sahabatharianmu/OpenMind/pkg/constants"
 	"github.com/sahabatharianmu/OpenMind/pkg/crypto"
+	"github.com/sahabatharianmu/OpenMind/pkg/email"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
 	"github.com/sahabatharianmu/OpenMind/pkg/response"
 	"github.com/sahabatharianmu/OpenMind/pkg/security"
@@ -18,7 +19,7 @@ import (
 )
 
 type AuthService interface {
-	Register(email, password, fullName, practiceName string) (*dto.RegisterResponse, error)
+	Register(email, password, fullName, practiceName, baseURL string) (*dto.RegisterResponse, error)
 	Login(email, password string) (*dto.LoginResponse, error)
 	ChangePassword(userID uuid.UUID, oldPassword, newPassword string) error
 }
@@ -29,6 +30,7 @@ type authService struct {
 	jwt             *security.JWTService
 	passwordService *crypto.PasswordService
 	tenantService   service.TenantService
+	emailService    *email.EmailService
 	log             logger.Logger
 }
 
@@ -38,6 +40,7 @@ func NewAuthService(
 	jwt *security.JWTService,
 	passwordService *crypto.PasswordService,
 	tenantService service.TenantService,
+	emailService *email.EmailService,
 	log logger.Logger,
 ) AuthService {
 	return &authService{
@@ -46,11 +49,12 @@ func NewAuthService(
 		jwt:             jwt,
 		passwordService: passwordService,
 		tenantService:   tenantService,
+		emailService:    emailService,
 		log:             log,
 	}
 }
 
-func (s *authService) Register(email, password, fullName, practiceName string) (*dto.RegisterResponse, error) {
+func (s *authService) Register(email, password, fullName, practiceName, baseURL string) (*dto.RegisterResponse, error) {
 	existingUser, _ := s.repo.FindByEmail(email)
 	if existingUser != nil {
 		s.log.Warn("Registration failed: email already registered", zap.String("email", email))
@@ -100,6 +104,22 @@ func (s *authService) Register(email, password, fullName, practiceName string) (
 		role = constants.RoleOwner
 	}
 
+	// Generate JWT tokens for auto-login
+	accessToken, refreshToken, err := s.jwt.GenerateTokens(user.ID, user.Email, role)
+	if err != nil {
+		s.log.Error("Registration failed: token generation error", zap.Error(err))
+		return nil, response.ErrInternalServerError
+	}
+
+	// Send welcome email (don't fail registration if email fails)
+	dashboardURL := baseURL + "/dashboard"
+	if err := s.emailService.SendWelcomeEmail(email, fullName, practiceName, dashboardURL); err != nil {
+		s.log.Warn("Failed to send welcome email after registration",
+			zap.Error(err),
+			zap.String("email", email))
+		// Don't fail registration if email fails
+	}
+
 	s.log.Info("User registered successfully with organization",
 		zap.String("email", email),
 		zap.String("practice", practiceName),
@@ -107,9 +127,11 @@ func (s *authService) Register(email, password, fullName, practiceName string) (
 		zap.String("role", role))
 
 	return &dto.RegisterResponse{
-		ID:    user.ID,
-		Email: user.Email,
-		Role:  role,
+		ID:           user.ID,
+		Email:        user.Email,
+		Role:         role,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}, nil
 }
 
