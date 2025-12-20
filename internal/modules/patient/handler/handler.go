@@ -7,6 +7,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/google/uuid"
+	"github.com/sahabatharianmu/OpenMind/internal/core/middleware"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/patient/dto"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/patient/service"
 	"github.com/sahabatharianmu/OpenMind/pkg/response"
@@ -72,7 +73,13 @@ func (h *PatientHandler) List(_ context.Context, c *app.RequestContext) {
 		pageSize = 10
 	}
 
-	resp, total, err := h.svc.List(context.Background(), orgID, page, pageSize)
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
+	resp, total, err := h.svc.List(context.Background(), orgID, page, pageSize, userID, userRole)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -107,7 +114,13 @@ func (h *PatientHandler) Get(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Get(context.Background(), id, orgID)
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
+	resp, err := h.svc.Get(context.Background(), id, orgID, userID, userRole)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -179,4 +192,141 @@ func (h *PatientHandler) Delete(_ context.Context, c *app.RequestContext) {
 	}
 
 	c.JSON(consts.StatusOK, response.Success("Patient deleted successfully", nil))
+}
+
+func (h *PatientHandler) AssignClinician(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
+	idStr := c.Param("id")
+	patientID, err := uuid.Parse(idStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid patient ID", nil)
+		return
+	}
+
+	var req dto.AssignClinicianRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		response.BadRequest(c, "Invalid request body", map[string]interface{}{"error": err.Error()})
+		return
+	}
+
+	// Check if user has access to this patient (must be assigned or admin/owner)
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole != "admin" && userRole != "owner" {
+		// For non-admin users, verify they have access to the patient
+		patient, err := h.svc.Get(context.Background(), patientID, orgID, userID, userRole)
+		if err != nil {
+			response.HandleError(c, err)
+			return
+		}
+		_ = patient // Patient access verified
+	}
+
+	if err := h.svc.AssignClinician(context.Background(), patientID, req, orgID, userID); err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.JSON(consts.StatusOK, response.Success("Clinician assigned successfully", nil))
+}
+
+func (h *PatientHandler) UnassignClinician(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
+	idStr := c.Param("id")
+	patientID, err := uuid.Parse(idStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid patient ID", nil)
+		return
+	}
+
+	clinicianIDStr := c.Param("clinician_id")
+	clinicianID, err := uuid.Parse(clinicianIDStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid clinician ID", nil)
+		return
+	}
+
+	// Check if user has access to this patient (must be assigned or admin/owner)
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole != "admin" && userRole != "owner" {
+		// For non-admin users, verify they have access to the patient
+		patient, err := h.svc.Get(context.Background(), patientID, orgID, userID, userRole)
+		if err != nil {
+			response.HandleError(c, err)
+			return
+		}
+		_ = patient // Patient access verified
+	}
+
+	if err := h.svc.UnassignClinician(context.Background(), patientID, clinicianID, orgID, userID); err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.JSON(consts.StatusOK, response.Success("Clinician unassigned successfully", nil))
+}
+
+func (h *PatientHandler) GetAssignedClinicians(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
+	idStr := c.Param("id")
+	patientID, err := uuid.Parse(idStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid patient ID", nil)
+		return
+	}
+
+	// Check if user has access to this patient (must be assigned or admin/owner)
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole != "admin" && userRole != "owner" {
+		// For non-admin users, verify they have access to the patient
+		patient, err := h.svc.Get(context.Background(), patientID, orgID, userID, userRole)
+		if err != nil {
+			response.HandleError(c, err)
+			return
+		}
+		_ = patient // Patient access verified
+	}
+
+	assignments, err := h.svc.GetAssignedClinicians(context.Background(), patientID, orgID)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.JSON(consts.StatusOK, response.Success("Assigned clinicians retrieved successfully", assignments))
 }

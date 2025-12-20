@@ -95,6 +95,10 @@ func RegisterRoutes(
 			patients.GET("/:id", patientHandler.Get)
 			patients.PUT("/:id", rbacMiddleware.HasRole(constants.RoleClinician), patientHandler.Update)
 			patients.DELETE("/:id", rbacMiddleware.HasRole(constants.RoleAdmin), patientHandler.Delete)
+			// Assignment routes (all authenticated users can assign/unassign)
+			patients.POST("/:id/assign", patientHandler.AssignClinician)
+			patients.DELETE("/:id/assign/:clinician_id", patientHandler.UnassignClinician)
+			patients.GET("/:id/assignments", patientHandler.GetAssignedClinicians)
 		}
 
 		appointments := protected.Group("/appointments")

@@ -103,7 +103,7 @@ func main() {
 
 	authService := userService.NewAuthService(userRepo, organizationRepo, jwtService, passwordService, tenantSvc, appLogger)
 	userSvc := userService.NewUserService(userRepo, organizationRepo, appLogger)
-	patientSvc := patientService.NewPatientService(patientRepo, appLogger)
+	patientSvc := patientService.NewPatientService(patientRepo, userRepo, appLogger)
 	appointmentSvc := service.NewAppointmentService(appointmentRepo, appLogger)
 	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, encryptService, appLogger)
 	invoiceSvc := invoiceService.NewInvoiceService(

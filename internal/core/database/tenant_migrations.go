@@ -168,6 +168,93 @@ func CreateTenantSchemaTables(ctx context.Context, db *gorm.DB, schemaName strin
 			deleted_at TIMESTAMP WITH TIME ZONE
 		);
 		`,
+		`
+		CREATE TABLE IF NOT EXISTS assigned_clinicians (
+			patient_id UUID NOT NULL,
+			clinician_id UUID NOT NULL,
+			role VARCHAR(50) NOT NULL DEFAULT 'primary',
+			assigned_by UUID NOT NULL,
+			assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (patient_id, clinician_id)
+		);
+		`,
+		`
+		-- Add foreign key constraints separately to ensure they reference the correct schema
+		-- Drop existing constraint if it exists (might be from wrong schema) and recreate
+		DO $$
+		BEGIN
+			-- Drop constraint if it exists in current schema
+			IF EXISTS (
+				SELECT 1 FROM pg_constraint c
+				JOIN pg_namespace n ON n.oid = c.connamespace
+				WHERE c.conname = 'fk_assigned_clinicians_patient'
+				AND n.nspname = current_schema()
+			) THEN
+				ALTER TABLE assigned_clinicians DROP CONSTRAINT IF EXISTS fk_assigned_clinicians_patient;
+			END IF;
+			
+			-- Add constraint referencing current schema's patients table
+			ALTER TABLE assigned_clinicians 
+			ADD CONSTRAINT fk_assigned_clinicians_patient 
+			FOREIGN KEY (patient_id) 
+			REFERENCES patients(id) 
+			ON DELETE CASCADE;
+		END $$;
+		`,
+		`
+		DO $$
+		BEGIN
+			-- Drop constraint if it exists in current schema
+			IF EXISTS (
+				SELECT 1 FROM pg_constraint c
+				JOIN pg_namespace n ON n.oid = c.connamespace
+				WHERE c.conname = 'fk_assigned_clinicians_clinician'
+				AND n.nspname = current_schema()
+			) THEN
+				ALTER TABLE assigned_clinicians DROP CONSTRAINT IF EXISTS fk_assigned_clinicians_clinician;
+			END IF;
+			
+			-- Add constraint referencing public.users
+			ALTER TABLE assigned_clinicians 
+			ADD CONSTRAINT fk_assigned_clinicians_clinician 
+			FOREIGN KEY (clinician_id) 
+			REFERENCES public.users(id) 
+			ON DELETE CASCADE;
+		END $$;
+		`,
+		`
+		DO $$
+		BEGIN
+			-- Drop constraint if it exists in current schema
+			IF EXISTS (
+				SELECT 1 FROM pg_constraint c
+				JOIN pg_namespace n ON n.oid = c.connamespace
+				WHERE c.conname = 'fk_assigned_clinicians_assigned_by'
+				AND n.nspname = current_schema()
+			) THEN
+				ALTER TABLE assigned_clinicians DROP CONSTRAINT IF EXISTS fk_assigned_clinicians_assigned_by;
+			END IF;
+			
+			-- Add constraint referencing public.users
+			ALTER TABLE assigned_clinicians 
+			ADD CONSTRAINT fk_assigned_clinicians_assigned_by 
+			FOREIGN KEY (assigned_by) 
+			REFERENCES public.users(id) 
+			ON DELETE SET NULL;
+		END $$;
+		`,
+		`
+		CREATE INDEX IF NOT EXISTS idx_assigned_clinicians_clinician_id 
+			ON assigned_clinicians(clinician_id);
+		`,
+		`
+		CREATE INDEX IF NOT EXISTS idx_assigned_clinicians_patient_id 
+			ON assigned_clinicians(patient_id);
+		`,
+		`
+		ALTER TABLE assigned_clinicians ADD CONSTRAINT check_assignment_role 
+			CHECK (role IN ('primary', 'secondary'));
+		`,
 	}
 
 	for _, tableSQL := range tables {
@@ -179,6 +266,60 @@ func CreateTenantSchemaTables(ctx context.Context, db *gorm.DB, schemaName strin
 	}
 
 	appLogger.Info("Tenant schema tables created successfully", zap.String("schema_name", schemaName))
+	return nil
+}
+
+// FixAssignedCliniciansConstraints fixes foreign key constraints in existing tenant schemas
+// This is needed if constraints were created incorrectly (e.g., referencing wrong schema)
+func FixAssignedCliniciansConstraints(ctx context.Context, db *gorm.DB, schemaName string, appLogger logger.Logger) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get sql.DB: %w", err)
+	}
+
+	// Set search_path to the tenant schema
+	_, err = sqlDB.ExecContext(ctx, fmt.Sprintf("SET search_path TO %s, public", schemaName))
+	if err != nil {
+		return fmt.Errorf("failed to set search_path: %w", err)
+	}
+
+	// Fix foreign key constraints
+	fixSQL := `
+		DO $$
+		BEGIN
+			-- Drop and recreate patient foreign key
+			ALTER TABLE assigned_clinicians DROP CONSTRAINT IF EXISTS fk_assigned_clinicians_patient;
+			ALTER TABLE assigned_clinicians 
+			ADD CONSTRAINT fk_assigned_clinicians_patient 
+			FOREIGN KEY (patient_id) 
+			REFERENCES patients(id) 
+			ON DELETE CASCADE;
+			
+			-- Drop and recreate clinician foreign key
+			ALTER TABLE assigned_clinicians DROP CONSTRAINT IF EXISTS fk_assigned_clinicians_clinician;
+			ALTER TABLE assigned_clinicians 
+			ADD CONSTRAINT fk_assigned_clinicians_clinician 
+			FOREIGN KEY (clinician_id) 
+			REFERENCES public.users(id) 
+			ON DELETE CASCADE;
+			
+			-- Drop and recreate assigned_by foreign key
+			ALTER TABLE assigned_clinicians DROP CONSTRAINT IF EXISTS fk_assigned_clinicians_assigned_by;
+			ALTER TABLE assigned_clinicians 
+			ADD CONSTRAINT fk_assigned_clinicians_assigned_by 
+			FOREIGN KEY (assigned_by) 
+			REFERENCES public.users(id) 
+			ON DELETE SET NULL;
+		END $$;
+	`
+
+	_, err = sqlDB.ExecContext(ctx, fixSQL)
+	if err != nil {
+		appLogger.Error("Failed to fix assigned_clinicians constraints", zap.Error(err), zap.String("schema_name", schemaName))
+		return fmt.Errorf("failed to fix constraints: %w", err)
+	}
+
+	appLogger.Info("Fixed assigned_clinicians constraints", zap.String("schema_name", schemaName))
 	return nil
 }
 

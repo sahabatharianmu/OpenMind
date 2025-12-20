@@ -18,31 +18,13 @@ import {
   Plus,
 } from "lucide-react";
 import patientService from "@/services/patientService";
-// We don't have listByPatient methods in services yet, assuming we will filter or backend supports it?
-// The Backend API usually has /patients/:id/appointments etc or query params.
-// Looking at backend router:
-// /appointments -> ListAppointments (which likely takes filters)
-// /clinical-notes -> ListClinicalNotes
-// /invoices -> ListInvoices
-// I should probably update services to accept filters or add specific methods like listByPatient.
-// For now, I will assume the `list` methods in services can accept query params OR I should've implemented them.
-// Wait, my services `list` methods implemented earlier DO NOT accept arguments :( 
-// I should update those services first or just hack it here by fetching all? No, that's bad.
-// I will update this file to use hypothetical `list({ patient_id: id })` and then I'll Quick Fix the services.
-// Actually, looking at my service implementation: `const response = await api.get<{ data: Appointment[] }>("/appointments");` 
-// It fetches ALL. I need to update services to support filtering.
-// Let's assume I'll pass a query string to the list method if I modify it, or I modify services now.
-// To be safe and correct, I should modify services to accept params.
-// BUT I can't modify services in the middle of this tool call.
-// So I will write this file assuming services have `list(params?: any)` method, and I will strictly Type it as `any` for now or better `Record<string, any>`.
-// Then I'll go back and update services.
-
 import appointmentService from "@/services/appointmentService";
 import clinicalNoteService from "@/services/clinicalNoteService";
 import invoiceService from "@/services/invoiceService";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { Patient, Appointment, ClinicalNote, Invoice } from "@/types";
+import PatientAssignments from "@/components/patient/PatientAssignments";
 
 const PatientProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -79,12 +61,18 @@ const PatientProfile = () => {
         setPatient(patientData);
         
         // Filter client-side for now (Optimize later by updating API/Services)
-        setAppointments(allAppointments.filter(a => a.patient_id === id) || []);
-        setNotes(allNotes.filter(n => n.patient_id === id) || []);
-        setInvoices(allInvoices.filter(i => i.patient_id === id) || []);
+        // Handle null/undefined responses by defaulting to empty arrays
+        setAppointments((allAppointments || []).filter(a => a.patient_id === id));
+        setNotes((allNotes || []).filter(n => n.patient_id === id));
+        setInvoices((allInvoices || []).filter(i => i.patient_id === id));
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching patient details:", error);
+      const err = error as { response?: { status?: number; data?: { error?: { message?: string } } } };
+      if (err.response?.status === 403 || err.response?.status === 404) {
+        // Patient not found or access denied - will show "not found" message
+        setPatient(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -229,7 +217,10 @@ const PatientProfile = () => {
           </Card>
 
           {/* Main Content */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Assigned Clinicians */}
+            <PatientAssignments patientId={patient.id} />
+
             <Tabs defaultValue="appointments">
               <TabsList>
                 <TabsTrigger value="appointments" className="gap-2">
