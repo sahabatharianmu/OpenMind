@@ -48,6 +48,7 @@ const Patients = () => {
   const [search, setSearch] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [assignedPatientIds, setAssignedPatientIds] = useState<Set<string>>(new Set());
 
   // New patient form
   const [newFirstName, setNewFirstName] = useState("");
@@ -68,6 +69,20 @@ const Patients = () => {
     try {
       const data = await patientService.list();
       setPatients(data || []);
+      
+      // Check assignment status for each patient
+      const assignedIds = new Set<string>();
+      for (const patient of data || []) {
+        try {
+          const isAssigned = await patientService.isAssigned(patient.id, user?.id);
+          if (isAssigned) {
+            assignedIds.add(patient.id);
+          }
+        } catch (error) {
+          console.error(`Error checking assignment for patient ${patient.id}:`, error);
+        }
+      }
+      setAssignedPatientIds(assignedIds);
     } catch (error) {
       console.error("Error fetching patients:", error);
       toast({
@@ -270,9 +285,16 @@ const Patients = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-semibold">
-                          {patient.first_name} {patient.last_name}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold">
+                            {patient.first_name} {patient.last_name}
+                          </p>
+                          {assignedPatientIds.has(patient.id) && (
+                            <Badge variant="outline" className="text-xs">
+                              Assigned
+                            </Badge>
+                          )}
+                        </div>
                         <Badge 
                           variant={patient.status === "active" ? "default" : "secondary"}
                           className="mt-1"
@@ -288,10 +310,12 @@ const Patients = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/notes/new?patient=${patient.id}`); }}>
-                          <FileText className="w-4 h-4 mr-2" />
-                          Add Note
-                        </DropdownMenuItem>
+                        {assignedPatientIds.has(patient.id) && (
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/notes/new?patient=${patient.id}`); }}>
+                            <FileText className="w-4 h-4 mr-2" />
+                            Add Note
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/appointments/new?patient=${patient.id}`); }}>
                           <Calendar className="w-4 h-4 mr-2" />
                           Schedule Appointment

@@ -8,6 +8,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/google/uuid"
+	"github.com/sahabatharianmu/OpenMind/internal/core/middleware"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/dto"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/service"
 	"github.com/sahabatharianmu/OpenMind/pkg/response"
@@ -45,7 +46,13 @@ func (h *ClinicalNoteHandler) Create(_ context.Context, c *app.RequestContext) {
 	// For now, trust the input but maybe validate it belongs to org?
 	// The requirement says "trust me bro" for now, so let's stick to simple.
 
-	resp, err := h.svc.Create(context.Background(), req, orgID)
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
+	resp, err := h.svc.Create(context.Background(), req, orgID, userID, userRole)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -77,7 +84,13 @@ func (h *ClinicalNoteHandler) List(_ context.Context, c *app.RequestContext) {
 		pageSize = 10
 	}
 
-	resp, total, err := h.svc.List(context.Background(), orgID, page, pageSize)
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
+	resp, total, err := h.svc.List(context.Background(), orgID, page, pageSize, userID, userRole)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -112,7 +125,13 @@ func (h *ClinicalNoteHandler) Get(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Get(context.Background(), id, orgID)
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
+	resp, err := h.svc.Get(context.Background(), id, orgID, userID, userRole)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -148,7 +167,13 @@ func (h *ClinicalNoteHandler) Update(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Update(context.Background(), id, orgID, req)
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
+	resp, err := h.svc.Update(context.Background(), id, orgID, req, userID, userRole)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -178,7 +203,13 @@ func (h *ClinicalNoteHandler) Delete(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	if err := h.svc.Delete(context.Background(), id, orgID); err != nil {
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
+	if err := h.svc.Delete(context.Background(), id, orgID, userID, userRole); err != nil {
 		response.HandleError(c, err)
 		return
 	}
@@ -216,7 +247,13 @@ func (h *ClinicalNoteHandler) AddAddendum(_ context.Context, c *app.RequestConte
 	// Override clinician_id with current user for security
 	req.ClinicianID = userID
 
-	resp, err := h.svc.AddAddendum(context.Background(), noteID, orgID, req)
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
+	resp, err := h.svc.AddAddendum(context.Background(), noteID, orgID, req, userID, userRole)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -266,6 +303,12 @@ func (h *ClinicalNoteHandler) UploadAttachment(_ context.Context, c *app.Request
 		return
 	}
 
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
 	resp, err := h.svc.UploadAttachment(
 		context.Background(),
 		noteID,
@@ -273,6 +316,8 @@ func (h *ClinicalNoteHandler) UploadAttachment(_ context.Context, c *app.Request
 		file.Filename,
 		file.Header.Get("Content-Type"),
 		data,
+		userID,
+		userRole,
 	)
 	if err != nil {
 		response.HandleError(c, err)
@@ -303,7 +348,13 @@ func (h *ClinicalNoteHandler) DownloadAttachment(_ context.Context, c *app.Reque
 		return
 	}
 
-	fileName, data, contentType, err := h.svc.DownloadAttachment(context.Background(), attachmentID, orgID)
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
+	fileName, data, contentType, err := h.svc.DownloadAttachment(context.Background(), attachmentID, orgID, userID, userRole)
 	if err != nil {
 		response.HandleError(c, err)
 		return

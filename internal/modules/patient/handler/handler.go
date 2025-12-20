@@ -150,13 +150,19 @@ func (h *PatientHandler) Update(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
 	var req dto.UpdatePatientRequest
 	if err := c.BindAndValidate(&req); err != nil {
 		response.BadRequest(c, "Invalid request body", map[string]interface{}{"error": err.Error()})
 		return
 	}
 
-	resp, err := h.svc.Update(context.Background(), id, orgID, req)
+	resp, err := h.svc.Update(context.Background(), id, orgID, req, userID, userRole)
 	if err != nil {
 		response.HandleError(c, err)
 		return

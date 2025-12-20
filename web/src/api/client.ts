@@ -27,12 +27,19 @@ api.interceptors.response.use(
   (error) => {
     // Handle 401 Unauthorized
     if (error.response && error.response.status === 401) {
-      // Clear tokens and redirect to login if not already there
-       if (window.location.pathname !== '/auth') {
+      // Only redirect if we're not already on auth page and we have a token
+      // This prevents redirect loops and unnecessary logouts
+      const token = localStorage.getItem('access_token');
+      if (token && window.location.pathname !== '/auth' && !window.location.pathname.startsWith('/auth')) {
+        // Clear tokens and user profile
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        window.location.href = '/auth';
-       }
+        localStorage.removeItem('user_profile');
+        // Use a small delay to allow error handlers to process first
+        setTimeout(() => {
+          window.location.href = '/auth';
+        }, 100);
+      }
     }
     return Promise.reject(error);
   }

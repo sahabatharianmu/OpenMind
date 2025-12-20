@@ -11,6 +11,8 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/dto"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/entity"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/repository"
+	patientRepo "github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
+	"github.com/sahabatharianmu/OpenMind/pkg/constants"
 	"github.com/sahabatharianmu/OpenMind/pkg/crypto"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
 	"github.com/sahabatharianmu/OpenMind/pkg/response"
@@ -22,21 +24,27 @@ type ClinicalNoteService interface {
 		ctx context.Context,
 		req dto.CreateClinicalNoteRequest,
 		organizationID uuid.UUID,
+		userID uuid.UUID,
+		userRole string,
 	) (*dto.ClinicalNoteResponse, error)
 	Update(
 		ctx context.Context,
 		id uuid.UUID,
 		organizationID uuid.UUID,
 		req dto.UpdateClinicalNoteRequest,
+		userID uuid.UUID,
+		userRole string,
 	) (*dto.ClinicalNoteResponse, error)
-	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
-	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.ClinicalNoteResponse, error)
-	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.ClinicalNoteResponse, int64, error)
+	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, userID uuid.UUID, userRole string) error
+	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, userID uuid.UUID, userRole string) (*dto.ClinicalNoteResponse, error)
+	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int, userID uuid.UUID, userRole string) ([]dto.ClinicalNoteResponse, int64, error)
 	AddAddendum(
 		ctx context.Context,
 		noteID uuid.UUID,
 		organizationID uuid.UUID,
 		req dto.AddAddendumRequest,
+		userID uuid.UUID,
+		userRole string,
 	) (*dto.AddendumResponse, error)
 	UploadAttachment(
 		ctx context.Context,
@@ -45,30 +53,37 @@ type ClinicalNoteService interface {
 		fileName string,
 		contentType string,
 		data []byte,
+		userID uuid.UUID,
+		userRole string,
 	) (*dto.AttachmentResponse, error)
 	DownloadAttachment(
 		ctx context.Context,
 		attachmentID uuid.UUID,
 		organizationID uuid.UUID,
+		userID uuid.UUID,
+		userRole string,
 	) (string, []byte, string, error)
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
 
 type clinicalNoteService struct {
-	repo       repository.ClinicalNoteRepository
-	encryptSvc *crypto.EncryptionService
-	log        logger.Logger
+	repo        repository.ClinicalNoteRepository
+	patientRepo patientRepo.PatientRepository
+	encryptSvc  *crypto.EncryptionService
+	log         logger.Logger
 }
 
 func NewClinicalNoteService(
 	repo repository.ClinicalNoteRepository,
+	patientRepo patientRepo.PatientRepository,
 	encryptSvc *crypto.EncryptionService,
 	log logger.Logger,
 ) ClinicalNoteService {
 	return &clinicalNoteService{
-		repo:       repo,
-		encryptSvc: encryptSvc,
-		log:        log,
+		repo:        repo,
+		patientRepo: patientRepo,
+		encryptSvc:  encryptSvc,
+		log:         log,
 	}
 }
 
@@ -83,7 +98,21 @@ func (s *clinicalNoteService) Create(
 	ctx context.Context,
 	req dto.CreateClinicalNoteRequest,
 	organizationID uuid.UUID,
+	userID uuid.UUID,
+	userRole string,
 ) (*dto.ClinicalNoteResponse, error) {
+	// Check access control: only assigned clinicians or admin/owner can create clinical notes
+	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
+		isAssigned, err := s.patientRepo.IsPatientAssignedToClinician(req.PatientID, userID)
+		if err != nil {
+			s.log.Error("Failed to check patient assignment", zap.Error(err))
+			return nil, fmt.Errorf("failed to check access: %w", err)
+		}
+		if !isAssigned {
+			return nil, response.NewForbidden("Only assigned clinicians can create clinical notes")
+		}
+	}
+
 	var signedAt *time.Time
 	if req.IsSigned {
 		now := time.Now()
@@ -121,6 +150,8 @@ func (s *clinicalNoteService) Update(
 	id uuid.UUID,
 	organizationID uuid.UUID,
 	req dto.UpdateClinicalNoteRequest,
+	userID uuid.UUID,
+	userRole string,
 ) (*dto.ClinicalNoteResponse, error) {
 	note, err := s.repo.FindByID(id)
 	if err != nil {
@@ -129,6 +160,18 @@ func (s *clinicalNoteService) Update(
 
 	if note.OrganizationID != organizationID {
 		return nil, response.ErrNotFound
+	}
+
+	// Check access control: only assigned clinicians or admin/owner can update clinical notes
+	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
+		isAssigned, err := s.patientRepo.IsPatientAssignedToClinician(note.PatientID, userID)
+		if err != nil {
+			s.log.Error("Failed to check patient assignment", zap.Error(err))
+			return nil, fmt.Errorf("failed to check access: %w", err)
+		}
+		if !isAssigned {
+			return nil, response.NewForbidden("Only assigned clinicians can update clinical notes")
+		}
 	}
 
 	// Note Locking: Once "Signed", a note becomes immutable.
@@ -172,7 +215,7 @@ func (s *clinicalNoteService) Update(
 	return s.mapEntityToResponse(note), nil
 }
 
-func (s *clinicalNoteService) Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error {
+func (s *clinicalNoteService) Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, userID uuid.UUID, userRole string) error {
 	note, err := s.repo.FindByID(id)
 	if err != nil {
 		return err
@@ -180,6 +223,18 @@ func (s *clinicalNoteService) Delete(ctx context.Context, id uuid.UUID, organiza
 
 	if note.OrganizationID != organizationID {
 		return response.ErrNotFound
+	}
+
+	// Check access control: only assigned clinicians or admin/owner can delete clinical notes
+	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
+		isAssigned, err := s.patientRepo.IsPatientAssignedToClinician(note.PatientID, userID)
+		if err != nil {
+			s.log.Error("Failed to check patient assignment", zap.Error(err))
+			return fmt.Errorf("failed to check access: %w", err)
+		}
+		if !isAssigned {
+			return response.NewForbidden("Only assigned clinicians can delete clinical notes")
+		}
 	}
 
 	if note.IsSigned {
@@ -193,6 +248,8 @@ func (s *clinicalNoteService) Get(
 	ctx context.Context,
 	id uuid.UUID,
 	organizationID uuid.UUID,
+	userID uuid.UUID,
+	userRole string,
 ) (*dto.ClinicalNoteResponse, error) {
 	note, err := s.repo.FindByID(id)
 	if err != nil {
@@ -201,6 +258,18 @@ func (s *clinicalNoteService) Get(
 
 	if note.OrganizationID != organizationID {
 		return nil, response.ErrNotFound
+	}
+
+	// Check access control: only assigned clinicians or admin/owner can view clinical notes
+	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
+		isAssigned, err := s.patientRepo.IsPatientAssignedToClinician(note.PatientID, userID)
+		if err != nil {
+			s.log.Error("Failed to check patient assignment", zap.Error(err))
+			return nil, fmt.Errorf("failed to check access: %w", err)
+		}
+		if !isAssigned {
+			return nil, response.NewForbidden("Only assigned clinicians can view clinical notes")
+		}
 	}
 
 	if err := s.decryptNote(note, organizationID); err != nil {
@@ -214,11 +283,39 @@ func (s *clinicalNoteService) List(
 	ctx context.Context,
 	organizationID uuid.UUID,
 	page, pageSize int,
+	userID uuid.UUID,
+	userRole string,
 ) ([]dto.ClinicalNoteResponse, int64, error) {
 	offset := (page - 1) * pageSize
 	notes, total, err := s.repo.List(organizationID, pageSize, offset)
 	if err != nil {
 		return nil, 0, err
+	}
+
+	// Filter notes by patient assignment for non-admin users
+	var filteredNotes []entity.ClinicalNote
+	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
+		// Get assigned patient IDs for this user
+		assignedPatientIDs, err := s.patientRepo.GetAssignedPatients(userID, organizationID)
+		if err != nil {
+			s.log.Error("Failed to get assigned patients", zap.Error(err))
+			return nil, 0, fmt.Errorf("failed to get assigned patients: %w", err)
+		}
+
+		// Create a map for quick lookup
+		assignedMap := make(map[uuid.UUID]bool)
+		for _, pid := range assignedPatientIDs {
+			assignedMap[pid] = true
+		}
+
+		// Filter notes to only those for assigned patients
+		for i := range notes {
+			if assignedMap[notes[i].PatientID] {
+				filteredNotes = append(filteredNotes, notes[i])
+			}
+		}
+		notes = filteredNotes
+		total = int64(len(notes)) // Update total count
 	}
 
 	var responses []dto.ClinicalNoteResponse
@@ -237,6 +334,8 @@ func (s *clinicalNoteService) AddAddendum(
 	noteID uuid.UUID,
 	organizationID uuid.UUID,
 	req dto.AddAddendumRequest,
+	userID uuid.UUID,
+	userRole string,
 ) (*dto.AddendumResponse, error) {
 	note, err := s.repo.FindByID(noteID)
 	if err != nil {
@@ -245,6 +344,18 @@ func (s *clinicalNoteService) AddAddendum(
 
 	if note.OrganizationID != organizationID {
 		return nil, response.ErrNotFound
+	}
+
+	// Check access control: only assigned clinicians or admin/owner can add addendums
+	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
+		isAssigned, err := s.patientRepo.IsPatientAssignedToClinician(note.PatientID, userID)
+		if err != nil {
+			s.log.Error("Failed to check patient assignment", zap.Error(err))
+			return nil, fmt.Errorf("failed to check access: %w", err)
+		}
+		if !isAssigned {
+			return nil, response.NewForbidden("Only assigned clinicians can add addendums to clinical notes")
+		}
 	}
 
 	if !note.IsSigned {
@@ -276,6 +387,8 @@ func (s *clinicalNoteService) UploadAttachment(
 	fileName string,
 	contentType string,
 	data []byte,
+	userID uuid.UUID,
+	userRole string,
 ) (*dto.AttachmentResponse, error) {
 	note, err := s.repo.FindByID(noteID)
 	if err != nil {
@@ -284,6 +397,18 @@ func (s *clinicalNoteService) UploadAttachment(
 
 	if note.OrganizationID != organizationID {
 		return nil, response.ErrNotFound
+	}
+
+	// Check access control: only assigned clinicians or admin/owner can upload attachments
+	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
+		isAssigned, err := s.patientRepo.IsPatientAssignedToClinician(note.PatientID, userID)
+		if err != nil {
+			s.log.Error("Failed to check patient assignment", zap.Error(err))
+			return nil, fmt.Errorf("failed to check access: %w", err)
+		}
+		if !isAssigned {
+			return nil, response.NewForbidden("Only assigned clinicians can upload attachments to clinical notes")
+		}
 	}
 
 	if note.IsSigned {
@@ -320,6 +445,8 @@ func (s *clinicalNoteService) DownloadAttachment(
 	ctx context.Context,
 	attachmentID uuid.UUID,
 	organizationID uuid.UUID,
+	userID uuid.UUID,
+	userRole string,
 ) (string, []byte, string, error) {
 	attachment, err := s.repo.GetAttachmentByID(attachmentID)
 	if err != nil {
@@ -334,6 +461,18 @@ func (s *clinicalNoteService) DownloadAttachment(
 
 	if note.OrganizationID != organizationID {
 		return "", nil, "", response.ErrNotFound
+	}
+
+	// Check access control: only assigned clinicians or admin/owner can download attachments
+	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
+		isAssigned, err := s.patientRepo.IsPatientAssignedToClinician(note.PatientID, userID)
+		if err != nil {
+			s.log.Error("Failed to check patient assignment", zap.Error(err))
+			return "", nil, "", fmt.Errorf("failed to check access: %w", err)
+		}
+		if !isAssigned {
+			return "", nil, "", response.NewForbidden("Only assigned clinicians can download attachments from clinical notes")
+		}
 	}
 
 	// Decrypt the file content with tenant-specific key (HIPAA compliant)

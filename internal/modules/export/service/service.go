@@ -81,7 +81,14 @@ func (s *exportService) ExportAllData(userID uuid.UUID) (map[string][]byte, erro
 	}
 
 	// Export clinical notes
-	notes, _, err := s.clinicalNoteSvc.List(context.Background(), org.ID, 1, 10000)
+	// Get user's role to pass to clinical notes service
+	userRole, err := s.orgRepo.GetMemberRole(org.ID, userID)
+	if err != nil {
+		s.log.Warn("Failed to get user role for export, defaulting to member", zap.Error(err))
+		userRole = "member"
+	}
+
+	notes, _, err := s.clinicalNoteSvc.List(context.Background(), org.ID, 1, 10000, userID, userRole)
 	if err != nil {
 		s.log.Error("Failed to fetch clinical notes for export", zap.Error(err))
 	} else {
@@ -91,7 +98,7 @@ func (s *exportService) ExportAllData(userID uuid.UUID) (map[string][]byte, erro
 		// Also export raw attachment files (decrypted)
 		for _, note := range notes {
 			for _, att := range note.Attachments {
-				_, data, _, err := s.clinicalNoteSvc.DownloadAttachment(context.Background(), att.ID, org.ID)
+				_, data, _, err := s.clinicalNoteSvc.DownloadAttachment(context.Background(), att.ID, org.ID, userID, userRole)
 				if err == nil {
 					files[fmt.Sprintf("attachments/%s_%s", att.ID.String()[:8], att.FileName)] = data
 				}

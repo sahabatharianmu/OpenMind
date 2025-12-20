@@ -41,11 +41,11 @@ const PatientAssignments = ({ patientId }: PatientAssignmentsProps) => {
   const [selectedRole, setSelectedRole] = useState<"primary" | "secondary">("primary");
 
   useEffect(() => {
-    if (patientId) {
+    if (patientId && user) {
       loadAssignments();
       loadTeamMembers();
     }
-  }, [patientId]);
+  }, [patientId, user]);
 
   const loadAssignments = async () => {
     if (!patientId) {
@@ -66,10 +66,23 @@ const PatientAssignments = ({ patientId }: PatientAssignmentsProps) => {
 
   const loadTeamMembers = async () => {
     try {
+      // Only load team members if user has admin/owner role
+      // This endpoint requires admin/owner permissions
+      if (user?.role !== "admin" && user?.role !== "owner") {
+        setTeamMembers([]);
+        return;
+      }
       const data = await organizationService.listTeamMembers();
       setTeamMembers(data || []);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error loading team members:", error);
+      const err = error as { response?: { status?: number } };
+      // Don't let 401/403 errors from team members affect the page
+      // Just set empty array and continue
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setTeamMembers([]);
+        return;
+      }
       setTeamMembers([]);
     }
   };

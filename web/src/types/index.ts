@@ -27,6 +27,8 @@ export interface Appointment {
   organization_id: string;
   patient_id: string;
   clinician_id: string;
+  clinician_name?: string;
+  clinician_email?: string;
   start_time: string;
   end_time: string;
   status: "scheduled" | "completed" | "cancelled" | "no-show";
