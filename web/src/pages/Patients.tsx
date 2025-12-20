@@ -38,6 +38,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Patient } from "@/types";
+import { subscriptionService, UpgradePrompt as UpgradePromptType } from "@/services/subscriptionService";
+import UpgradePrompt from "@/components/subscription/UpgradePrompt";
 
 const Patients = () => {
   const navigate = useNavigate();
@@ -49,6 +51,9 @@ const Patients = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignedPatientIds, setAssignedPatientIds] = useState<Set<string>>(new Set());
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [upgradePrompt, setUpgradePrompt] = useState<UpgradePromptType | null>(null);
+  const [usageStats, setUsageStats] = useState<{ patient_count: number; patient_limit: number } | null>(null);
 
   // New patient form
   const [newFirstName, setNewFirstName] = useState("");
@@ -60,7 +65,22 @@ const Patients = () => {
 
   useEffect(() => {
     fetchPatients();
+    loadUsageStats();
   }, [user]);
+
+  const loadUsageStats = async () => {
+    try {
+      const stats = await subscriptionService.getUsageStats();
+      if (stats) {
+        setUsageStats({
+          patient_count: stats.patient_count,
+          patient_limit: stats.patient_limit,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load usage stats", error);
+    }
+  };
 
   const fetchPatients = async () => {
     if (!user) return; // Wait for user to be loaded
@@ -118,12 +138,19 @@ const Patients = () => {
       setIsAddDialogOpen(false);
       resetForm();
       fetchPatients();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to add patient.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      // Check for upgrade prompt in error response
+      const errorDetails = error?.response?.data?.error?.details;
+      if (errorDetails?.upgrade_prompt) {
+        setUpgradePrompt(errorDetails.upgrade_prompt);
+        setShowUpgradePrompt(true);
+      } else {
+        toast({
+          title: "Error",
+          description: error?.response?.data?.error?.message || "Failed to add patient.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -157,7 +184,10 @@ const Patients = () => {
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 h-11 min-h-[44px] w-full sm:w-auto">
+              <Button 
+                className="gap-2 h-11 min-h-[44px] w-full sm:w-auto"
+                disabled={usageStats && subscriptionService.isAtLimit(usageStats.patient_count, usageStats.patient_limit)}
+              >
                 <Plus className="w-4 h-4" />
                 Add Patient
               </Button>
@@ -356,6 +386,11 @@ const Patients = () => {
           </div>
         )}
       </div>
+      <UpgradePrompt
+        isOpen={showUpgradePrompt}
+        onClose={() => setShowUpgradePrompt(false)}
+        upgradePrompt={upgradePrompt}
+      />
     </DashboardLayout>
   );
 };

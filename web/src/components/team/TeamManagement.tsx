@@ -30,6 +30,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { teamService, type TeamInvitation } from "@/services/teamService";
+import { subscriptionService, UpgradePrompt as UpgradePromptType } from "@/services/subscriptionService";
+import UpgradePrompt from "@/components/subscription/UpgradePrompt";
 import { UserPlus, X, RotateCcw, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 
@@ -44,11 +46,29 @@ const TeamManagement = () => {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("member");
   const [sending, setSending] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [upgradePrompt, setUpgradePrompt] = useState<UpgradePromptType | null>(null);
+  const [usageStats, setUsageStats] = useState<{ clinician_count: number; clinician_limit: number } | null>(null);
 
   useEffect(() => {
     loadInvitations();
+    loadUsageStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
+
+  const loadUsageStats = async () => {
+    try {
+      const stats = await subscriptionService.getUsageStats();
+      if (stats) {
+        setUsageStats({
+          clinician_count: stats.clinician_count,
+          clinician_limit: stats.clinician_limit,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load usage stats", error);
+    }
+  };
 
   const loadInvitations = async () => {
     setLoading(true);
@@ -103,13 +123,20 @@ const TeamManagement = () => {
       setInviteRole("member");
       loadInvitations();
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: { message?: string } } }; message?: string };
-      const message = err.response?.data?.error?.message || err.message || "Failed to send invitation";
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
+      const err = error as { response?: { data?: { error?: { details?: { upgrade_prompt?: UpgradePromptType }; message?: string } } }; message?: string };
+      // Check for upgrade prompt in error response
+      const errorDetails = err.response?.data?.error?.details;
+      if (errorDetails?.upgrade_prompt) {
+        setUpgradePrompt(errorDetails.upgrade_prompt);
+        setShowUpgradePrompt(true);
+      } else {
+        const message = err.response?.data?.error?.message || err.message || "Failed to send invitation";
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setSending(false);
     }
@@ -221,7 +248,10 @@ const TeamManagement = () => {
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
+                <Button 
+                  className="gap-2"
+                  disabled={usageStats && subscriptionService.isAtLimit(usageStats.clinician_count, usageStats.clinician_limit)}
+                >
                   <UserPlus className="w-4 h-4" />
                   Invite Member
                 </Button>
@@ -374,6 +404,11 @@ const TeamManagement = () => {
           })()}
         </CardContent>
       </Card>
+      <UpgradePrompt
+        isOpen={showUpgradePrompt}
+        onClose={() => setShowUpgradePrompt(false)}
+        upgradePrompt={upgradePrompt}
+      />
     </div>
   );
 };

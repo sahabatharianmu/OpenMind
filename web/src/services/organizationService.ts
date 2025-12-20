@@ -1,15 +1,24 @@
 import api from "@/api/client";
 
+export interface UsageStats {
+  patient_count: number;
+  clinician_count: number;
+  patient_limit: number; // -1 means unlimited
+  clinician_limit: number; // -1 means unlimited
+}
+
 export interface Organization {
   id: string;
   name: string;
   type: string;
+  subscription_tier: string;
   tax_id?: string;
   npi?: string;
   address?: string;
   currency: string;
   locale: string;
   member_count: number;
+  usage_stats?: UsageStats;
   created_at: string;
 }
 

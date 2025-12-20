@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Building2, Shield, Database, LogOut, Sparkles, ArrowRight } from "lucide-react";
+import { User, Building2, Shield, Database, LogOut, Sparkles, ArrowRight, CreditCard } from "lucide-react";
+import UsageDisplay from "@/components/subscription/UsageDisplay";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -354,6 +355,10 @@ const Settings = () => {
               <Building2 className="w-4 h-4" />
               Practice
             </TabsTrigger>
+            <TabsTrigger value="subscription" className="gap-2">
+              <CreditCard className="w-4 h-4" />
+              Subscription
+            </TabsTrigger>
             <TabsTrigger value="security" className="gap-2">
               <Shield className="w-4 h-4" />
               Security
@@ -599,6 +604,25 @@ const Settings = () => {
                       Sign Out
                     </Button>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="subscription">
+            <Card>
+              <CardHeader>
+                <CardTitle>Subscription & Usage</CardTitle>
+                <CardDescription>
+                  View your current plan and usage statistics
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <UsageDisplay showUpgradeButton={true} />
+                <div className="mt-6">
+                  <Button onClick={() => navigate("/pricing")} variant="outline" className="w-full">
+                    View All Plans <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>

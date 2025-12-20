@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/organization/entity"
 	orgRepo "github.com/sahabatharianmu/OpenMind/internal/modules/organization/repository"
+	subscriptionService "github.com/sahabatharianmu/OpenMind/internal/modules/subscription/service"
 	teamEntity "github.com/sahabatharianmu/OpenMind/internal/modules/team/entity"
 	teamRepo "github.com/sahabatharianmu/OpenMind/internal/modules/team/repository"
 	userEntity "github.com/sahabatharianmu/OpenMind/internal/modules/user/entity"
@@ -33,13 +34,14 @@ type TeamInvitationService interface {
 }
 
 type teamInvitationService struct {
-	invitationRepo teamRepo.TeamInvitationRepository
-	orgRepo        orgRepo.OrganizationRepository
-	userRepo       userRepo.UserRepository
+	invitationRepo  teamRepo.TeamInvitationRepository
+	orgRepo         orgRepo.OrganizationRepository
+	userRepo        userRepo.UserRepository
 	passwordService *crypto.PasswordService
-	emailService   *email.EmailService
-	log            logger.Logger
-	baseURL        string // Base URL for invitation links
+	emailService    *email.EmailService
+	gatingService   subscriptionService.FeatureGatingService
+	log             logger.Logger
+	baseURL         string // Base URL for invitation links
 }
 
 func NewTeamInvitationService(
@@ -48,6 +50,7 @@ func NewTeamInvitationService(
 	userRepo userRepo.UserRepository,
 	passwordService *crypto.PasswordService,
 	emailService *email.EmailService,
+	gatingService subscriptionService.FeatureGatingService,
 	log logger.Logger,
 	baseURL string,
 ) TeamInvitationService {
@@ -57,6 +60,7 @@ func NewTeamInvitationService(
 		userRepo:        userRepo,
 		passwordService: passwordService,
 		emailService:    emailService,
+		gatingService:   gatingService,
 		log:             log,
 		baseURL:         baseURL,
 	}
@@ -77,6 +81,13 @@ func (s *teamInvitationService) SendInvitation(
 	organizationID, invitedBy uuid.UUID,
 	email, role string,
 ) (*teamEntity.TeamInvitation, error) {
+	// Check clinician limit before sending invitation
+	if s.gatingService != nil {
+		if err := s.gatingService.CheckClinicianLimit(ctx, organizationID); err != nil {
+			return nil, err
+		}
+	}
+
 	// Validate role
 	if !constants.IsValidRole(role) {
 		return nil, response.NewBadRequest(fmt.Sprintf("Invalid role: %s", role))

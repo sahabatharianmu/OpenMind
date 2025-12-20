@@ -34,6 +34,7 @@ import (
 	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
 	patientRepository "github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
 	patientService "github.com/sahabatharianmu/OpenMind/internal/modules/patient/service"
+	subscriptionService "github.com/sahabatharianmu/OpenMind/internal/modules/subscription/service"
 	teamHandler "github.com/sahabatharianmu/OpenMind/internal/modules/team/handler"
 	teamRepository "github.com/sahabatharianmu/OpenMind/internal/modules/team/repository"
 	teamService "github.com/sahabatharianmu/OpenMind/internal/modules/team/service"
@@ -108,7 +109,11 @@ func main() {
 
 	authService := userService.NewAuthService(userRepo, organizationRepo, jwtService, passwordService, tenantSvc, emailService, appLogger)
 	userSvc := userService.NewUserService(userRepo, organizationRepo, appLogger)
-	patientSvc := patientService.NewPatientService(patientRepo, patientHandoffRepo, userRepo, appLogger)
+
+	usageSvc := subscriptionService.NewUsageService(patientRepo, organizationRepo, appLogger)
+	gatingSvc := subscriptionService.NewFeatureGatingService(organizationRepo, usageSvc, appLogger, cfg.Application.URL)
+
+	patientSvc := patientService.NewPatientService(patientRepo, patientHandoffRepo, userRepo, gatingSvc, appLogger)
 	appointmentSvc := service.NewAppointmentService(appointmentRepo, patientRepo, userRepo, appLogger)
 	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, patientRepo, encryptService, appLogger)
 	invoiceSvc := invoiceService.NewInvoiceService(
@@ -120,7 +125,8 @@ func main() {
 		appLogger,
 	)
 	auditLogSvc := auditLogService.NewAuditLogService(auditLogRepo, appLogger)
-	organizationSvc := organizationService.NewOrganizationService(organizationRepo, userRepo, appLogger)
+
+	organizationSvc := organizationService.NewOrganizationService(organizationRepo, userRepo, usageSvc, gatingSvc, appLogger)
 	exportSvc := exportService.NewExportService(
 		organizationRepo,
 		patientRepo,
@@ -146,6 +152,7 @@ func main() {
 		userRepo,
 		passwordService,
 		emailService,
+		gatingSvc,
 		appLogger,
 		cfg.Application.URL,
 	)

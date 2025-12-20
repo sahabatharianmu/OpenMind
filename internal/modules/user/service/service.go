@@ -76,9 +76,10 @@ func (s *authService) Register(email, password, fullName, practiceName, baseURL 
 	}
 
 	organization := &entity.Organization{
-		ID:   uuid.New(),
-		Name: practiceName,
-		Type: "clinic",
+		ID:               uuid.New(),
+		Name:             practiceName,
+		Type:             "clinic",
+		SubscriptionTier: constants.TierFree, // Default to free tier
 	}
 
 	if err := s.repo.CreateWithOrganization(user, organization); err != nil {
