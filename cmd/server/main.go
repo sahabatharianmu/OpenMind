@@ -31,12 +31,16 @@ import (
 	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
 	patientRepository "github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
 	patientService "github.com/sahabatharianmu/OpenMind/internal/modules/patient/service"
+	teamHandler "github.com/sahabatharianmu/OpenMind/internal/modules/team/handler"
+	teamRepository "github.com/sahabatharianmu/OpenMind/internal/modules/team/repository"
+	teamService "github.com/sahabatharianmu/OpenMind/internal/modules/team/service"
 	tenantRepository "github.com/sahabatharianmu/OpenMind/internal/modules/tenant/repository"
 	tenantService "github.com/sahabatharianmu/OpenMind/internal/modules/tenant/service"
 	userHandler "github.com/sahabatharianmu/OpenMind/internal/modules/user/handler"
 	userRepository "github.com/sahabatharianmu/OpenMind/internal/modules/user/repository"
 	userService "github.com/sahabatharianmu/OpenMind/internal/modules/user/service"
 	"github.com/sahabatharianmu/OpenMind/pkg/crypto"
+	"github.com/sahabatharianmu/OpenMind/pkg/email"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
 	"github.com/sahabatharianmu/OpenMind/pkg/security"
 	"go.uber.org/zap"
@@ -71,17 +75,19 @@ func main() {
 	organizationRepo := organizationRepository.NewOrganizationRepository(db, appLogger)
 	tenantRepo := tenantRepository.NewTenantRepository(db, appLogger)
 	tenantKeyRepo := tenantRepository.NewTenantEncryptionKeyRepository(db, appLogger)
+	teamInvitationRepo := teamRepository.NewTeamInvitationRepository(db, appLogger)
 
 	jwtService := security.NewJWTService(cfg)
 	passwordService := crypto.NewPasswordService(cfg)
 	encryptService := crypto.NewEncryptionService(cfg)
-	
+	emailService := email.NewEmailService(cfg, appLogger)
+
 	// Set tenant key repository for encryption service (HIPAA compliant)
 	encryptService.SetTenantKeyRepository(tenantKeyRepo)
 
 	// Initialize tenant service first (needed for auth service)
 	tenantSvc := tenantService.NewTenantService(tenantRepo, db, appLogger)
-	
+
 	// Set encryption service and key repository for tenant key generation (HIPAA compliant)
 	tenantSvc.SetEncryptionService(encryptService)
 	tenantSvc.SetKeyRepository(tenantKeyRepo)
@@ -109,7 +115,7 @@ func main() {
 		appLogger,
 	)
 	auditLogSvc := auditLogService.NewAuditLogService(auditLogRepo, appLogger)
-	organizationSvc := organizationService.NewOrganizationService(organizationRepo, appLogger)
+	organizationSvc := organizationService.NewOrganizationService(organizationRepo, userRepo, appLogger)
 	exportSvc := exportService.NewExportService(
 		organizationRepo,
 		patientRepo,
@@ -129,6 +135,16 @@ func main() {
 		appLogger,
 	)
 
+	teamInvitationSvc := teamService.NewTeamInvitationService(
+		teamInvitationRepo,
+		organizationRepo,
+		userRepo,
+		passwordService,
+		emailService,
+		appLogger,
+		cfg.Application.URL,
+	)
+
 	authHandler := userHandler.NewAuthHandler(authService)
 	userHdlr := userHandler.NewUserHandler(userSvc, authService)
 	patientHdlr := patientHandler.NewPatientHandler(patientSvc)
@@ -139,6 +155,7 @@ func main() {
 	organizationHdlr := organizationHandler.NewOrganizationHandler(organizationSvc)
 	exportHdlr := exportHandler.NewExportHandler(exportSvc)
 	importHdlr := importHandler.NewImportHandler(importSvc)
+	teamHdlr := teamHandler.NewTeamInvitationHandler(teamInvitationSvc)
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	auditMiddleware := middleware.NewAuditMiddleware(auditLogSvc)
@@ -165,6 +182,7 @@ func main() {
 		organizationHdlr,
 		exportHdlr,
 		importHdlr,
+		teamHdlr,
 		authMiddleware,
 		auditMiddleware,
 		rbacMiddleware,

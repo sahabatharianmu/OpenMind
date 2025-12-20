@@ -14,6 +14,7 @@ import (
 	invoiceHandler "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/handler"
 	organizationHandler "github.com/sahabatharianmu/OpenMind/internal/modules/organization/handler"
 	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
+	teamHandler "github.com/sahabatharianmu/OpenMind/internal/modules/team/handler"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/handler"
 	"github.com/sahabatharianmu/OpenMind/pkg/constants"
 )
@@ -30,6 +31,7 @@ func RegisterRoutes(
 	organizationHandler *organizationHandler.OrganizationHandler,
 	exportHandler *exportHandler.ExportHandler,
 	importHandler *importHandler.ImportHandler,
+	teamHandler *teamHandler.TeamInvitationHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	auditMiddleware *middleware.AuditMiddleware,
 	rbacMiddleware *middleware.RBACMiddleware,
@@ -42,6 +44,15 @@ func RegisterRoutes(
 	{
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
+	}
+
+	// Public team invitation routes (for accepting invitations - new users only)
+	team := v1.Group("/team")
+	{
+		// Public route to get invitation details by token (for invitation page)
+		team.GET("/invitations/:token", teamHandler.GetInvitation)
+		// Register and accept invitation (for new users only - existing users cannot accept)
+		team.POST("/invitations/register", teamHandler.RegisterAndAcceptInvitation)
 	}
 	protected := v1.Group("/")
 	protected.Use(authMiddleware.Middleware())
@@ -60,7 +71,11 @@ func RegisterRoutes(
 		organizations := protected.Group("/organizations")
 		{
 			organizations.GET("/me", organizationHandler.GetMyOrganization)
-			organizations.PUT("/me", rbacMiddleware.HasRole(constants.RoleAdmin), organizationHandler.UpdateOrganization)
+			organizations.PUT("/me", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.UpdateOrganization)
+			// Team management (admin/owner only)
+			organizations.GET("/me/members", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.ListTeamMembers)
+			organizations.PUT("/me/members/:user_id/role", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.UpdateMemberRole)
+			organizations.DELETE("/me/members/:user_id", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.RemoveMember)
 		}
 
 		protected.GET("/export", rbacMiddleware.HasRole(constants.RoleAdmin), exportHandler.ExportData)
@@ -118,6 +133,16 @@ func RegisterRoutes(
 		auditLogs.Use(rbacMiddleware.HasRole(constants.RoleAdmin))
 		{
 			auditLogs.GET("", auditLogHandler.List)
+		}
+
+		// Team management routes (admin/owner only)
+		team := protected.Group("/team")
+		team.Use(rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner))
+		{
+			team.POST("/invitations", teamHandler.SendInvitation)
+			team.GET("/invitations", teamHandler.ListInvitations)
+			team.DELETE("/invitations/:id", teamHandler.CancelInvitation)
+			team.POST("/invitations/:id/resend", teamHandler.ResendInvitation)
 		}
 	}
 

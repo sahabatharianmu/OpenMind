@@ -24,6 +24,9 @@ const Settings = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   
+  // Check if user can edit organization settings (admin or owner only)
+  const canEditOrganization = user?.role === "admin" || user?.role === "owner";
+  
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -374,10 +377,19 @@ const Settings = () => {
               <CardHeader>
                 <CardTitle>Practice Information</CardTitle>
                 <CardDescription>
-                  Manage your clinical and billing details. These are used for PDF Superbills.
+                  {canEditOrganization
+                    ? "Manage your clinical and billing details. These are used for PDF Superbills."
+                    : "View your clinical and billing details. Only administrators can edit these settings."}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {!canEditOrganization && (
+                  <Alert>
+                    <AlertDescription>
+                      You have read-only access to practice settings. Only administrators and owners can edit these settings.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="orgName">Organization / Practice Name</Label>
@@ -386,6 +398,8 @@ const Settings = () => {
                       value={orgName}
                       onChange={(e) => setOrgName(e.target.value)}
                       placeholder="Enter organization name"
+                      disabled={!canEditOrganization}
+                      className={!canEditOrganization ? "bg-muted" : ""}
                     />
                   </div>
                   <div className="space-y-2">
@@ -403,6 +417,8 @@ const Settings = () => {
                       value={taxId}
                       onChange={(e) => setTaxId(e.target.value)}
                       placeholder="Enter Tax ID"
+                      disabled={!canEditOrganization}
+                      className={!canEditOrganization ? "bg-muted" : ""}
                     />
                   </div>
                   <div className="space-y-2">
@@ -412,6 +428,8 @@ const Settings = () => {
                       value={npi}
                       onChange={(e) => setNpi(e.target.value)}
                       placeholder="Enter NPI"
+                      disabled={!canEditOrganization}
+                      className={!canEditOrganization ? "bg-muted" : ""}
                     />
                   </div>
                 </div>
@@ -422,14 +440,16 @@ const Settings = () => {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Street, City, State, ZIP"
+                    disabled={!canEditOrganization}
+                    className={!canEditOrganization ? "bg-muted" : ""}
                   />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="currency">Currency</Label>
-                    <Select value={currency} onValueChange={setCurrency}>
-                      <SelectTrigger id="currency">
+                    <Select value={currency} onValueChange={setCurrency} disabled={!canEditOrganization}>
+                      <SelectTrigger id="currency" className={!canEditOrganization ? "bg-muted" : ""}>
                         <SelectValue placeholder="Select currency" />
                       </SelectTrigger>
                       <SelectContent>
@@ -445,8 +465,8 @@ const Settings = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="locale">Display Locale (Date/Number Format)</Label>
-                    <Select value={locale} onValueChange={setLocale}>
-                      <SelectTrigger id="locale">
+                    <Select value={locale} onValueChange={setLocale} disabled={!canEditOrganization}>
+                      <SelectTrigger id="locale" className={!canEditOrganization ? "bg-muted" : ""}>
                         <SelectValue placeholder="Select locale" />
                       </SelectTrigger>
                       <SelectContent>
@@ -481,9 +501,11 @@ const Settings = () => {
                     />
                   </div>
                 </div>
-                <Button onClick={handleUpdateOrganization} disabled={orgLoading}>
-                  {orgLoading ? "Saving..." : "Save Changes"}
-                </Button>
+                {canEditOrganization && (
+                  <Button onClick={handleUpdateOrganization} disabled={orgLoading}>
+                    {orgLoading ? "Saving..." : "Save Changes"}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
