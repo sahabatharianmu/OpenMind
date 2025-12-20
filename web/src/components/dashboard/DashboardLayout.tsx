@@ -25,6 +25,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import GettingStartedModal from "@/components/onboarding/GettingStartedModal";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -150,6 +151,7 @@ const SidebarContent = ({
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showGettingStarted, setShowGettingStarted] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut, loading } = useAuth();
@@ -160,6 +162,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  // Show getting started modal on first dashboard visit (if not already shown)
+  useEffect(() => {
+    if (!loading && user && location.pathname === "/dashboard") {
+      const onboardingCompleted = localStorage.getItem("onboarding_completed");
+      const gettingStartedShown = localStorage.getItem("getting_started_shown");
+      
+      // Show getting started if onboarding was completed but getting started hasn't been shown
+      if (onboardingCompleted === "true" && !gettingStartedShown) {
+        setShowGettingStarted(true);
+      }
+    }
+  }, [user, loading, location.pathname]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -268,6 +283,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       )}>
         {children}
       </main>
+
+      {/* Getting Started Modal */}
+      {showGettingStarted && (
+        <GettingStartedModal
+          onClose={() => {
+            setShowGettingStarted(false);
+            localStorage.setItem("getting_started_shown", "true");
+          }}
+        />
+      )}
     </div>
   );
 };

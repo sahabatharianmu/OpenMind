@@ -73,6 +73,9 @@ func (s *organizationService) UpdateOrganization(
 	}
 
 	org.Name = req.Name
+	if req.Type != "" {
+		org.Type = req.Type
+	}
 	if req.TaxID != "" {
 		org.TaxID = req.TaxID
 	}

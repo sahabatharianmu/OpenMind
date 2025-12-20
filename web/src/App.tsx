@@ -17,6 +17,7 @@ import PatientProfile from "./pages/PatientProfile";
 import AuditLogs from "./pages/AuditLogs";
 import Teams from "./pages/Teams";
 import AcceptInvitation from "./pages/AcceptInvitation";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/patients" element={<Patients />} />
             <Route path="/dashboard/patients/:id" element={<PatientProfile />} />

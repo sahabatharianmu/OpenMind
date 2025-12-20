@@ -293,3 +293,78 @@ This is an automated notification from OpenMind Practice.
 
 	return nil
 }
+
+// SendWelcomeEmail sends a welcome email to new users after registration
+func (s *EmailService) SendWelcomeEmail(to, userName, organizationName, dashboardURL string) error {
+	subject := "Welcome to OpenMind Practice!"
+
+	htmlBody := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Welcome to OpenMind</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+	<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+		<h2 style="color: #2c3e50;">Welcome to OpenMind Practice, %s!</h2>
+		<p>Hello %s,</p>
+		<p>Thank you for joining OpenMind Practice! We're excited to help you manage your practice with secure, HIPAA-compliant tools.</p>
+		
+		<h3 style="color: #2c3e50; margin-top: 30px;">Getting Started</h3>
+		<p>Here are some quick tips to help you get started:</p>
+		<ul style="line-height: 2;">
+			<li><strong>Add Your First Patient</strong> - Start by adding patients to your practice</li>
+			<li><strong>Schedule Appointments</strong> - Manage your calendar and appointments</li>
+			<li><strong>Create Clinical Notes</strong> - Document patient sessions with encrypted notes</li>
+			<li><strong>Invite Team Members</strong> - Collaborate with your team securely</li>
+		</ul>
+
+		<div style="text-align: center; margin: 30px 0;">
+			<a href="%s" style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Go to Dashboard</a>
+		</div>
+
+		<p>Your organization <strong>%s</strong> has been set up and is ready to use.</p>
+
+		<p style="color: #95a5a6; font-size: 12px; margin-top: 30px; border-top: 1px solid #ecf0f1; padding-top: 20px;">
+			If you have any questions or need assistance, please don't hesitate to reach out to our support team.
+		</p>
+		<p style="color: #95a5a6; font-size: 12px;">
+			Welcome aboard!<br>
+			The OpenMind Team
+		</p>
+	</div>
+</body>
+</html>
+`, userName, userName, dashboardURL, organizationName)
+
+	textBody := fmt.Sprintf(`
+Welcome to OpenMind Practice, %s!
+
+Hello %s,
+
+Thank you for joining OpenMind Practice! We're excited to help you manage your practice with secure, HIPAA-compliant tools.
+
+Getting Started:
+- Add Your First Patient - Start by adding patients to your practice
+- Schedule Appointments - Manage your calendar and appointments
+- Create Clinical Notes - Document patient sessions with encrypted notes
+- Invite Team Members - Collaborate with your team securely
+
+Go to Dashboard: %s
+
+Your organization %s has been set up and is ready to use.
+
+If you have any questions or need assistance, please don't hesitate to reach out to our support team.
+
+Welcome aboard!
+The OpenMind Team
+`, userName, userName, dashboardURL, organizationName)
+
+	if err := s.SendEmail(to, subject, htmlBody); err != nil {
+		s.log.Warn("Failed to send HTML welcome email, trying plain text", zap.Error(err))
+		return s.SendEmail(to, subject, textBody)
+	}
+
+	return nil
+}

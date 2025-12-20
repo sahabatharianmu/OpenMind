@@ -21,6 +21,7 @@ type OrganizationResponse struct {
 
 type UpdateOrganizationRequest struct {
 	Name     string `json:"name" binding:"required,min=2"`
+	Type     string `json:"type"`
 	TaxID    string `json:"tax_id"`
 	NPI      string `json:"npi"`
 	Address  string `json:"address"`
