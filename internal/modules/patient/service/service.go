@@ -9,6 +9,7 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/modules/patient/dto"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/patient/entity"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
+	subscriptionService "github.com/sahabatharianmu/OpenMind/internal/modules/subscription/service"
 	userRepo "github.com/sahabatharianmu/OpenMind/internal/modules/user/repository"
 	"github.com/sahabatharianmu/OpenMind/pkg/constants"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
@@ -40,18 +41,20 @@ type PatientService interface {
 }
 
 type patientService struct {
-	repo        repository.PatientRepository
-	handoffRepo repository.PatientHandoffRepository
-	userRepo    userRepo.UserRepository
-	log         logger.Logger
+	repo            repository.PatientRepository
+	handoffRepo     repository.PatientHandoffRepository
+	userRepo        userRepo.UserRepository
+	gatingService   subscriptionService.FeatureGatingService
+	log             logger.Logger
 }
 
-func NewPatientService(repo repository.PatientRepository, handoffRepo repository.PatientHandoffRepository, userRepo userRepo.UserRepository, log logger.Logger) PatientService {
+func NewPatientService(repo repository.PatientRepository, handoffRepo repository.PatientHandoffRepository, userRepo userRepo.UserRepository, gatingService subscriptionService.FeatureGatingService, log logger.Logger) PatientService {
 	return &patientService{
-		repo:        repo,
-		handoffRepo: handoffRepo,
-		userRepo:    userRepo,
-		log:         log,
+		repo:          repo,
+		handoffRepo:   handoffRepo,
+		userRepo:      userRepo,
+		gatingService: gatingService,
+		log:           log,
 	}
 }
 
@@ -60,6 +63,13 @@ func (s *patientService) Create(
 	req dto.CreatePatientRequest,
 	organizationID, createdBy uuid.UUID,
 ) (*dto.PatientResponse, error) {
+	// Check patient limit before creating
+	if s.gatingService != nil {
+		if err := s.gatingService.CheckPatientLimit(ctx, organizationID); err != nil {
+			return nil, err
+		}
+	}
+
 	dob, err := time.Parse("2006-01-02", req.DateOfBirth)
 	if err != nil {
 		return nil, err

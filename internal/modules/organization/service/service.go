@@ -1,11 +1,13 @@
 package service
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/organization/dto"
 	orgRepo "github.com/sahabatharianmu/OpenMind/internal/modules/organization/repository"
+	subscriptionService "github.com/sahabatharianmu/OpenMind/internal/modules/subscription/service"
 	userRepo "github.com/sahabatharianmu/OpenMind/internal/modules/user/repository"
 	"github.com/sahabatharianmu/OpenMind/pkg/constants"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
@@ -22,16 +24,26 @@ type OrganizationService interface {
 }
 
 type organizationService struct {
-	repo     orgRepo.OrganizationRepository
-	userRepo userRepo.UserRepository
-	log      logger.Logger
+	repo          orgRepo.OrganizationRepository
+	userRepo      userRepo.UserRepository
+	usageService  subscriptionService.UsageService
+	gatingService subscriptionService.FeatureGatingService
+	log           logger.Logger
 }
 
-func NewOrganizationService(repo orgRepo.OrganizationRepository, userRepo userRepo.UserRepository, log logger.Logger) OrganizationService {
+func NewOrganizationService(
+	repo orgRepo.OrganizationRepository,
+	userRepo userRepo.UserRepository,
+	usageService subscriptionService.UsageService,
+	gatingService subscriptionService.FeatureGatingService,
+	log logger.Logger,
+) OrganizationService {
 	return &organizationService{
-		repo:     repo,
-		userRepo: userRepo,
-		log:      log,
+		repo:          repo,
+		userRepo:      userRepo,
+		usageService:  usageService,
+		gatingService: gatingService,
+		log:           log,
 	}
 }
 
@@ -48,17 +60,37 @@ func (s *organizationService) GetMyOrganization(userID uuid.UUID) (*dto.Organiza
 		memberCount = 0 // Continue with 0 if error
 	}
 
+	// Get usage stats and tier limits
+	var usageStats *dto.UsageStats
+	if s.usageService != nil && s.gatingService != nil {
+		ctx := context.Background()
+		stats, err := s.usageService.GetUsageStats(ctx, org.ID)
+		if err != nil {
+			s.log.Warn("Failed to get usage stats", zap.Error(err))
+		} else {
+			limits := s.gatingService.GetTierLimits(org.SubscriptionTier)
+			usageStats = &dto.UsageStats{
+				PatientCount:   stats.PatientCount,
+				ClinicianCount: stats.ClinicianCount,
+				PatientLimit:   limits.MaxPatients,
+				ClinicianLimit: limits.MaxClinicians,
+			}
+		}
+	}
+
 	return &dto.OrganizationResponse{
-		ID:          org.ID,
-		Name:        org.Name,
-		Type:        org.Type,
-		TaxID:       org.TaxID,
-		NPI:         org.NPI,
-		Address:     org.Address,
-		Currency:    org.Currency,
-		Locale:      org.Locale,
-		MemberCount: int(memberCount),
-		CreatedAt:   org.CreatedAt,
+		ID:              org.ID,
+		Name:            org.Name,
+		Type:            org.Type,
+		SubscriptionTier: org.SubscriptionTier,
+		TaxID:           org.TaxID,
+		NPI:             org.NPI,
+		Address:         org.Address,
+		Currency:        org.Currency,
+		Locale:          org.Locale,
+		MemberCount:     int(memberCount),
+		UsageStats:      usageStats,
+		CreatedAt:       org.CreatedAt,
 	}, nil
 }
 
@@ -101,17 +133,37 @@ func (s *organizationService) UpdateOrganization(
 
 	s.log.Info("Organization updated successfully", zap.String("org_id", org.ID.String()))
 
+	// Get usage stats and tier limits
+	var usageStats *dto.UsageStats
+	if s.usageService != nil && s.gatingService != nil {
+		ctx := context.Background()
+		stats, err := s.usageService.GetUsageStats(ctx, org.ID)
+		if err != nil {
+			s.log.Warn("Failed to get usage stats", zap.Error(err))
+		} else {
+			limits := s.gatingService.GetTierLimits(org.SubscriptionTier)
+			usageStats = &dto.UsageStats{
+				PatientCount:   stats.PatientCount,
+				ClinicianCount: stats.ClinicianCount,
+				PatientLimit:   limits.MaxPatients,
+				ClinicianLimit: limits.MaxClinicians,
+			}
+		}
+	}
+
 	return &dto.OrganizationResponse{
-		ID:          org.ID,
-		Name:        org.Name,
-		Type:        org.Type,
-		TaxID:       org.TaxID,
-		NPI:         org.NPI,
-		Address:     org.Address,
-		Currency:    org.Currency,
-		Locale:      org.Locale,
-		MemberCount: int(memberCount),
-		CreatedAt:   org.CreatedAt,
+		ID:              org.ID,
+		Name:            org.Name,
+		Type:            org.Type,
+		SubscriptionTier: org.SubscriptionTier,
+		TaxID:           org.TaxID,
+		NPI:             org.NPI,
+		Address:         org.Address,
+		Currency:        org.Currency,
+		Locale:          org.Locale,
+		MemberCount:     int(memberCount),
+		UsageStats:      usageStats,
+		CreatedAt:       org.CreatedAt,
 	}, nil
 }
 

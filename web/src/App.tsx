@@ -18,6 +18,7 @@ import AuditLogs from "./pages/AuditLogs";
 import Teams from "./pages/Teams";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import Onboarding from "./pages/Onboarding";
+import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/dashboard/settings" element={<Settings />} />
             <Route path="/dashboard/audit-logs" element={<AuditLogs />} />
             <Route path="/dashboard/teams" element={<Teams />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/accept-invitation" element={<AcceptInvitation />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
