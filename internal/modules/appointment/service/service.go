@@ -9,8 +9,12 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/dto"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/entity"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/repository"
+	patientRepo "github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
+	userRepo "github.com/sahabatharianmu/OpenMind/internal/modules/user/repository"
+	"github.com/sahabatharianmu/OpenMind/pkg/constants"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
 	"github.com/sahabatharianmu/OpenMind/pkg/response"
+	"go.uber.org/zap"
 )
 
 type AppointmentService interface {
@@ -26,20 +30,24 @@ type AppointmentService interface {
 		req dto.UpdateAppointmentRequest,
 	) (*dto.AppointmentResponse, error)
 	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
-	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.AppointmentResponse, error)
-	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.AppointmentResponse, int64, error)
+	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, userID uuid.UUID, userRole string) (*dto.AppointmentResponse, error)
+	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int, userID uuid.UUID, userRole string) ([]dto.AppointmentResponse, int64, error)
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
 
 type appointmentService struct {
-	repo repository.AppointmentRepository
-	log  logger.Logger
+	repo        repository.AppointmentRepository
+	patientRepo patientRepo.PatientRepository
+	userRepo    userRepo.UserRepository
+	log         logger.Logger
 }
 
-func NewAppointmentService(repo repository.AppointmentRepository, log logger.Logger) AppointmentService {
+func NewAppointmentService(repo repository.AppointmentRepository, patientRepo patientRepo.PatientRepository, userRepo userRepo.UserRepository, log logger.Logger) AppointmentService {
 	return &appointmentService{
-		repo: repo,
-		log:  log,
+		repo:        repo,
+		patientRepo: patientRepo,
+		userRepo:    userRepo,
+		log:         log,
 	}
 }
 
@@ -176,6 +184,8 @@ func (s *appointmentService) Get(
 	ctx context.Context,
 	id uuid.UUID,
 	organizationID uuid.UUID,
+	userID uuid.UUID,
+	userRole string,
 ) (*dto.AppointmentResponse, error) {
 	appointment, err := s.repo.FindByID(id)
 	if err != nil {
@@ -186,6 +196,18 @@ func (s *appointmentService) Get(
 		return nil, response.ErrNotFound
 	}
 
+	// Check access control: admin/owner can see all, others only appointments for assigned patients
+	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
+		isAssigned, err := s.patientRepo.IsPatientAssignedToClinician(appointment.PatientID, userID)
+		if err != nil {
+			s.log.Error("Failed to check patient assignment", zap.Error(err))
+			return nil, fmt.Errorf("failed to check access: %w", err)
+		}
+		if !isAssigned {
+			return nil, response.NewForbidden("You can only view appointments for patients you are assigned to")
+		}
+	}
+
 	return s.mapEntityToResponse(appointment), nil
 }
 
@@ -193,11 +215,39 @@ func (s *appointmentService) List(
 	ctx context.Context,
 	organizationID uuid.UUID,
 	page, pageSize int,
+	userID uuid.UUID,
+	userRole string,
 ) ([]dto.AppointmentResponse, int64, error) {
 	offset := (page - 1) * pageSize
 	appointments, total, err := s.repo.List(organizationID, pageSize, offset)
 	if err != nil {
 		return nil, 0, err
+	}
+
+	// Filter appointments by patient assignment for non-admin users
+	var filteredAppointments []entity.Appointment
+	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
+		// Get assigned patient IDs for this user
+		assignedPatientIDs, err := s.patientRepo.GetAssignedPatients(userID, organizationID)
+		if err != nil {
+			s.log.Error("Failed to get assigned patients", zap.Error(err))
+			return nil, 0, fmt.Errorf("failed to get assigned patients: %w", err)
+		}
+
+		// Create a map for quick lookup
+		assignedMap := make(map[uuid.UUID]bool)
+		for _, pid := range assignedPatientIDs {
+			assignedMap[pid] = true
+		}
+
+		// Filter appointments to only those for assigned patients
+		for i := range appointments {
+			if assignedMap[appointments[i].PatientID] {
+				filteredAppointments = append(filteredAppointments, appointments[i])
+			}
+		}
+		appointments = filteredAppointments
+		total = int64(len(appointments)) // Update total count
 	}
 
 	var responses []dto.AppointmentResponse
@@ -213,11 +263,28 @@ func (s *appointmentService) GetOrganizationID(ctx context.Context, userID uuid.
 }
 
 func (s *appointmentService) mapEntityToResponse(a *entity.Appointment) *dto.AppointmentResponse {
+	// Fetch clinician information
+	var clinicianName *string
+	var clinicianEmail *string
+	
+	clinician, err := s.userRepo.GetByID(a.ClinicianID)
+	if err == nil && clinician != nil {
+		clinicianName = &clinician.FullName
+		clinicianEmail = &clinician.Email
+	} else {
+		s.log.Warn("Failed to fetch clinician information for appointment", 
+			zap.String("appointment_id", a.ID.String()),
+			zap.String("clinician_id", a.ClinicianID.String()),
+			zap.Error(err))
+	}
+
 	return &dto.AppointmentResponse{
 		ID:             a.ID,
 		OrganizationID: a.OrganizationID,
 		PatientID:      a.PatientID,
 		ClinicianID:    a.ClinicianID,
+		ClinicianName:  clinicianName,
+		ClinicianEmail: clinicianEmail,
 		StartTime:      a.StartTime,
 		EndTime:        a.EndTime,
 		Status:         a.Status,

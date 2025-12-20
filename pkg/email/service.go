@@ -156,3 +156,140 @@ func (s *EmailService) sendViaAWSES(to, subject, body string) error {
 	s.log.Warn("AWS SES integration not implemented yet", zap.String("to", to))
 	return fmt.Errorf("AWS SES integration not implemented")
 }
+
+// SendHandoffRequestEmail sends an email notification for a patient handoff request
+func (s *EmailService) SendHandoffRequestEmail(to, patientName, requestingClinicianName, handoffURL string) error {
+	subject := fmt.Sprintf("Patient Handoff Request: %s", patientName)
+
+	htmlBody := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Patient Handoff Request</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+	<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+		<h2 style="color: #2c3e50;">Patient Handoff Request</h2>
+		<p>Hello,</p>
+		<p><strong>%s</strong> has requested to hand off patient <strong>%s</strong> to you.</p>
+		<p>Please review and respond to this handoff request:</p>
+		<div style="text-align: center; margin: 30px 0;">
+			<a href="%s" style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Review Handoff Request</a>
+		</div>
+		<p>Or copy and paste this link into your browser:</p>
+		<p style="word-break: break-all; color: #7f8c8d;">%s</p>
+		<p style="color: #95a5a6; font-size: 12px; margin-top: 30px;">This is an automated notification from OpenMind Practice.</p>
+	</div>
+</body>
+</html>
+`, requestingClinicianName, patientName, handoffURL, handoffURL)
+
+	textBody := fmt.Sprintf(`
+Patient Handoff Request
+
+%s has requested to hand off patient %s to you.
+
+Please review and respond to this handoff request by visiting:
+%s
+
+This is an automated notification from OpenMind Practice.
+`, requestingClinicianName, patientName, handoffURL)
+
+	if err := s.SendEmail(to, subject, htmlBody); err != nil {
+		s.log.Warn("Failed to send HTML handoff request email, trying plain text", zap.Error(err))
+		return s.SendEmail(to, subject, textBody)
+	}
+
+	return nil
+}
+
+// SendHandoffApprovedEmail sends an email notification when a handoff is approved
+func (s *EmailService) SendHandoffApprovedEmail(to, patientName, receivingClinicianName string) error {
+	subject := fmt.Sprintf("Patient Handoff Approved: %s", patientName)
+
+	htmlBody := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Patient Handoff Approved</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+	<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+		<h2 style="color: #27ae60;">Patient Handoff Approved</h2>
+		<p>Hello,</p>
+		<p><strong>%s</strong> has approved your handoff request for patient <strong>%s</strong>.</p>
+		<p>The patient has been successfully transferred to %s.</p>
+		<p style="color: #95a5a6; font-size: 12px; margin-top: 30px;">This is an automated notification from OpenMind Practice.</p>
+	</div>
+</body>
+</html>
+`, receivingClinicianName, patientName, receivingClinicianName)
+
+	textBody := fmt.Sprintf(`
+Patient Handoff Approved
+
+%s has approved your handoff request for patient %s.
+
+The patient has been successfully transferred to %s.
+
+This is an automated notification from OpenMind Practice.
+`, receivingClinicianName, patientName, receivingClinicianName)
+
+	if err := s.SendEmail(to, subject, htmlBody); err != nil {
+		s.log.Warn("Failed to send HTML handoff approved email, trying plain text", zap.Error(err))
+		return s.SendEmail(to, subject, textBody)
+	}
+
+	return nil
+}
+
+// SendHandoffRejectedEmail sends an email notification when a handoff is rejected
+func (s *EmailService) SendHandoffRejectedEmail(to, patientName, rejectingClinicianName, reason string) error {
+	subject := fmt.Sprintf("Patient Handoff Rejected: %s", patientName)
+
+	reasonText := ""
+	if reason != "" {
+		reasonText = fmt.Sprintf(`<p><strong>Reason:</strong> %s</p>`, reason)
+	}
+
+	htmlBody := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Patient Handoff Rejected</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+	<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+		<h2 style="color: #e74c3c;">Patient Handoff Rejected</h2>
+		<p>Hello,</p>
+		<p><strong>%s</strong> has rejected your handoff request for patient <strong>%s</strong>.</p>
+		%s
+		<p style="color: #95a5a6; font-size: 12px; margin-top: 30px;">This is an automated notification from OpenMind Practice.</p>
+	</div>
+</body>
+</html>
+`, rejectingClinicianName, patientName, reasonText)
+
+	reasonTextPlain := ""
+	if reason != "" {
+		reasonTextPlain = fmt.Sprintf("\nReason: %s\n", reason)
+	}
+
+	textBody := fmt.Sprintf(`
+Patient Handoff Rejected
+
+%s has rejected your handoff request for patient %s.
+%s
+This is an automated notification from OpenMind Practice.
+`, rejectingClinicianName, patientName, reasonTextPlain)
+
+	if err := s.SendEmail(to, subject, htmlBody); err != nil {
+		s.log.Warn("Failed to send HTML handoff rejected email, trying plain text", zap.Error(err))
+		return s.SendEmail(to, subject, textBody)
+	}
+
+	return nil
+}

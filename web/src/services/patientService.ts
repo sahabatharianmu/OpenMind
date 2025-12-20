@@ -29,6 +29,40 @@ export interface ClinicianAssignment {
   assigned_by: string;
 }
 
+export interface RequestHandoffRequest {
+  receiving_clinician_id: string;
+  message?: string;
+  role?: 'primary' | 'secondary';
+}
+
+export interface ApproveHandoffRequest {
+  reason?: string;
+}
+
+export interface RejectHandoffRequest {
+  reason: string;
+}
+
+export interface Handoff {
+  id: string;
+  patient_id: string;
+  patient_name: string;
+  requesting_clinician_id: string;
+  requesting_clinician_name: string;
+  requesting_clinician_email: string;
+  receiving_clinician_id: string;
+  receiving_clinician_name: string;
+  receiving_clinician_email: string;
+  status: 'requested' | 'approved' | 'rejected' | 'cancelled';
+  requested_role?: 'primary' | 'secondary';
+  message?: string;
+  requested_at: string;
+  responded_at?: string;
+  responded_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const patientService = {
   list: async () => {
     const response = await api.get<{ data: PaginatedResponse<Patient> }>("/patients");
@@ -68,6 +102,80 @@ const patientService = {
   getAssignedClinicians: async (patientId: string) => {
     const response = await api.get<{ data: ClinicianAssignment[] }>(`/patients/${patientId}/assignments`);
     return response.data.data;
+  },
+
+  // Handoff methods
+  requestHandoff: async (patientId: string, data: RequestHandoffRequest) => {
+    const response = await api.post<{ data: Handoff }>(`/patients/${patientId}/handoff`, data);
+    return response.data.data;
+  },
+
+  approveHandoff: async (handoffId: string, data: ApproveHandoffRequest) => {
+    const response = await api.post<{ data: null }>(`/patients/handoffs/${handoffId}/approve`, data);
+    return response.data.data;
+  },
+
+  rejectHandoff: async (handoffId: string, data: RejectHandoffRequest) => {
+    const response = await api.post<{ data: null }>(`/patients/handoffs/${handoffId}/reject`, data);
+    return response.data.data;
+  },
+
+  cancelHandoff: async (handoffId: string) => {
+    const response = await api.post<{ data: null }>(`/patients/handoffs/${handoffId}/cancel`, {});
+    return response.data.data;
+  },
+
+  getHandoff: async (handoffId: string) => {
+    const response = await api.get<{ data: Handoff }>(`/patients/handoffs/${handoffId}`);
+    return response.data.data;
+  },
+
+  listHandoffs: async (patientId: string) => {
+    const response = await api.get<{ data: Handoff[] }>(`/patients/${patientId}/handoffs`);
+    return response.data.data;
+  },
+
+  listPendingHandoffs: async () => {
+    const response = await api.get<{ data: Handoff[] }>("/patients/handoffs/pending");
+    return response.data.data;
+  },
+
+  isAssigned: async (patientId: string, userId?: string): Promise<boolean> => {
+    try {
+      const assignments = await patientService.getAssignedClinicians(patientId);
+      
+      // Get user ID from parameter or localStorage
+      let currentUserId: string;
+      if (userId) {
+        currentUserId = String(userId);
+      } else {
+        const userStr = localStorage.getItem("user_profile");
+        if (!userStr) {
+          console.warn("No user profile found in localStorage and no userId provided");
+          return false;
+        }
+        const user = JSON.parse(userStr);
+        currentUserId = String(user.id);
+      }
+      
+      // Compare IDs (handle both string and UUID formats)
+      const isAssigned = assignments.some(a => {
+        const assignmentClinicianId = String(a.clinician_id);
+        return assignmentClinicianId === currentUserId;
+      });
+      
+      console.log("Assignment check:", { 
+        patientId, 
+        userId: currentUserId, 
+        assignments: assignments.map(a => ({ id: String(a.clinician_id), name: a.full_name })),
+        isAssigned 
+      });
+      
+      return isAssigned;
+    } catch (error) {
+      console.error("Error checking assignment:", error);
+      return false;
+    }
   },
 };
 

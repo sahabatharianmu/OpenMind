@@ -116,7 +116,25 @@ const Billing = () => {
       const allAppointments = appointmentsData || [];
       const allInvoices = invoicesData || [];
 
-      // Join data
+      // Filter patients for dropdown: admin/owner see all, others only see assigned patients
+      let filteredPatientsForDropdown = allPatients;
+      if (user && user.role !== 'admin' && user.role !== 'owner') {
+        // Check assignment for each patient
+        const assignedPatientIds = new Set<string>();
+        for (const patient of allPatients) {
+          try {
+            const isAssigned = await patientService.isAssigned(patient.id, user.id);
+            if (isAssigned) {
+              assignedPatientIds.add(patient.id);
+            }
+          } catch (error) {
+            console.error(`Error checking assignment for patient ${patient.id}:`, error);
+          }
+        }
+        filteredPatientsForDropdown = allPatients.filter(p => assignedPatientIds.has(p.id));
+      }
+
+      // Join data (use allPatients for enriching invoices - invoices are visible to all org members)
       const enrichedInvoices: UIInvoice[] = allInvoices.map(inv => {
         const patient = allPatients.find(p => p.id === inv.patient_id);
         const appointment = allAppointments.find(a => a.id === inv.appointment_id);
@@ -137,7 +155,7 @@ const Billing = () => {
       enrichedInvoices.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       setInvoices(enrichedInvoices);
-      setPatients(allPatients.filter(p => p.status === 'active'));
+      setPatients(filteredPatientsForDropdown.filter(p => p.status === 'active')); // Use filtered list for dropdown
       
       // Filter recent completed appointments for dropdown
       const completedAppointments = allAppointments

@@ -12,6 +12,7 @@ import (
 	exportHandler "github.com/sahabatharianmu/OpenMind/internal/modules/export/handler"
 	importHandler "github.com/sahabatharianmu/OpenMind/internal/modules/import/handler"
 	invoiceHandler "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/handler"
+	notificationHandler "github.com/sahabatharianmu/OpenMind/internal/modules/notification/handler"
 	organizationHandler "github.com/sahabatharianmu/OpenMind/internal/modules/organization/handler"
 	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
 	teamHandler "github.com/sahabatharianmu/OpenMind/internal/modules/team/handler"
@@ -24,6 +25,7 @@ func RegisterRoutes(
 	authHandler *handler.AuthHandler,
 	userHandler *handler.UserHandler,
 	patientHandler *patientHandler.PatientHandler,
+	patientHandoffHandler *patientHandler.PatientHandoffHandler,
 	appointmentHandler *appointmentHandler.AppointmentHandler,
 	clinicalNoteHandler *clinicalNoteHandler.ClinicalNoteHandler,
 	invoiceHandler *invoiceHandler.InvoiceHandler,
@@ -32,6 +34,7 @@ func RegisterRoutes(
 	exportHandler *exportHandler.ExportHandler,
 	importHandler *importHandler.ImportHandler,
 	teamHandler *teamHandler.TeamInvitationHandler,
+	notificationHandler *notificationHandler.NotificationHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	auditMiddleware *middleware.AuditMiddleware,
 	rbacMiddleware *middleware.RBACMiddleware,
@@ -99,6 +102,27 @@ func RegisterRoutes(
 			patients.POST("/:id/assign", patientHandler.AssignClinician)
 			patients.DELETE("/:id/assign/:clinician_id", patientHandler.UnassignClinician)
 			patients.GET("/:id/assignments", patientHandler.GetAssignedClinicians)
+			// Handoff routes (clinicians can request/approve/reject handoffs)
+			patients.POST("/:id/handoff", rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner), patientHandoffHandler.RequestHandoff)
+			patients.GET("/:id/handoffs", patientHandoffHandler.ListHandoffs)
+		}
+
+		// Handoff management routes
+		handoffs := protected.Group("/patients/handoffs")
+		{
+			handoffs.GET("/pending", patientHandoffHandler.ListPendingHandoffs)
+			handoffs.GET("/:id", patientHandoffHandler.GetHandoff)
+			handoffs.POST("/:id/approve", rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner), patientHandoffHandler.ApproveHandoff)
+			handoffs.POST("/:id/reject", rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner), patientHandoffHandler.RejectHandoff)
+			handoffs.POST("/:id/cancel", rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner), patientHandoffHandler.CancelHandoff)
+		}
+
+		// Notification routes
+		notifications := protected.Group("/notifications")
+		{
+			notifications.GET("", notificationHandler.GetNotifications)
+			notifications.PUT("/:id/read", notificationHandler.MarkAsRead)
+			notifications.PUT("/read-all", notificationHandler.MarkAllAsRead)
 		}
 
 		appointments := protected.Group("/appointments")

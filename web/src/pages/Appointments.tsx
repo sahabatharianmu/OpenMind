@@ -24,7 +24,9 @@ import {
   Video,
   MapPin,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  User,
+  Clock
 } from "lucide-react";
 import appointmentService from "@/services/appointmentService";
 import patientService from "@/services/patientService";
@@ -75,6 +77,24 @@ const Appointments = () => {
       const allPatients = patientsData || [];
       const allAppointments = appointmentsData || [];
 
+      // Filter patients: admin/owner see all, others only see assigned patients
+      let filteredPatients = allPatients.filter(p => p.status === 'active');
+      if (user.role !== 'admin' && user.role !== 'owner') {
+        // Check assignment for each patient
+        const assignedPatientIds = new Set<string>();
+        for (const patient of filteredPatients) {
+          try {
+            const isAssigned = await patientService.isAssigned(patient.id, user.id);
+            if (isAssigned) {
+              assignedPatientIds.add(patient.id);
+            }
+          } catch (error) {
+            console.error(`Error checking assignment for patient ${patient.id}:`, error);
+          }
+        }
+        filteredPatients = filteredPatients.filter(p => assignedPatientIds.has(p.id));
+      }
+
       // Map patient details to appointments
       const enrichedAppointments = allAppointments.map(apt => ({
         ...apt,
@@ -89,7 +109,7 @@ const Appointments = () => {
       });
 
       setAppointments(weeklyAppointments);
-      setPatients(allPatients.filter(p => p.status === 'active'));
+      setPatients(filteredPatients);
 
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -349,19 +369,38 @@ const Appointments = () => {
                       dayAppointments.map((apt) => (
                         <div
                           key={apt.id}
-                          className="p-1.5 sm:p-2 rounded bg-primary/10 border border-primary/20 text-xs cursor-pointer hover:bg-primary/20 active:bg-primary/30 transition-colors touch-manipulation"
+                          className="p-1.5 sm:p-2 rounded bg-primary/10 border border-primary/20 text-xs cursor-pointer hover:bg-primary/20 active:bg-primary/30 transition-colors touch-manipulation space-y-1"
                         >
-                          <div className="font-medium text-primary">
-                            {format(parseISO(apt.start_time), "h:mm a")}
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3 h-3 text-primary flex-shrink-0" />
+                            <span className="font-semibold text-primary">
+                              {format(parseISO(apt.start_time), "h:mm a")}
+                            </span>
                           </div>
-                          <div className="truncate text-[10px] sm:text-xs">
-                            {apt.patient?.first_name} {apt.patient?.last_name?.[0]}.
+                          <div className="flex items-start gap-1.5">
+                            <User className="w-3 h-3 text-muted-foreground flex-shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <p className="truncate font-medium text-[10px] sm:text-xs">
+                                {apt.patient?.first_name} {apt.patient?.last_name}
+                              </p>
+                              {(user?.role === "admin" || user?.role === "owner") && apt.clinician_name && (
+                                <p className="truncate text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">
+                                  Dr. {apt.clinician_name}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 mt-1 text-muted-foreground">
+                          <div className="flex items-center gap-1.5 mt-1">
                             {apt.mode === "video" ? (
-                              <Video className="w-3 h-3" />
+                              <>
+                                <Video className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                <span className="text-[9px] sm:text-[10px] text-muted-foreground">Video</span>
+                              </>
                             ) : (
-                              <MapPin className="w-3 h-3" />
+                              <>
+                                <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                <span className="text-[9px] sm:text-[10px] text-muted-foreground">In-person</span>
+                              </>
                             )}
                           </div>
                         </div>

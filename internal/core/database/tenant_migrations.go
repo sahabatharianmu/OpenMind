@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -255,6 +256,111 @@ func CreateTenantSchemaTables(ctx context.Context, db *gorm.DB, schemaName strin
 		ALTER TABLE assigned_clinicians ADD CONSTRAINT check_assignment_role 
 			CHECK (role IN ('primary', 'secondary'));
 		`,
+		`
+		CREATE TABLE IF NOT EXISTS patient_handoffs (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			patient_id UUID NOT NULL,
+			requesting_clinician_id UUID NOT NULL,
+			receiving_clinician_id UUID NOT NULL,
+			status VARCHAR(50) NOT NULL DEFAULT 'requested',
+			requested_role VARCHAR(50),
+			message TEXT,
+			requested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			responded_at TIMESTAMP WITH TIME ZONE,
+			responded_by UUID,
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			CONSTRAINT check_handoff_status 
+				CHECK (status IN ('requested', 'approved', 'rejected', 'cancelled')),
+			CONSTRAINT check_handoff_not_self 
+				CHECK (requesting_clinician_id != receiving_clinician_id)
+		);
+		`,
+		`
+		-- Add foreign key constraints for patient_handoffs
+		DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM pg_constraint c
+				JOIN pg_namespace n ON n.oid = c.connamespace
+				WHERE c.conname = 'fk_patient_handoffs_patient'
+				AND n.nspname = current_schema()
+			) THEN
+				ALTER TABLE patient_handoffs 
+				ADD CONSTRAINT fk_patient_handoffs_patient 
+				FOREIGN KEY (patient_id) 
+				REFERENCES patients(id) 
+				ON DELETE CASCADE;
+			END IF;
+		END $$;
+		`,
+		`
+		DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM pg_constraint c
+				JOIN pg_namespace n ON n.oid = c.connamespace
+				WHERE c.conname = 'fk_patient_handoffs_requesting'
+				AND n.nspname = current_schema()
+			) THEN
+				ALTER TABLE patient_handoffs 
+				ADD CONSTRAINT fk_patient_handoffs_requesting 
+				FOREIGN KEY (requesting_clinician_id) 
+				REFERENCES public.users(id) 
+				ON DELETE CASCADE;
+			END IF;
+		END $$;
+		`,
+		`
+		DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM pg_constraint c
+				JOIN pg_namespace n ON n.oid = c.connamespace
+				WHERE c.conname = 'fk_patient_handoffs_receiving'
+				AND n.nspname = current_schema()
+			) THEN
+				ALTER TABLE patient_handoffs 
+				ADD CONSTRAINT fk_patient_handoffs_receiving 
+				FOREIGN KEY (receiving_clinician_id) 
+				REFERENCES public.users(id) 
+				ON DELETE CASCADE;
+			END IF;
+		END $$;
+		`,
+		`
+		DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM pg_constraint c
+				JOIN pg_namespace n ON n.oid = c.connamespace
+				WHERE c.conname = 'fk_patient_handoffs_responded_by'
+				AND n.nspname = current_schema()
+			) THEN
+				ALTER TABLE patient_handoffs 
+				ADD CONSTRAINT fk_patient_handoffs_responded_by 
+				FOREIGN KEY (responded_by) 
+				REFERENCES public.users(id) 
+				ON DELETE SET NULL;
+			END IF;
+		END $$;
+		`,
+		`
+		CREATE INDEX IF NOT EXISTS idx_patient_handoffs_patient_id 
+			ON patient_handoffs(patient_id);
+		`,
+		`
+		CREATE INDEX IF NOT EXISTS idx_patient_handoffs_requesting_clinician_id 
+			ON patient_handoffs(requesting_clinician_id);
+		`,
+		`
+		CREATE INDEX IF NOT EXISTS idx_patient_handoffs_receiving_clinician_id 
+			ON patient_handoffs(receiving_clinician_id);
+		`,
+		`
+		CREATE INDEX IF NOT EXISTS idx_patient_handoffs_status 
+			ON patient_handoffs(status);
+		`,
 	}
 
 	for _, tableSQL := range tables {
@@ -266,6 +372,122 @@ func CreateTenantSchemaTables(ctx context.Context, db *gorm.DB, schemaName strin
 	}
 
 	appLogger.Info("Tenant schema tables created successfully", zap.String("schema_name", schemaName))
+	return nil
+}
+
+// EnsurePatientHandoffsTable ensures the patient_handoffs table exists in a tenant schema
+// This is needed when rolling out new features to existing tenant schemas
+func EnsurePatientHandoffsTable(ctx context.Context, db *gorm.DB, schemaName string, appLogger logger.Logger) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get sql.DB: %w", err)
+	}
+
+	// Set search_path to the tenant schema
+	_, err = sqlDB.ExecContext(ctx, fmt.Sprintf("SET search_path TO %s, public", schemaName))
+	if err != nil {
+		return fmt.Errorf("failed to set search_path: %w", err)
+	}
+
+	// Check if table exists
+	var tableExists bool
+	checkSQL := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT FROM information_schema.tables 
+			WHERE table_schema = '%s' 
+			AND table_name = 'patient_handoffs'
+		)
+	`, schemaName)
+	
+	if err := sqlDB.QueryRowContext(ctx, checkSQL).Scan(&tableExists); err != nil {
+		appLogger.Error("Failed to check if patient_handoffs table exists", zap.Error(err), zap.String("schema_name", schemaName))
+		return fmt.Errorf("failed to check table existence: %w", err)
+	}
+
+	if tableExists {
+		appLogger.Debug("patient_handoffs table already exists", zap.String("schema_name", schemaName))
+		return nil
+	}
+
+	// Table doesn't exist, create it with all constraints
+	appLogger.Info("Creating patient_handoffs table in existing tenant schema", zap.String("schema_name", schemaName))
+	
+	createTableSQL := `
+		CREATE TABLE IF NOT EXISTS patient_handoffs (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			patient_id UUID NOT NULL,
+			requesting_clinician_id UUID NOT NULL,
+			receiving_clinician_id UUID NOT NULL,
+			status VARCHAR(50) NOT NULL DEFAULT 'requested',
+			requested_role VARCHAR(50),
+			message TEXT,
+			requested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			responded_at TIMESTAMP WITH TIME ZONE,
+			responded_by UUID,
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			CONSTRAINT check_handoff_status 
+				CHECK (status IN ('requested', 'approved', 'rejected', 'cancelled')),
+			CONSTRAINT check_handoff_not_self 
+				CHECK (requesting_clinician_id != receiving_clinician_id)
+		);
+	`
+	
+	if _, err := sqlDB.ExecContext(ctx, createTableSQL); err != nil {
+		appLogger.Error("Failed to create patient_handoffs table", zap.Error(err), zap.String("schema_name", schemaName))
+		return fmt.Errorf("failed to create patient_handoffs table: %w", err)
+	}
+
+	// Add foreign key constraints
+	constraints := []string{
+		`ALTER TABLE patient_handoffs 
+			ADD CONSTRAINT fk_patient_handoffs_patient 
+			FOREIGN KEY (patient_id) 
+			REFERENCES patients(id) 
+			ON DELETE CASCADE;`,
+		`ALTER TABLE patient_handoffs 
+			ADD CONSTRAINT fk_patient_handoffs_requesting 
+			FOREIGN KEY (requesting_clinician_id) 
+			REFERENCES public.users(id) 
+			ON DELETE CASCADE;`,
+		`ALTER TABLE patient_handoffs 
+			ADD CONSTRAINT fk_patient_handoffs_receiving 
+			FOREIGN KEY (receiving_clinician_id) 
+			REFERENCES public.users(id) 
+			ON DELETE CASCADE;`,
+		`ALTER TABLE patient_handoffs 
+			ADD CONSTRAINT fk_patient_handoffs_responded_by 
+			FOREIGN KEY (responded_by) 
+			REFERENCES public.users(id) 
+			ON DELETE SET NULL;`,
+	}
+
+	for _, constraintSQL := range constraints {
+		if _, err := sqlDB.ExecContext(ctx, constraintSQL); err != nil {
+			// Check if constraint already exists
+			if !strings.Contains(err.Error(), "already exists") {
+				appLogger.Warn("Failed to add constraint to patient_handoffs", zap.Error(err), zap.String("schema_name", schemaName))
+				// Continue with other constraints
+			}
+		}
+	}
+
+	// Create indexes
+	indexes := []string{
+		`CREATE INDEX IF NOT EXISTS idx_patient_handoffs_patient_id ON patient_handoffs(patient_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_patient_handoffs_requesting_clinician_id ON patient_handoffs(requesting_clinician_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_patient_handoffs_receiving_clinician_id ON patient_handoffs(receiving_clinician_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_patient_handoffs_status ON patient_handoffs(status);`,
+	}
+
+	for _, indexSQL := range indexes {
+		if _, err := sqlDB.ExecContext(ctx, indexSQL); err != nil {
+			appLogger.Warn("Failed to create index on patient_handoffs", zap.Error(err), zap.String("schema_name", schemaName))
+			// Continue with other indexes
+		}
+	}
+
+	appLogger.Info("patient_handoffs table created successfully", zap.String("schema_name", schemaName))
 	return nil
 }
 

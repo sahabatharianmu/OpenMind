@@ -1,10 +1,11 @@
 import { useAppointments, usePatients } from "@/hooks/useDashboardQueries";
-import { Clock, Video, MapPin, Plus, Calendar as CalendarIcon } from "lucide-react";
+import { Clock, Video, MapPin, Plus, Calendar as CalendarIcon, User } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { Appointment } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UIAppointment extends Appointment {
   patients: {
@@ -14,6 +15,7 @@ interface UIAppointment extends Appointment {
 }
 
 const UpcomingAppointments = () => {
+  const { user } = useAuth();
   const { data: appointments, isLoading: appointmentsLoading } = useAppointments();
   const { data: patients, isLoading: patientsLoading } = usePatients();
   
@@ -97,26 +99,40 @@ const UpcomingAppointments = () => {
                 key={apt.id}
                 className="flex items-center justify-between p-3 rounded-lg border border-border hover:border-primary/50 transition-colors"
               >
-                <div className="flex items-center gap-4">
-                  <div className="text-center min-w-[70px]">
-                    <p className="font-semibold text-primary">
-                      {(() => {
-                        try {
-                          return format(parseISO(apt.start_time), "h:mm a");
-                        } catch {
-                          return "--:--";
-                        }
-                      })()}
-                    </p>
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="text-center min-w-[70px] flex-shrink-0">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <Clock className="w-4 h-4 text-primary" />
+                      <p className="font-semibold text-primary">
+                        {(() => {
+                          try {
+                            return format(parseISO(apt.start_time), "h:mm a");
+                          } catch {
+                            return "--:--";
+                          }
+                        })()}
+                      </p>
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       {formatDuration(apt.start_time, apt.end_time)}
                     </p>
                   </div>
-                  <div>
-                    <p className="font-medium">
-                      {apt.patients?.first_name} {apt.patients?.last_name}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <p className="font-medium truncate">
+                        {apt.patients?.first_name} {apt.patients?.last_name}
+                      </p>
+                    </div>
+                    {(user?.role === "admin" || user?.role === "owner") && apt.clinician_name && (
+                      <div className="flex items-center gap-2 mb-1">
+                        <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <p className="text-sm text-muted-foreground truncate">
+                          Dr. {apt.clinician_name}
+                        </p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="text-xs">
                         {apt.appointment_type}
                       </Badge>

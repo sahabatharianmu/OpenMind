@@ -16,6 +16,9 @@ import {
   FileText,
   Receipt,
   Plus,
+  User,
+  Clock,
+  Video,
 } from "lucide-react";
 import patientService from "@/services/patientService";
 import appointmentService from "@/services/appointmentService";
@@ -25,6 +28,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { Patient, Appointment, ClinicalNote, Invoice } from "@/types";
 import PatientAssignments from "@/components/patient/PatientAssignments";
+import PatientHandoff from "@/components/patient/PatientHandoff";
+import { UserCog } from "lucide-react";
 
 const PatientProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +40,8 @@ const PatientProfile = () => {
   const [notes, setNotes] = useState<ClinicalNote[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAssigned, setIsAssigned] = useState(false);
+  const [checkingAssignment, setCheckingAssignment] = useState(true);
 
   useEffect(() => {
     if (user && id) {
@@ -63,7 +70,28 @@ const PatientProfile = () => {
         // Filter client-side for now (Optimize later by updating API/Services)
         // Handle null/undefined responses by defaulting to empty arrays
         setAppointments((allAppointments || []).filter(a => a.patient_id === id));
-        setNotes((allNotes || []).filter(n => n.patient_id === id));
+        
+        // Check if user is assigned to this patient
+        setCheckingAssignment(true);
+        try {
+          const assigned = await patientService.isAssigned(id, user?.id);
+          console.log("Assignment status for patient:", id, "user:", user?.id, "isAssigned:", assigned);
+          setIsAssigned(assigned);
+          
+          // Only fetch clinical notes if user is assigned
+          if (assigned) {
+            setNotes((allNotes || []).filter(n => n.patient_id === id));
+          } else {
+            setNotes([]);
+          }
+        } catch (error) {
+          console.error("Error checking assignment:", error);
+          setIsAssigned(false);
+          setNotes([]);
+        } finally {
+          setCheckingAssignment(false);
+        }
+        
         setInvoices((allInvoices || []).filter(i => i.patient_id === id));
       }
     } catch (error: unknown) {
@@ -72,9 +100,14 @@ const PatientProfile = () => {
       if (err.response?.status === 403 || err.response?.status === 404) {
         // Patient not found or access denied - will show "not found" message
         setPatient(null);
+      } else if (err.response?.status === 401) {
+        // 401 will be handled by API interceptor, but we should still set patient to null
+        // to prevent rendering issues
+        setPatient(null);
       }
     } finally {
       setLoading(false);
+      setCheckingAssignment(false);
     }
   };
 
@@ -164,13 +197,15 @@ const PatientProfile = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/dashboard/notes/new?patient=${patient.id}`)}
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Add Note
-            </Button>
+            {isAssigned && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/dashboard/notes/new?patient=${patient.id}`)}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Add Note
+              </Button>
+            )}
             <Button onClick={() => navigate("/dashboard/appointments")}>
               <Calendar className="w-4 h-4 mr-2" />
               Schedule
@@ -219,7 +254,10 @@ const PatientProfile = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Assigned Clinicians */}
-            <PatientAssignments patientId={patient.id} />
+            <PatientAssignments patientId={patient.id} onAssignmentsUpdated={fetchPatientData} />
+
+            {/* Patient Handoffs */}
+            <PatientHandoff patientId={patient.id} onHandoffUpdated={fetchPatientData} />
 
             <Tabs defaultValue="appointments">
               <TabsList>
@@ -227,7 +265,7 @@ const PatientProfile = () => {
                   <Calendar className="w-4 h-4" />
                   Appointments ({appointments.length})
                 </TabsTrigger>
-                <TabsTrigger value="notes" className="gap-2">
+                <TabsTrigger value="notes" className="gap-2" disabled={!isAssigned && !checkingAssignment}>
                   <FileText className="w-4 h-4" />
                   Notes ({notes.length})
                 </TabsTrigger>
@@ -248,17 +286,53 @@ const PatientProfile = () => {
                     ) : (
                       <div className="divide-y">
                         {appointments.map((apt) => (
-                          <div key={apt.id} className="p-4 flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">
-                                {format(new Date(apt.start_time), "MMM d, yyyy")} at{" "}
-                                {format(new Date(apt.start_time), "h:mm a")}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {apt.appointment_type} • {apt.mode}
-                              </p>
+                          <div key={apt.id} className="p-4 flex items-start justify-between gap-4 hover:bg-muted/50 transition-colors">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-primary flex-shrink-0" />
+                                <div>
+                                  <p className="font-medium">
+                                    {format(new Date(apt.start_time), "MMM d, yyyy")} at{" "}
+                                    {format(new Date(apt.start_time), "h:mm a")}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {format(new Date(apt.start_time), "h:mm a")} - {format(new Date(apt.end_time), "h:mm a")}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {apt.appointment_type}
+                                </Badge>
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  {apt.mode === "video" ? (
+                                    <>
+                                      <Video className="w-3 h-3" />
+                                      Video
+                                    </>
+                                  ) : (
+                                    <>
+                                      <MapPin className="w-3 h-3" />
+                                      In-person
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+                              {(user?.role === "admin" || user?.role === "owner") && apt.clinician_name && (
+                                <div className="flex items-center gap-2 pt-1">
+                                  <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">Clinician</p>
+                                    <p className="text-sm font-medium">
+                                      Dr. {apt.clinician_name}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            {getStatusBadge(apt.status)}
+                            <div className="flex-shrink-0">
+                              {getStatusBadge(apt.status)}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -270,7 +344,15 @@ const PatientProfile = () => {
               <TabsContent value="notes" className="mt-4">
                 <Card>
                   <CardContent className="p-0">
-                    {notes.length === 0 ? (
+                    {!isAssigned && !checkingAssignment ? (
+                      <div className="text-center py-8">
+                        <FileText className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />
+                        <p className="text-sm font-medium mb-1">Access Restricted</p>
+                        <p className="text-sm text-muted-foreground">
+                          You must be assigned to this patient to view clinical notes.
+                        </p>
+                      </div>
+                    ) : notes.length === 0 ? (
                       <div className="text-center py-8">
                         <FileText className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />
                         <p className="text-sm text-muted-foreground">No clinical notes yet</p>

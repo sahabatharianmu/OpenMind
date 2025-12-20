@@ -7,6 +7,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/google/uuid"
+	"github.com/sahabatharianmu/OpenMind/internal/core/middleware"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/dto"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/service"
 	"github.com/sahabatharianmu/OpenMind/pkg/response"
@@ -72,7 +73,13 @@ func (h *AppointmentHandler) List(_ context.Context, c *app.RequestContext) {
 		pageSize = 10
 	}
 
-	resp, total, err := h.svc.List(context.Background(), orgID, page, pageSize)
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
+	resp, total, err := h.svc.List(context.Background(), orgID, page, pageSize, userID, userRole)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -107,7 +114,13 @@ func (h *AppointmentHandler) Get(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Get(context.Background(), id, orgID)
+	// Get user role from context
+	userRole, _ := middleware.GetUserRoleFromContext(c)
+	if userRole == "" {
+		userRole = "member" // Default to member if role not found
+	}
+
+	resp, err := h.svc.Get(context.Background(), id, orgID, userID, userRole)
 	if err != nil {
 		response.HandleError(c, err)
 		return

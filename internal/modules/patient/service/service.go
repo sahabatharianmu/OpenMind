@@ -27,6 +27,8 @@ type PatientService interface {
 		id uuid.UUID,
 		organizationID uuid.UUID,
 		req dto.UpdatePatientRequest,
+		userID uuid.UUID,
+		userRole string,
 	) (*dto.PatientResponse, error)
 	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
 	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, userID uuid.UUID, userRole string) (*dto.PatientResponse, error)
@@ -38,16 +40,18 @@ type PatientService interface {
 }
 
 type patientService struct {
-	repo     repository.PatientRepository
-	userRepo userRepo.UserRepository
-	log      logger.Logger
+	repo        repository.PatientRepository
+	handoffRepo repository.PatientHandoffRepository
+	userRepo    userRepo.UserRepository
+	log         logger.Logger
 }
 
-func NewPatientService(repo repository.PatientRepository, userRepo userRepo.UserRepository, log logger.Logger) PatientService {
+func NewPatientService(repo repository.PatientRepository, handoffRepo repository.PatientHandoffRepository, userRepo userRepo.UserRepository, log logger.Logger) PatientService {
 	return &patientService{
-		repo:     repo,
-		userRepo: userRepo,
-		log:      log,
+		repo:        repo,
+		handoffRepo: handoffRepo,
+		userRepo:    userRepo,
+		log:         log,
 	}
 }
 
@@ -99,6 +103,8 @@ func (s *patientService) Update(
 	id uuid.UUID,
 	organizationID uuid.UUID,
 	req dto.UpdatePatientRequest,
+	userID uuid.UUID,
+	userRole string,
 ) (*dto.PatientResponse, error) {
 	patient, err := s.repo.FindByID(id)
 	if err != nil {
@@ -107,6 +113,18 @@ func (s *patientService) Update(
 
 	if patient.OrganizationID != organizationID {
 		return nil, response.ErrNotFound
+	}
+
+	// Check access control: only assigned clinicians or admin/owner can edit patient info
+	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
+		isAssigned, err := s.repo.IsPatientAssignedToClinician(id, userID)
+		if err != nil {
+			s.log.Error("Failed to check patient assignment", zap.Error(err))
+			return nil, fmt.Errorf("failed to check access: %w", err)
+		}
+		if !isAssigned {
+			return nil, response.NewForbidden("Only assigned clinicians can edit patient information")
+		}
 	}
 
 	if req.FirstName != "" {
@@ -171,17 +189,9 @@ func (s *patientService) Get(
 		return nil, response.ErrNotFound
 	}
 
-	// Check access control: admin/owner can see all, others only assigned patients
-	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
-		isAssigned, err := s.repo.IsPatientAssignedToClinician(id, userID)
-		if err != nil {
-			s.log.Error("Failed to check patient assignment", zap.Error(err))
-			return nil, fmt.Errorf("failed to check access: %w", err)
-		}
-		if !isAssigned {
-			return nil, response.ErrForbidden
-		}
-	}
+	// All organization clinicians can view basic patient info
+	// No assignment check needed for viewing - this allows coordination across the organization
+	// Sensitive data (clinical notes) will be protected separately
 
 	return s.mapEntityToResponse(patient), nil
 }
@@ -195,17 +205,10 @@ func (s *patientService) List(
 ) ([]dto.PatientResponse, int64, error) {
 	offset := (page - 1) * pageSize
 
-	// Get assigned patient IDs for non-admin users
-	var assignedPatientIDs []uuid.UUID
-	if userRole != constants.RoleAdmin && userRole != constants.RoleOwner {
-		assignedIDs, err := s.repo.GetAssignedPatients(userID, organizationID)
-		if err != nil {
-			s.log.Error("Failed to get assigned patients", zap.Error(err),
-				zap.String("user_id", userID.String()))
-			return nil, 0, fmt.Errorf("failed to get assigned patients: %w", err)
-		}
-		assignedPatientIDs = assignedIDs
-	}
+	// All organization clinicians can see all patients in the organization
+	// This allows coordination and visibility across the practice
+	// No assignment filtering - show all patients
+	var assignedPatientIDs []uuid.UUID // Empty - no filtering
 
 	patients, total, err := s.repo.List(organizationID, pageSize, offset, assignedPatientIDs)
 	if err != nil {

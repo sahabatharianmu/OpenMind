@@ -89,7 +89,26 @@ const NoteEditor = () => {
   const fetchPatients = async () => {
     try {
       const data = await patientService.list();
-      setPatients(data?.filter(p => p.status === 'active') || []);
+      let filteredPatients = data?.filter(p => p.status === 'active') || [];
+      
+      // Filter patients: admin/owner see all, others only see assigned patients
+      if (user && user.role !== 'admin' && user.role !== 'owner') {
+        // Check assignment for each patient
+        const assignedPatientIds = new Set<string>();
+        for (const patient of filteredPatients) {
+          try {
+            const isAssigned = await patientService.isAssigned(patient.id, user.id);
+            if (isAssigned) {
+              assignedPatientIds.add(patient.id);
+            }
+          } catch (error) {
+            console.error(`Error checking assignment for patient ${patient.id}:`, error);
+          }
+        }
+        filteredPatients = filteredPatients.filter(p => assignedPatientIds.has(p.id));
+      }
+      
+      setPatients(filteredPatients);
     } catch (error) {
       console.error("Error fetching patients", error);
     }

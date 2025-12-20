@@ -25,6 +25,9 @@ import (
 	invoiceHandler "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/handler"
 	invoiceRepository "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/repository"
 	invoiceService "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/service"
+	notificationHandler "github.com/sahabatharianmu/OpenMind/internal/modules/notification/handler"
+	notificationRepository "github.com/sahabatharianmu/OpenMind/internal/modules/notification/repository"
+	notificationService "github.com/sahabatharianmu/OpenMind/internal/modules/notification/service"
 	organizationHandler "github.com/sahabatharianmu/OpenMind/internal/modules/organization/handler"
 	organizationRepository "github.com/sahabatharianmu/OpenMind/internal/modules/organization/repository"
 	organizationService "github.com/sahabatharianmu/OpenMind/internal/modules/organization/service"
@@ -76,6 +79,8 @@ func main() {
 	tenantRepo := tenantRepository.NewTenantRepository(db, appLogger)
 	tenantKeyRepo := tenantRepository.NewTenantEncryptionKeyRepository(db, appLogger)
 	teamInvitationRepo := teamRepository.NewTeamInvitationRepository(db, appLogger)
+	patientHandoffRepo := patientRepository.NewPatientHandoffRepository(db, appLogger)
+	notificationRepo := notificationRepository.NewNotificationRepository(db, appLogger)
 
 	jwtService := security.NewJWTService(cfg)
 	passwordService := crypto.NewPasswordService(cfg)
@@ -103,9 +108,9 @@ func main() {
 
 	authService := userService.NewAuthService(userRepo, organizationRepo, jwtService, passwordService, tenantSvc, appLogger)
 	userSvc := userService.NewUserService(userRepo, organizationRepo, appLogger)
-	patientSvc := patientService.NewPatientService(patientRepo, userRepo, appLogger)
-	appointmentSvc := service.NewAppointmentService(appointmentRepo, appLogger)
-	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, encryptService, appLogger)
+	patientSvc := patientService.NewPatientService(patientRepo, patientHandoffRepo, userRepo, appLogger)
+	appointmentSvc := service.NewAppointmentService(appointmentRepo, patientRepo, userRepo, appLogger)
+	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, patientRepo, encryptService, appLogger)
 	invoiceSvc := invoiceService.NewInvoiceService(
 		invoiceRepo,
 		organizationRepo,
@@ -145,6 +150,18 @@ func main() {
 		cfg.Application.URL,
 	)
 
+	notificationSvc := notificationService.NewNotificationService(notificationRepo, appLogger)
+
+	patientHandoffSvc := patientService.NewPatientHandoffService(
+		patientHandoffRepo,
+		patientRepo,
+		patientSvc,
+		userRepo,
+		emailService,
+		notificationRepo,
+		appLogger,
+	)
+
 	authHandler := userHandler.NewAuthHandler(authService)
 	userHdlr := userHandler.NewUserHandler(userSvc, authService)
 	patientHdlr := patientHandler.NewPatientHandler(patientSvc)
@@ -156,6 +173,8 @@ func main() {
 	exportHdlr := exportHandler.NewExportHandler(exportSvc)
 	importHdlr := importHandler.NewImportHandler(importSvc)
 	teamHdlr := teamHandler.NewTeamInvitationHandler(teamInvitationSvc)
+	notificationHdlr := notificationHandler.NewNotificationHandler(notificationSvc)
+	patientHandoffHdlr := patientHandler.NewPatientHandoffHandler(patientHandoffSvc, cfg.Application.URL)
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	auditMiddleware := middleware.NewAuditMiddleware(auditLogSvc)
@@ -175,6 +194,7 @@ func main() {
 		authHandler,
 		userHdlr,
 		patientHdlr,
+		patientHandoffHdlr,
 		appointmentHdlr,
 		clinicalNoteHdlr,
 		invoiceHdlr,
@@ -183,6 +203,7 @@ func main() {
 		exportHdlr,
 		importHdlr,
 		teamHdlr,
+		notificationHdlr,
 		authMiddleware,
 		auditMiddleware,
 		rbacMiddleware,

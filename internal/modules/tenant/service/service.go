@@ -161,8 +161,21 @@ func (s *tenantService) generateTenantEncryptionKey(ctx context.Context, tenantI
 }
 
 // GetTenantByOrganizationID retrieves tenant by organization ID
+// Also ensures required tables exist for existing tenant schemas
 func (s *tenantService) GetTenantByOrganizationID(ctx context.Context, organizationID uuid.UUID) (*entity.Tenant, error) {
-	return s.repo.GetByOrganizationID(organizationID)
+	tenant, err := s.repo.GetByOrganizationID(organizationID)
+	if err != nil || tenant == nil {
+		return tenant, err
+	}
+
+	// Ensure patient_handoffs table exists for existing tenant schemas
+	// This is needed when rolling out new features to existing tenants
+	if err := database.EnsurePatientHandoffsTable(ctx, s.db, tenant.SchemaName, s.log); err != nil {
+		s.log.Warn("Failed to ensure patient_handoffs table exists", zap.Error(err), zap.String("schema_name", tenant.SchemaName))
+		// Don't fail the operation, but log the warning
+	}
+
+	return tenant, nil
 }
 
 // GetTenantBySchemaName retrieves tenant by schema name
@@ -239,6 +252,12 @@ func (s *tenantService) MigrateSchema(ctx context.Context, schemaName string) er
 	if err := database.FixAssignedCliniciansConstraints(ctx, s.db, schemaName, s.log); err != nil {
 		s.log.Warn("Failed to fix assigned_clinicians constraints", zap.Error(err), zap.String("schema_name", schemaName))
 		// Don't fail the migration if constraint fix fails, but log it
+	}
+
+	// Ensure patient_handoffs table exists (for existing tenant schemas when rolling out new features)
+	if err := database.EnsurePatientHandoffsTable(ctx, s.db, schemaName, s.log); err != nil {
+		s.log.Warn("Failed to ensure patient_handoffs table exists", zap.Error(err), zap.String("schema_name", schemaName))
+		// Don't fail the migration if table creation fails, but log it
 	}
 
 	s.log.Info("Tenant schema migrated successfully", zap.String("schema_name", schemaName))

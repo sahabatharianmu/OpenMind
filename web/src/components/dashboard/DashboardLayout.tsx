@@ -24,6 +24,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -215,35 +216,54 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
             <span className="font-bold text-sidebar-foreground">OpenMind</span>
           </Link>
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 min-h-[44px] min-w-[44px]">
-                <Menu className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0 bg-sidebar">
-              <div className="relative h-full flex flex-col">
-                <SidebarContent
-                  onNavigate={() => setMobileMenuOpen(false)}
-                  user={user}
-                  collapsed={collapsed}
-                  isMobile={isMobile}
-                  location={location}
-                  navItems={navItems}
-                  handleSignOut={handleSignOut}
-                  initials={initials}
-                  setCollapsed={setCollapsed}
-                />
-              </div>
-            </SheetContent>
-          </Sheet>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10 min-h-[44px] min-w-[44px]">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64 p-0 bg-sidebar">
+                <div className="relative h-full flex flex-col">
+                  <SidebarContent
+                    onNavigate={() => setMobileMenuOpen(false)}
+                    user={user}
+                    collapsed={collapsed}
+                    isMobile={isMobile}
+                    location={location}
+                    navItems={navItems}
+                    handleSignOut={handleSignOut}
+                    initials={initials}
+                    setCollapsed={setCollapsed}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </header>
+      )}
+
+      {/* Desktop Header */}
+      {!isMobile && (
+        <header className="fixed top-0 right-0 h-16 bg-sidebar border-b border-sidebar-border z-30 flex items-center justify-end px-4 gap-4" style={{ left: collapsed ? '64px' : '256px' }}>
+          <NotificationBell />
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">{user?.full_name || "User"}</span>
+              <span className="text-xs text-muted-foreground">{user?.email}</span>
+            </div>
+          </div>
         </header>
       )}
 
       {/* Main Content */}
       <main className={cn(
         "flex-1 transition-all duration-300",
-        !isMobile && (collapsed ? "ml-16" : "ml-64"),
+        !isMobile && (collapsed ? "ml-16 mt-16" : "ml-64 mt-16"),
         isMobile && "mt-16"
       )}>
         {children}
