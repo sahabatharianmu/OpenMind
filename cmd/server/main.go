@@ -34,6 +34,9 @@ import (
 	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
 	patientRepository "github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
 	patientService "github.com/sahabatharianmu/OpenMind/internal/modules/patient/service"
+	paymentHandler "github.com/sahabatharianmu/OpenMind/internal/modules/payment/handler"
+	paymentRepository "github.com/sahabatharianmu/OpenMind/internal/modules/payment/repository"
+	paymentService "github.com/sahabatharianmu/OpenMind/internal/modules/payment/service"
 	subscriptionService "github.com/sahabatharianmu/OpenMind/internal/modules/subscription/service"
 	teamHandler "github.com/sahabatharianmu/OpenMind/internal/modules/team/handler"
 	teamRepository "github.com/sahabatharianmu/OpenMind/internal/modules/team/repository"
@@ -46,6 +49,8 @@ import (
 	"github.com/sahabatharianmu/OpenMind/pkg/crypto"
 	"github.com/sahabatharianmu/OpenMind/pkg/email"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
+	"github.com/sahabatharianmu/OpenMind/pkg/midtrans"
+	"github.com/sahabatharianmu/OpenMind/pkg/payment"
 	"github.com/sahabatharianmu/OpenMind/pkg/security"
 	"go.uber.org/zap"
 )
@@ -78,6 +83,11 @@ func main() {
 	auditLogRepo := auditLogRepository.NewAuditLogRepository(db, appLogger)
 	organizationRepo := organizationRepository.NewOrganizationRepository(db, appLogger)
 	tenantRepo := tenantRepository.NewTenantRepository(db, appLogger)
+
+	ctx := context.Background()
+	if err := database.RunMigrationsForAllTenants(ctx, db, tenantRepo, appLogger); err != nil {
+		appLogger.Warn("Some tenant migrations failed", zap.Error(err))
+	}
 	tenantKeyRepo := tenantRepository.NewTenantEncryptionKeyRepository(db, appLogger)
 	teamInvitationRepo := teamRepository.NewTeamInvitationRepository(db, appLogger)
 	patientHandoffRepo := patientRepository.NewPatientHandoffRepository(db, appLogger)
@@ -88,24 +98,11 @@ func main() {
 	encryptService := crypto.NewEncryptionService(cfg)
 	emailService := email.NewEmailService(cfg, appLogger)
 
-	// Set tenant key repository for encryption service (HIPAA compliant)
 	encryptService.SetTenantKeyRepository(tenantKeyRepo)
 
-	// Initialize tenant service first (needed for auth service)
 	tenantSvc := tenantService.NewTenantService(tenantRepo, db, appLogger)
-
-	// Set encryption service and key repository for tenant key generation (HIPAA compliant)
 	tenantSvc.SetEncryptionService(encryptService)
 	tenantSvc.SetKeyRepository(tenantKeyRepo)
-
-	// Generate encryption keys for existing tenants (one-time operation)
-	// This ensures all existing tenants have encryption keys for HIPAA compliance
-	ctx := context.Background()
-	if err := tenantSvc.GenerateKeysForExistingTenants(ctx); err != nil {
-		appLogger.Warn("Failed to generate keys for existing tenants", zap.Error(err))
-		// Don't fail startup, but log the warning
-		// Keys will be generated on-demand when tenants are accessed
-	}
 
 	authService := userService.NewAuthService(userRepo, organizationRepo, jwtService, passwordService, tenantSvc, emailService, appLogger)
 	userSvc := userService.NewUserService(userRepo, organizationRepo, appLogger)
@@ -169,6 +166,42 @@ func main() {
 		appLogger,
 	)
 
+	paymentProviderManager, err := payment.NewPaymentProviderManager(&cfg.Payment, appLogger)
+	if err != nil {
+		appLogger.Fatal("Failed to initialize payment provider manager", zap.Error(err))
+	}
+
+	paymentMethodRepo := paymentRepository.NewPaymentMethodRepository(db, appLogger)
+	paymentMethodSvc := paymentService.NewPaymentMethodService(
+		paymentMethodRepo,
+		paymentProviderManager,
+		encryptService,
+		cfg,
+		appLogger,
+	)
+
+	midtransService, err := midtrans.NewMidtransService(&cfg.Payment.Midtrans, appLogger)
+	if err != nil {
+		appLogger.Warn("Failed to initialize Midtrans service", zap.Error(err))
+		midtransService = nil
+	}
+
+	paymentTransactionRepo := paymentRepository.NewPaymentTransactionRepository(db, appLogger)
+	var paymentTransactionSvc paymentService.PaymentTransactionService
+	if midtransService != nil {
+		paymentTransactionSvc = paymentService.NewPaymentTransactionService(
+			paymentTransactionRepo,
+			organizationRepo,
+			userRepo,
+			emailService,
+			midtransService,
+			tenantSvc,
+			db,
+			appLogger,
+			cfg.Application.URL,
+		)
+	}
+
 	authHandler := userHandler.NewAuthHandler(authService, cfg.Application.URL)
 	userHdlr := userHandler.NewUserHandler(userSvc, authService)
 	patientHdlr := patientHandler.NewPatientHandler(patientSvc)
@@ -177,6 +210,11 @@ func main() {
 	invoiceHdlr := invoiceHandler.NewInvoiceHandler(invoiceSvc)
 	auditLogHdlr := auditLogHandler.NewAuditLogHandler(auditLogSvc)
 	organizationHdlr := organizationHandler.NewOrganizationHandler(organizationSvc)
+	paymentHdlr := paymentHandler.NewPaymentMethodHandler(paymentMethodSvc, organizationSvc)
+	var paymentTransactionHdlr *paymentHandler.PaymentTransactionHandler
+	if paymentTransactionSvc != nil {
+		paymentTransactionHdlr = paymentHandler.NewPaymentTransactionHandler(paymentTransactionSvc)
+	}
 	exportHdlr := exportHandler.NewExportHandler(exportSvc)
 	importHdlr := importHandler.NewImportHandler(importSvc)
 	teamHdlr := teamHandler.NewTeamInvitationHandler(teamInvitationSvc)
@@ -207,6 +245,8 @@ func main() {
 		invoiceHdlr,
 		auditLogHdlr,
 		organizationHdlr,
+		paymentHdlr,
+		paymentTransactionHdlr,
 		exportHdlr,
 		importHdlr,
 		teamHdlr,

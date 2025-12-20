@@ -137,10 +137,27 @@ type LocalConfig struct {
 
 // PaymentConfig holds payment gateway configuration
 type PaymentConfig struct {
-	Provider string         `mapstructure:"provider"` // xendit, midtrans, doku
+	Provider string         `mapstructure:"provider"` // stripe, square, xendit, midtrans, doku
+	Stripe   StripeConfig   `mapstructure:"stripe"`
+	Square   SquareConfig   `mapstructure:"square"`
 	Xendit   XenditConfig   `mapstructure:"xendit"`
 	Midtrans MidtransConfig `mapstructure:"midtrans"`
 	Doku     DokuConfig     `mapstructure:"doku"`
+}
+
+// StripeConfig holds Stripe configuration
+type StripeConfig struct {
+	SecretKey      string `mapstructure:"secret_key"`
+	PublishableKey string `mapstructure:"publishable_key"`
+	IsTestMode     bool   `mapstructure:"is_test_mode"`
+}
+
+// SquareConfig holds Square configuration (placeholder for future implementation)
+type SquareConfig struct {
+	ApplicationID string `mapstructure:"application_id"`
+	AccessToken   string `mapstructure:"access_token"`
+	LocationID    string `mapstructure:"location_id"`
+	IsSandbox     bool   `mapstructure:"is_sandbox"`
 }
 
 // XenditConfig holds Xendit configuration
@@ -151,9 +168,16 @@ type XenditConfig struct {
 
 // MidtransConfig holds Midtrans configuration
 type MidtransConfig struct {
-	ClientKey    string `mapstructure:"client_key"`
-	ServerKey    string `mapstructure:"server_key"`
-	IsProduction bool   `mapstructure:"is_production"`
+	ClientKey             string `mapstructure:"client_key"`
+	ServerKey             string `mapstructure:"server_key"`
+	IsProduction          bool   `mapstructure:"is_production"`
+	BISnapClientID        string `mapstructure:"bisnap_client_id"`
+	BISnapClientSecret    string `mapstructure:"bisnap_client_secret"`
+	BISnapPartnerID       string `mapstructure:"bisnap_partner_id"`
+	BISnapPublicKey       string `mapstructure:"bisnap_public_key"`
+	MerchantPrivateKey    string `mapstructure:"merchant_private_key"`
+	MerchantPublicKey     string `mapstructure:"merchant_public_key"`
+	NotificationPublicKey string `mapstructure:"notification_public_key"`
 }
 
 // DokuConfig holds Doku configuration
@@ -267,4 +291,15 @@ func setDefaults() {
 	viper.SetDefault("security.request_timeout", securityConfig.RequestTimeout)
 	viper.SetDefault("security.max_request_per_ip", securityConfig.MaxRequestPerIP)
 	viper.SetDefault("security.max_request_per_user", securityConfig.MaxRequestPerUser)
+
+	viper.SetDefault("payment.midtrans.bisnap_client_id", "")
+	viper.SetDefault("payment.midtrans.bisnap_client_secret", "")
+	viper.SetDefault("payment.midtrans.bisnap_partner_id", "")
+	viper.SetDefault("payment.midtrans.bisnap_public_key", "")
+	viper.SetDefault("payment.midtrans.merchant_private_key", "")
+	viper.SetDefault("payment.midtrans.merchant_public_key", "")
+	viper.SetDefault("payment.midtrans.notification_public_key", "")
+	viper.SetDefault("payment.midtrans.is_production", viper.GetString("application.environment") == "production")
+	viper.SetDefault("payment.midtrans.client_key", "")
+	viper.SetDefault("payment.midtrans.server_key", "")
 }

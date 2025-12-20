@@ -113,7 +113,16 @@ storage:
     key_file: /path/to/service-account-key.json
 
 payment:
-  provider: xendit
+  provider: stripe
+  stripe:
+    secret_key: your-stripe-secret-key
+    publishable_key: your-stripe-publishable-key
+    is_test_mode: true
+  square:
+    application_id: your-square-application-id
+    access_token: your-square-access-token
+    location_id: your-square-location-id
+    is_sandbox: true
   xendit:
     secret_key: your-xendit-secret-key
     public_key: your-xendit-public-key

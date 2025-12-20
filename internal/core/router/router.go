@@ -15,6 +15,8 @@ import (
 	notificationHandler "github.com/sahabatharianmu/OpenMind/internal/modules/notification/handler"
 	organizationHandler "github.com/sahabatharianmu/OpenMind/internal/modules/organization/handler"
 	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
+	paymentHandler "github.com/sahabatharianmu/OpenMind/internal/modules/payment/handler"
+	paymentTransactionHandler "github.com/sahabatharianmu/OpenMind/internal/modules/payment/handler"
 	teamHandler "github.com/sahabatharianmu/OpenMind/internal/modules/team/handler"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/handler"
 	"github.com/sahabatharianmu/OpenMind/pkg/constants"
@@ -31,6 +33,8 @@ func RegisterRoutes(
 	invoiceHandler *invoiceHandler.InvoiceHandler,
 	auditLogHandler *auditLogHandler.AuditLogHandler,
 	organizationHandler *organizationHandler.OrganizationHandler,
+	paymentHandler *paymentHandler.PaymentMethodHandler,
+	paymentTransactionHandler *paymentTransactionHandler.PaymentTransactionHandler,
 	exportHandler *exportHandler.ExportHandler,
 	importHandler *importHandler.ImportHandler,
 	teamHandler *teamHandler.TeamInvitationHandler,
@@ -59,7 +63,7 @@ func RegisterRoutes(
 	}
 	protected := v1.Group("/")
 	protected.Use(authMiddleware.Middleware())
-	protected.Use(tenantMiddleware) // Set tenant context after authentication
+	protected.Use(tenantMiddleware)             // Set tenant context after authentication
 	protected.Use(auditMiddleware.Middleware()) // Add audit logging
 	{
 		// User routes
@@ -172,15 +176,50 @@ func RegisterRoutes(
 			team.DELETE("/invitations/:id", teamHandler.CancelInvitation)
 			team.POST("/invitations/:id/resend", teamHandler.ResendInvitation)
 		}
+
+		// Payment method routes (admin/owner only)
+		paymentMethods := protected.Group("/payment-methods")
+		paymentMethods.Use(rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner))
+		{
+			paymentMethods.POST("", paymentHandler.CreatePaymentMethod)
+			paymentMethods.GET("", paymentHandler.ListPaymentMethods)
+			paymentMethods.GET("/:id", paymentHandler.GetPaymentMethod)
+			paymentMethods.DELETE("/:id", paymentHandler.DeletePaymentMethod)
+			paymentMethods.PUT("/:id/default", paymentHandler.SetDefaultPaymentMethod)
+		}
+
+		// Payment transaction routes (owner/admin only)
+		// Only register if payment transaction handler is initialized (Midtrans configured)
+		if paymentTransactionHandler != nil {
+			payments := protected.Group("/payments")
+			payments.Use(rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner))
+			{
+				// QRIS payment routes
+				payments.POST("/qris/create", paymentTransactionHandler.CreateQRISPayment)
+				payments.GET("/qris/status/:id", paymentTransactionHandler.CheckPaymentStatus)
+			}
+		}
+	}
+
+	if paymentTransactionHandler != nil {
+		webhooks := v1.Group("/webhooks")
+		{
+			midtrans := webhooks.Group("/midtrans")
+			// QRIS payment webhook
+			midtrans.POST("/v1.0/qr/qr-mpm-notify", paymentTransactionHandler.HandleQRISWebhook)
+			// TODO: Add handlers for other webhook types when implemented
+			// midtrans.POST("/v1.0/debit/notify", paymentTransactionHandler.HandleDebitWebhook)
+			// midtrans.POST("/v1.0/transfer-va/payment", paymentTransactionHandler.HandleVAWebhook)
+		}
 	}
 
 	h.Static("/assets", "./web/dist")
-	
+
 	h.GET("/SahariIcon.svg", func(ctx context.Context, c *app.RequestContext) {
 		c.Header("Content-Type", "image/svg+xml")
 		c.File("./web/dist/SahariIcon.svg")
 	})
-	
+
 	h.StaticFile("/favicon.ico", "./web/dist/favicon.ico")
 	h.StaticFile("/robots.txt", "./web/dist/robots.txt")
 	h.StaticFile("/placeholder.svg", "./web/dist/placeholder.svg")
