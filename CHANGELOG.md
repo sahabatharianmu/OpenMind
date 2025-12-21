@@ -1,3 +1,16 @@
+# [1.0.0-alpha.2](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.1...v1.0.0-alpha.2) (2025-12-21)
+
+
+### Features
+
+* implement appointment access control and enhance appointment UI ([2769e7c](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/2769e7c5c3031d706574149e7dc8a0d640584345))
+* implement comprehensive user onboarding flow (OMDEV-58) ([7565f29](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/7565f295d812078c1f36d2751203ca80c9638d83))
+* implement free tier feature gating system (OMDEV-59) ([df66400](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/df66400b605f23694b77251e46b5090dc6d4a74c))
+* integrate payment processing with Stripe and QRIS support ([d5e193a](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/d5e193af0f4280d1b83c96c30346f97ddf2804ef))
+* **OMDEV-40:** Implement multi-tenant architecture with schema isolation and HIPAA-compliant encryption ([4d59e6f](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/4d59e6fc6ea9aea4548e2f87ce3d3c97c9a374fa))
+* **OMDEV-41:** Implement team management with invitations and role-based access ([2b98ce7](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/2b98ce79c3cec75bb0f60a15233fc25e4714aef1))
+* **OMDEV-42:** Implement shared patient pools with access control ([9454e3e](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/9454e3e44ece742027aaec29548bcf5338409988))
+
 # 1.0.0-alpha.1 (2025-12-19)
 
 
