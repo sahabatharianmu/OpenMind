@@ -12,7 +12,8 @@ import {
   LayoutDashboard,
   Shield,
   Menu,
-  UserCog
+  UserCog,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/sheet";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import GettingStartedModal from "@/components/onboarding/GettingStartedModal";
+import { subscriptionService } from "@/services/subscriptionService";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -69,10 +71,11 @@ const SidebarContent = ({
     {/* Logo */}
     <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border flex-shrink-0">
       <Link to="/" className="flex items-center gap-2" onClick={onNavigate}>
-        <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0">
-          <img src="/SahariIcon.svg" alt="OpenMind" className="w-5 h-5" />
-        </div>
-        {(!collapsed || isMobile) && <span className="font-bold text-sidebar-foreground">OpenMind</span>}
+        {collapsed && !isMobile ? (
+          <img src="/logo_only.svg" alt="Closaf" className="w-8 h-8" />
+        ) : (
+          <img src="/logo_text_horizontal.svg" alt="Closaf" className="h-8" />
+        )}
       </Link>
       {!isMobile && (
         <Button 
@@ -152,10 +155,26 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showGettingStarted, setShowGettingStarted] = useState(false);
+  const [tier, setTier] = useState<string>("free");
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut, loading } = useAuth();
   const isMobile = useIsMobile();
+
+  // Load subscription tier
+  useEffect(() => {
+    const loadTier = async () => {
+      if (user) {
+        try {
+          const currentTier = await subscriptionService.getSubscriptionTier();
+          setTier(currentTier);
+        } catch (error) {
+          console.error("Failed to load subscription tier", error);
+        }
+      }
+    };
+    loadTier();
+  }, [user]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -226,12 +245,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {isMobile && (
         <header className="fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-sidebar-border z-50 flex items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <img src="/SahariIcon.svg" alt="OpenMind" className="w-5 h-5" />
-            </div>
-            <span className="font-bold text-sidebar-foreground">OpenMind</span>
+            <img src="/logo_text_horizontal.svg" alt="Closaf" className="h-8" />
           </Link>
           <div className="flex items-center gap-2">
+            {tier === "free" && (
+              <Button
+                size="sm"
+                onClick={() => navigate("/pricing")}
+                className="gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Upgrade
+              </Button>
+            )}
             <NotificationBell />
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -262,6 +288,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Desktop Header */}
       {!isMobile && (
         <header className="fixed top-0 right-0 h-16 bg-sidebar border-b border-sidebar-border z-30 flex items-center justify-end px-4 gap-4" style={{ left: collapsed ? '64px' : '256px' }}>
+          {tier === "free" && (
+            <Button
+              size="sm"
+              onClick={() => navigate("/pricing")}
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Upgrade
+            </Button>
+          )}
           <NotificationBell />
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">

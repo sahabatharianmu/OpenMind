@@ -2,6 +2,10 @@ package router
 
 import (
 	"context"
+	"mime"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
@@ -215,19 +219,28 @@ func RegisterRoutes(
 
 	h.Static("/assets", "./web/dist")
 
-	h.GET("/SahariIcon.svg", func(ctx context.Context, c *app.RequestContext) {
-		c.Header("Content-Type", "image/svg+xml")
-		c.File("./web/dist/SahariIcon.svg")
-	})
-
-	h.StaticFile("/favicon.ico", "./web/dist/favicon.ico")
-	h.StaticFile("/robots.txt", "./web/dist/robots.txt")
-	h.StaticFile("/placeholder.svg", "./web/dist/placeholder.svg")
-
 	h.NoRoute(func(ctx context.Context, c *app.RequestContext) {
 		path := string(c.Request.URI().Path())
-		if len(path) >= 4 && path[:4] == "/api" {
+
+		if strings.HasPrefix(path, "/api") {
 			c.JSON(404, map[string]interface{}{"error": "Not Found"})
+			return
+		}
+
+		publicPath := filepath.Join("./web/public", path)
+		if info, err := os.Stat(publicPath); err == nil && !info.IsDir() {
+			ext := filepath.Ext(publicPath)
+			contentType := mime.TypeByExtension(ext)
+
+			if ext == ".svg" && contentType == "" {
+				contentType = "image/svg+xml"
+			}
+
+			if contentType != "" {
+				c.Header("Content-Type", contentType)
+			}
+
+			c.File(publicPath)
 			return
 		}
 

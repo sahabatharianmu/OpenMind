@@ -29,23 +29,47 @@ const Hero = () => {
           </h1>
           
           {/* Subheadline */}
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
             A secure, self-hostable practice management platform for mental health professionals. 
             End-to-end encryption ensures only you can read your clinical notes.
+            <span className="block mt-2 font-semibold text-foreground">
+              Free Forever - No Credit Card Required
+            </span>
           </p>
           
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/auth">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+            <Link to="/auth?signup=true">
               <Button size="lg" className="gap-2 text-lg px-8 py-6">
-                Start Free Trial
+                Start Free Forever
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
-            <Button variant="outline" size="lg" className="gap-2 text-lg px-8 py-6">
+            <a href="#pricing">
+              <Button variant="outline" size="lg" className="gap-2 text-lg px-8 py-6">
+                See Pricing
+              </Button>
+            </a>
+            <Button variant="ghost" size="lg" className="gap-2 text-lg px-8 py-6">
               <Lock className="w-5 h-5" />
-              View Security Docs
+              Security Docs
             </Button>
+          </div>
+
+          {/* Free Tier Benefits */}
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground mb-8">
+            <div className="flex items-center gap-2">
+              <span className="text-primary font-semibold">✓</span>
+              <span>10 patients free forever</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-primary font-semibold">✓</span>
+              <span>No credit card required</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-primary font-semibold">✓</span>
+              <span>Full access to all features</span>
+            </div>
           </div>
           
           {/* Trust indicators */}

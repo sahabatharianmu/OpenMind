@@ -1,19 +1,42 @@
 import { useState, useEffect } from "react";
-import { Check, X } from "lucide-react";
+import { Check, X, Sparkles, Users, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import UpgradeModal from "@/components/payment/UpgradeModal";
+import { subscriptionService, UsageStats } from "@/services/subscriptionService";
 
 const Pricing = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
+  const [tier, setTier] = useState<string>("free");
+  const [loading, setLoading] = useState(true);
 
   const planPrice = 29; // Monthly price in USD
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [stats, currentTier] = await Promise.all([
+          subscriptionService.getUsageStats(),
+          subscriptionService.getSubscriptionTier(),
+        ]);
+        setUsageStats(stats);
+        setTier(currentTier);
+      } catch (error) {
+        console.error("Failed to load usage stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const features = [
     { name: "Patients", free: "Up to 10", paid: "Unlimited" },
@@ -42,6 +65,16 @@ const Pricing = () => {
     window.location.reload(); // Simple refresh for now
   };
 
+  const isFreeTier = tier === "free";
+  const patientUsage = usageStats ? `${usageStats.patient_count}/${usageStats.patient_limit === -1 ? "∞" : usageStats.patient_limit}` : "0/10";
+  const clinicianUsage = usageStats ? `${usageStats.clinician_count}/${usageStats.clinician_limit === -1 ? "∞" : usageStats.clinician_limit}` : "0/1";
+  const patientProgress = usageStats && usageStats.patient_limit !== -1 
+    ? Math.min((usageStats.patient_count / usageStats.patient_limit) * 100, 100)
+    : 0;
+  const clinicianProgress = usageStats && usageStats.clinician_limit !== -1
+    ? Math.min((usageStats.clinician_count / usageStats.clinician_limit) * 100, 100)
+    : 0;
+
   return (
     <DashboardLayout>
       <div className="p-6 lg:p-8 max-w-6xl mx-auto">
@@ -52,13 +85,78 @@ const Pricing = () => {
           </p>
         </div>
 
+        {/* Upgrade Benefits Banner */}
+        {isFreeTier && (
+          <Card className="mb-6 border-primary/20 bg-primary/5">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-primary mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold mb-1">Unlock Unlimited Growth</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Upgrade to the paid plan to remove limits and scale your practice.
+                  </p>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary" />
+                      <span>Unlimited patients</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="w-4 h-4 text-primary" />
+                      <span>Unlimited team members</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      <span>Priority support</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Usage Indicators */}
+        {isFreeTier && usageStats && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Current Usage</CardTitle>
+              <CardDescription>Your usage on the free tier</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Patients
+                  </span>
+                  <span className="font-medium">{patientUsage}</span>
+                </div>
+                <Progress value={patientProgress} />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <UserCheck className="w-4 h-4" />
+                    Team Members
+                  </span>
+                  <span className="font-medium">{clinicianUsage}</span>
+                </div>
+                <Progress value={clinicianProgress} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Free Plan */}
-          <Card>
+          <Card className={isFreeTier ? "border-primary" : ""}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Free</CardTitle>
-                <Badge variant="secondary">Current</Badge>
+                <Badge variant={isFreeTier ? "default" : "secondary"}>
+                  {isFreeTier ? "Current Plan" : "Previous"}
+                </Badge>
               </div>
               <CardDescription>
                 Perfect for getting started
@@ -91,11 +189,13 @@ const Pricing = () => {
           </Card>
 
           {/* Paid Plan */}
-          <Card className="border-primary shadow-lg">
+          <Card className={!isFreeTier ? "border-primary shadow-lg" : "border-primary/50"}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Paid</CardTitle>
-                <Badge variant="default">Recommended</Badge>
+                <Badge variant={!isFreeTier ? "default" : "default"}>
+                  {!isFreeTier ? "Current Plan" : "Recommended"}
+                </Badge>
               </div>
               <CardDescription>
                 For growing practices
@@ -117,8 +217,12 @@ const Pricing = () => {
                   </li>
                 ))}
               </ul>
-              <Button onClick={handleUpgrade} className="w-full">
-                Upgrade Now
+              <Button 
+                onClick={handleUpgrade} 
+                className="w-full"
+                disabled={!isFreeTier}
+              >
+                {isFreeTier ? "Upgrade Now" : "Current Plan"}
               </Button>
             </CardContent>
           </Card>

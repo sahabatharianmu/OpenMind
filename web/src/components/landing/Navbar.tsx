@@ -15,7 +15,7 @@ const Navbar = () => {
     { label: "Features", href: "#features" },
     { label: "Pricing", href: "#pricing" },
     { label: "Docs", href: "#docs" },
-    { label: "GitHub", href: "https://github.com/openmind/practice" },
+    { label: "GitHub", href: "https://github.com/closaf/practice" },
   ];
 
   return (
@@ -23,8 +23,7 @@ const Navbar = () => {
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src="/SahariIcon.svg" alt="OpenMind" className="w-10 h-10" />
-          <span className="font-bold text-xl hidden sm:block">OpenMind</span>
+          <img src="/logo_text_horizontal.svg" alt="Closaf" className="h-8" />
         </Link>
 
         {/* Desktop Nav */}
@@ -45,8 +44,8 @@ const Navbar = () => {
           <Link to="/auth">
             <Button variant="ghost">Sign In</Button>
           </Link>
-          <Link to="/auth">
-            <Button>Get Started</Button>
+          <Link to="/auth?signup=true">
+            <Button>Start Free</Button>
           </Link>
         </div>
 
@@ -73,8 +72,8 @@ const Navbar = () => {
                 <Link to="/auth" onClick={() => setOpen(false)}>
                   <Button variant="outline" className="w-full">Sign In</Button>
                 </Link>
-                <Link to="/auth" onClick={() => setOpen(false)}>
-                  <Button className="w-full">Get Started</Button>
+                <Link to="/auth?signup=true" onClick={() => setOpen(false)}>
+                  <Button className="w-full">Start Free</Button>
                 </Link>
               </div>
             </nav>

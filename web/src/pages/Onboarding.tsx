@@ -49,7 +49,15 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <OnboardingWizard onComplete={handleComplete} onSkip={handleSkip} />
+      <div className="w-full max-w-2xl">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold mb-2">Welcome to Closaf! 👋</h1>
+          <p className="text-muted-foreground">
+            Let's set up your practice. This will only take a few minutes.
+          </p>
+        </div>
+        <OnboardingWizard onComplete={handleComplete} onSkip={handleSkip} />
+      </div>
       {showGettingStarted && (
         <GettingStartedModal onClose={handleGettingStartedClose} />
       )}

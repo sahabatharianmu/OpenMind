@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, ArrowRight, Check } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, Sparkles, Users, UserCheck, Zap } from "lucide-react";
 import { UpgradePrompt as UpgradePromptType } from "@/services/subscriptionService";
 import { useNavigate } from "react-router-dom";
 
@@ -44,10 +44,17 @@ const UpgradePrompt = ({ isOpen, onClose, upgradePrompt, message }: UpgradePromp
 
         <div className="space-y-4 py-4">
           {upgradePrompt && (
-            <div className="bg-muted p-4 rounded-lg space-y-2">
+            <div className="bg-muted p-4 rounded-lg space-y-2 border border-destructive/20">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{featureName}</span>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  {upgradePrompt.feature === "patients" ? (
+                    <Users className="h-4 w-4" />
+                  ) : (
+                    <UserCheck className="h-4 w-4" />
+                  )}
+                  {featureName}
+                </span>
+                <span className="text-sm font-semibold text-destructive">
                   {upgradePrompt.current} / {upgradePrompt.limit}
                 </span>
               </div>
@@ -59,33 +66,52 @@ const UpgradePrompt = ({ isOpen, onClose, upgradePrompt, message }: UpgradePromp
             </div>
           )}
 
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Upgrade to Paid Plan to get:</p>
-            <ul className="space-y-1 text-sm text-muted-foreground">
+          <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <p className="text-sm font-semibold">Upgrade to Paid Plan to get:</p>
+            </div>
+            <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-primary" />
-                Unlimited {featureName.toLowerCase()}
+                <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                <span>Unlimited {featureName.toLowerCase()}</span>
               </li>
               <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-primary" />
-                Unlimited team members
+                <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                <span>Unlimited team members</span>
               </li>
               <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-primary" />
-                All premium features
+                <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                <span>All premium features</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                <span>Priority support</span>
               </li>
             </ul>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Maybe Later
           </Button>
-          <Button onClick={handleUpgrade}>
+          <Button onClick={handleUpgrade} className="w-full sm:w-auto">
             Upgrade Now <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </DialogFooter>
+        <div className="text-center">
+          <Button
+            variant="link"
+            onClick={() => {
+              onClose();
+              navigate("/pricing");
+            }}
+            className="text-xs"
+          >
+            Learn more about plans →
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

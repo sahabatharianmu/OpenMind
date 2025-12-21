@@ -21,6 +21,7 @@ COPY --from=backend-builder /app/openmind-server .
 COPY --from=backend-builder /app/config/config.yaml ./config/config.yaml
 
 COPY --from=frontend-builder /app/web/dist ./web/dist
+COPY --from=frontend-builder /app/web/public ./web/public
 
 EXPOSE 8080
 

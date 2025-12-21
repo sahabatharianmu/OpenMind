@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, CreditCard, QrCode, Building2, CheckCircle2 } from "lucide-react";
+import { Loader2, CreditCard, QrCode, Building2, CheckCircle2, Sparkles, Users, FileText, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import CreditCardPaymentForm from "./CreditCardPaymentForm";
 import QRISPaymentForm from "./QRISPaymentForm";
@@ -27,9 +28,10 @@ interface UpgradeModalProps {
 
 const UpgradeModal = ({ open, onOpenChange, onSuccess, planPrice }: UpgradeModalProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodType>("credit_card");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [step, setStep] = useState<"select" | "payment">("select");
+  const [step, setStep] = useState<"select" | "payment" | "success">("select");
 
   const handleMethodSelect = (method: PaymentMethodType) => {
     setSelectedMethod(method);
@@ -38,17 +40,20 @@ const UpgradeModal = ({ open, onOpenChange, onSuccess, planPrice }: UpgradeModal
 
   const handlePaymentSuccess = () => {
     setIsProcessing(false);
-    toast({
-      title: "Success",
-      description: "Your subscription has been upgraded successfully!",
-    });
+    setStep("success");
+    // Set flag to show upgrade banner on dashboard
+    localStorage.setItem("upgrade_success", "true");
     if (onSuccess) {
       onSuccess();
     }
+  };
+
+  const handleContinueToDashboard = () => {
     onOpenChange(false);
     // Reset state
     setStep("select");
     setSelectedMethod("credit_card");
+    navigate("/dashboard");
   };
 
   const handlePaymentError = (error: string) => {
@@ -81,6 +86,32 @@ const UpgradeModal = ({ open, onOpenChange, onSuccess, planPrice }: UpgradeModal
               <p className="text-sm text-muted-foreground">per month</p>
             </div>
 
+            {/* What You Get Section */}
+            <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                What You Get
+              </h3>
+              <div className="grid grid-cols-1 gap-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span>Unlimited patients</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span>Unlimited team members</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  <span>All core features</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <span>Priority support</span>
+                </div>
+              </div>
+            </div>
+
             <Label className="text-base font-semibold">Select Payment Method</Label>
             <RadioGroup value={selectedMethod} onValueChange={(value) => setSelectedMethod(value as PaymentMethodType)}>
               <div className="space-y-3">
@@ -101,10 +132,13 @@ const UpgradeModal = ({ open, onOpenChange, onSuccess, planPrice }: UpgradeModal
                         }`}>
                           <CreditCard className="w-5 h-5" />
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <div className="font-semibold">Credit Card</div>
                           <div className="text-sm text-muted-foreground">
                             Visa, Mastercard, Amex
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Instant activation
                           </div>
                         </div>
                       </div>
@@ -130,10 +164,13 @@ const UpgradeModal = ({ open, onOpenChange, onSuccess, planPrice }: UpgradeModal
                         }`}>
                           <QrCode className="w-5 h-5" />
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <div className="font-semibold">QRIS</div>
                           <div className="text-sm text-muted-foreground">
                             Scan QR code to pay
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Usually 1-2 minutes
                           </div>
                         </div>
                       </div>
@@ -159,10 +196,13 @@ const UpgradeModal = ({ open, onOpenChange, onSuccess, planPrice }: UpgradeModal
                         }`}>
                           <Building2 className="w-5 h-5" />
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <div className="font-semibold">Virtual Account</div>
                           <div className="text-sm text-muted-foreground">
                             Bank transfer via virtual account
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Usually 1-2 hours
                           </div>
                         </div>
                       </div>
@@ -229,6 +269,46 @@ const UpgradeModal = ({ open, onOpenChange, onSuccess, planPrice }: UpgradeModal
                 onCancel={() => onOpenChange(false)}
               />
             )}
+          </div>
+        )}
+
+        {step === "success" && (
+          <div className="space-y-6 py-4 text-center">
+            <div className="flex justify-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <CheckCircle2 className="w-10 h-10 text-primary" />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold mb-2">Upgrade Successful! 🎉</h3>
+              <p className="text-muted-foreground mb-6">
+                Your subscription has been upgraded to the paid plan.
+              </p>
+            </div>
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg text-left">
+              <h4 className="font-semibold mb-3">You now have access to:</h4>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <span>Unlimited patients</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <span>Unlimited team members</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <span>Priority support</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <span>All premium features</span>
+                </li>
+              </ul>
+            </div>
+            <Button onClick={handleContinueToDashboard} className="w-full" size="lg">
+              Continue to Dashboard
+            </Button>
           </div>
         )}
       </DialogContent>
