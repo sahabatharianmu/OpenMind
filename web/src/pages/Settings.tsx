@@ -333,7 +333,7 @@ const Settings = () => {
                 <div className="flex-1">
                   <h3 className="font-semibold mb-1">Complete Your Setup</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Finish setting up your account to get the most out of OpenMind Practice.
+                    Finish setting up your account to get the most out of Closaf.
                   </p>
                   <Button onClick={() => navigate("/onboarding")}>
                     Complete Setup
@@ -675,7 +675,7 @@ const Settings = () => {
                           const url = window.URL.createObjectURL(new Blob([blob], { type: "application/zip" }));
                           const a = document.createElement("a");
                           a.href = url;
-                          a.download = `openmind-export-${new Date().toISOString().split("T")[0]}.zip`;
+                          a.download = `closaf-export-${new Date().toISOString().split("T")[0]}.zip`;
                           document.body.appendChild(a);
                           a.click();
                           window.URL.revokeObjectURL(url);

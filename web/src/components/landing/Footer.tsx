@@ -8,8 +8,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <img src="/SahariIcon.svg" alt="OpenMind" className="w-8 h-8" />
-              <span className="font-bold">OpenMind</span>
+              <img src="/logo_text_horizontal.svg" alt="Closaf" className="h-8" />
             </Link>
             <p className="text-sm text-muted-foreground">
               Privacy-first practice management for mental health professionals.
@@ -51,7 +50,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-border mt-12 pt-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} OpenMind Practice. Open source under AGPLv3.</p>
+          <p>© {new Date().getFullYear()} Closaf. Open source under AGPLv3.</p>
         </div>
       </div>
     </footer>

@@ -5,50 +5,37 @@ import { Link } from "react-router-dom";
 
 const plans = [
   {
-    name: "Self-Hosted",
-    price: "Free",
-    period: "forever",
-    description: "For privacy advocates who want full control",
-    features: [
-      "Unlimited patients",
-      "All core features",
-      "Docker deployment",
-      "Community support",
-      "AGPLv3 license",
-    ],
-    cta: "Download",
-    variant: "outline" as const,
-  },
-  {
-    name: "Cloud Solo",
-    price: "$29",
+    name: "Free Tier",
+    price: "$0",
     period: "/month",
-    description: "For solo practitioners who want simplicity",
+    description: "Perfect for getting started - no credit card required",
     features: [
-      "Up to 100 patients",
+      "Up to 10 patients",
+      "1 team member (Owner)",
       "All core features",
-      "Managed hosting",
-      "Daily backups",
-      "Email support",
+      "HIPAA Compliant",
+      "Community support",
     ],
-    cta: "Start Free Trial",
+    cta: "Start Free",
     variant: "default" as const,
     popular: true,
+    href: "/auth?signup=true",
   },
   {
-    name: "Cloud Clinic",
-    price: "$99",
+    name: "Paid Plan",
+    price: "$29",
     period: "/month",
-    description: "For small clinics with multiple clinicians",
+    description: "For growing practices",
     features: [
       "Unlimited patients",
-      "Up to 5 clinicians",
+      "Unlimited team members",
       "All core features",
       "Priority support",
-      "Custom branding",
+      "HIPAA Compliant",
     ],
-    cta: "Contact Sales",
+    cta: "Upgrade Now",
     variant: "outline" as const,
+    href: "/auth?signup=true&plan=paid",
   },
 ];
 
@@ -65,7 +52,7 @@ const Pricing = () => {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {plans.map((plan, index) => (
             <Card 
               key={index} 
@@ -95,7 +82,7 @@ const Pricing = () => {
                     </li>
                   ))}
                 </ul>
-                <Link to="/auth">
+                <Link to={plan.href || "/auth"}>
                   <Button variant={plan.variant} className="w-full">
                     {plan.cta}
                   </Button>

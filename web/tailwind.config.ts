@@ -14,6 +14,12 @@ export default {
   	},
   	extend: {
   		colors: {
+  			closaf: {
+  				primary: '#6AECE1',
+  				accent: '#26CCC2',
+  				surface: '#F0FDFA',
+  				dark: '#111827',
+  			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
@@ -96,7 +102,20 @@ export default {
   		},
   		fontFamily: {
   			sans: [
-  				'Montserrat',
+  				'Inter',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'-apple-system',
+  				'BlinkMacSystemFont',
+  				'Segoe UI',
+  				'Roboto',
+  				'Helvetica Neue',
+  				'Arial',
+  				'Noto Sans',
+  				'sans-serif'
+  			],
+  			heading: [
+  				'Manrope',
   				'ui-sans-serif',
   				'system-ui',
   				'-apple-system',
@@ -109,7 +128,7 @@ export default {
   				'sans-serif'
   			],
   			serif: [
-  				'Cormorant Garamond',
+  				'Inter',
   				'ui-serif',
   				'Georgia',
   				'Cambria',
@@ -118,7 +137,7 @@ export default {
   				'serif'
   			],
   			mono: [
-  				'IBM Plex Mono',
+  				'Inter',
   				'ui-monospace',
   				'SFMono-Regular',
   				'Menlo',

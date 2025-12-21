@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, ArrowLeft, Users, Calendar, FileText, UserPlus } from "lucide-react";
+import { ArrowRight, ArrowLeft, Users, Calendar, FileText, UserPlus, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { subscriptionService } from "@/services/subscriptionService";
 
 interface GettingStartedModalProps {
   onClose: () => void;
@@ -56,8 +58,22 @@ const tourSteps: TourStep[] = [
 ];
 
 const GettingStartedModal = ({ onClose }: GettingStartedModalProps) => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [tier, setTier] = useState<string>("free");
+
+  useEffect(() => {
+    const checkTier = async () => {
+      try {
+        const currentTier = await subscriptionService.getSubscriptionTier();
+        setTier(currentTier);
+      } catch (error) {
+        console.error("Failed to check tier", error);
+      }
+    };
+    checkTier();
+  }, []);
 
   const progress = ((currentStep + 1) / tourSteps.length) * 100;
   const currentTourStep = tourSteps[currentStep];
@@ -94,7 +110,7 @@ const GettingStartedModal = ({ onClose }: GettingStartedModalProps) => {
     <Dialog open={true} onOpenChange={() => handleSkip()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Getting Started with OpenMind</DialogTitle>
+          <DialogTitle>Getting Started with Closaf</DialogTitle>
           <DialogDescription>
             Let's take a quick tour of the key features
           </DialogDescription>
@@ -112,6 +128,32 @@ const GettingStartedModal = ({ onClose }: GettingStartedModalProps) => {
               <p className="text-sm text-muted-foreground">{currentTourStep.description}</p>
             </div>
           </div>
+
+          {/* Free Tier Info & Upgrade CTA */}
+          {tier === "free" && currentStep === tourSteps.length - 1 && (
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-primary mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium mb-1">You're on the Free Tier</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Start with 10 patients and 1 team member. Upgrade anytime to unlock unlimited growth.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      onClose();
+                      navigate("/pricing");
+                    }}
+                    className="w-full"
+                  >
+                    Learn About Upgrading
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-between pt-4 border-t">
             <div>

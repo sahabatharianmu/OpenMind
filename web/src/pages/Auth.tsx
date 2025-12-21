@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,10 +28,12 @@ const signupSchema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, signIn, signUp, loading } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [defaultTab, setDefaultTab] = useState<"login" | "signup">("login");
   
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -49,6 +51,13 @@ const Auth = () => {
       navigate("/dashboard");
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    // Check for signup query param
+    if (searchParams.get("signup") === "true") {
+      setDefaultTab("signup");
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,9 +126,14 @@ const Auth = () => {
           });
         }
       } else {
+        const planParam = searchParams.get("plan");
+        const planMessage = planParam === "paid" 
+          ? " You can upgrade to the paid plan anytime from your dashboard."
+          : "";
+        
         toast({
-          title: "Welcome to OpenMind!",
-          description: "Your account has been created successfully. Let's get you set up!",
+          title: "Welcome to Closaf!",
+          description: `Your account has been created successfully. You're starting with our free tier.${planMessage}`,
         });
         // Redirect to onboarding after successful registration
         navigate("/onboarding");
@@ -150,8 +164,8 @@ const Auth = () => {
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/10 via-accent to-background flex-col justify-center items-center p-12">
         <div className="max-w-md text-center">
-          <img src="/SahariIcon.svg" alt="OpenMind" className="w-20 h-20 mx-auto mb-8" />
-          <h1 className="text-4xl font-bold mb-4">OpenMind Practice</h1>
+          <img src="/logo_text_vertical.svg" alt="Closaf" className="h-24 mx-auto mb-8" />
+          <h1 className="text-4xl font-bold mb-4">Closaf</h1>
           <p className="text-lg text-muted-foreground mb-8">
             Secure, sovereign, and private practice management for mental health professionals.
           </p>
@@ -172,14 +186,14 @@ const Auth = () => {
       <div className="flex-1 flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <img src="/SahariIcon.svg" alt="OpenMind" className="w-12 h-12 mx-auto mb-4 lg:hidden" />
+            <img src="/logo_text_vertical.svg" alt="Closaf" className="h-16 mx-auto mb-4 lg:hidden" />
             <CardTitle className="text-2xl">Welcome</CardTitle>
             <CardDescription>
               Sign in to your account or create a new practice
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs defaultValue={defaultTab} value={defaultTab} onValueChange={(v) => setDefaultTab(v as "login" | "signup")} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -227,6 +241,13 @@ const Auth = () => {
               </TabsContent>
 
               <TabsContent value="signup">
+                {searchParams.get("plan") === "paid" && (
+                  <div className="mb-4 p-3 bg-primary/10 border border-primary/20 rounded-md">
+                    <p className="text-sm text-muted-foreground">
+                      Start with our free tier and upgrade to paid plan anytime from your dashboard.
+                    </p>
+                  </div>
+                )}
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Full Name</Label>

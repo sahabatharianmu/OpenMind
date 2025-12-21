@@ -132,7 +132,7 @@ const OnboardingWizard = ({ onComplete, onSkip }: OnboardingWizardProps) => {
               </div>
             </div>
             <div>
-              <h2 className="text-2xl font-bold mb-2">Welcome to OpenMind Practice!</h2>
+              <h2 className="text-2xl font-bold mb-2">Welcome to Closaf!</h2>
               <p className="text-muted-foreground">
                 Let's get your practice set up in just a few steps. This will only take a minute.
               </p>
@@ -291,7 +291,7 @@ const OnboardingWizard = ({ onComplete, onSkip }: OnboardingWizardProps) => {
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <div className="space-y-2">
-          <CardTitle>Get Started with OpenMind</CardTitle>
+          <CardTitle>Get Started with Closaf</CardTitle>
           <CardDescription>
             Step {currentStep + 1} of {totalSteps}
           </CardDescription>
