@@ -24,8 +24,7 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CreatePlanRequest>({
     name: "",
-    price: 0,
-    currency: "USD",
+    prices: [{ currency: "USD", price: 0 }],
     is_active: true,
     limits: {
       patient_limit: 10,
@@ -40,7 +39,10 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
       // Convert price to cents if input is in dollars (simplified logic)
       const payload = {
           ...formData,
-          price: Number(formData.price) * 100 
+          prices: formData.prices.map(p => ({
+              ...p,
+              price: Number(p.price) * 100
+          }))
       };
       
       await adminPlanService.createPlan(payload);
@@ -49,8 +51,7 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
       // Reset form
       setFormData({
         name: "",
-        price: 0,
-        currency: "USD",
+        prices: [{ currency: "USD", price: 0 }],
         is_active: true,
         limits: {
             patient_limit: 10,
@@ -93,20 +94,68 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
                 required
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="price" className="text-right">
-                Price ($)
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right pt-2">
+                Prices
               </Label>
-              <Input
-                id="price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                className="col-span-3"
-                required
-              />
+              <div className="col-span-3 space-y-2">
+                {formData.prices.map((price, index) => (
+                    <div key={index} className="flex gap-2">
+                        <Input
+                            placeholder="Cur"
+                            value={price.currency}
+                            onChange={(e) => {
+                                const newPrices = [...formData.prices];
+                                newPrices[index].currency = e.target.value.toUpperCase();
+                                setFormData({ ...formData, prices: newPrices });
+                            }}
+                            className="w-20"
+                            maxLength={3}
+                            required
+                        />
+                         <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={price.price}
+                            onChange={(e) => {
+                                const newPrices = [...formData.prices];
+                                newPrices[index].price = Number(e.target.value);
+                                setFormData({ ...formData, prices: newPrices });
+                            }}
+                            className="flex-1"
+                            required
+                         />
+                         {index > 0 && (
+                             <Button 
+                                type="button" 
+                                variant="destructive" 
+                                size="icon"
+                                onClick={() => {
+                                    const newPrices = formData.prices.filter((_, i) => i !== index);
+                                    setFormData({ ...formData, prices: newPrices });
+                                }}
+                             >
+                                 <span className="sr-only">Remove</span>
+                                 &times;
+                             </Button>
+                         )}
+                    </div>
+                ))}
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                        setFormData({ 
+                            ...formData, 
+                            prices: [...formData.prices, { currency: "", price: 0 }] 
+                        });
+                    }}
+                >
+                    Add Price
+                </Button>
+              </div>
             </div>
               <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="patient_limit" className="text-right">

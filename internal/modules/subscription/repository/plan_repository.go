@@ -57,7 +57,7 @@ func (r *planRepository) Delete(id uuid.UUID) error {
 
 func (r *planRepository) GetByID(id uuid.UUID) (*entity.SubscriptionPlan, error) {
 	var plan entity.SubscriptionPlan
-	if err := r.db.First(&plan, id).Error; err != nil {
+	if err := r.db.Preload("Prices").First(&plan, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -69,7 +69,7 @@ func (r *planRepository) GetByID(id uuid.UUID) (*entity.SubscriptionPlan, error)
 
 func (r *planRepository) ListAll() ([]entity.SubscriptionPlan, error) {
 	var plans []entity.SubscriptionPlan
-	if err := r.db.Find(&plans).Error; err != nil {
+	if err := r.db.Preload("Prices").Find(&plans).Error; err != nil {
 		r.logger.Error("Failed to list all subscription plans", zap.Error(err))
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (r *planRepository) ListAll() ([]entity.SubscriptionPlan, error) {
 
 func (r *planRepository) ListActive() ([]entity.SubscriptionPlan, error) {
 	var plans []entity.SubscriptionPlan
-	if err := r.db.Where("is_active = ?", true).Find(&plans).Error; err != nil {
+	if err := r.db.Where("is_active = ?", true).Preload("Prices").Find(&plans).Error; err != nil {
 		r.logger.Error("Failed to list active subscription plans", zap.Error(err))
 		return nil, err
 	}

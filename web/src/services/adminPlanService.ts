@@ -1,10 +1,15 @@
 import api from "@/api/client";
 
+export interface PlanPrice {
+  id?: string;
+  currency: string;
+  price: number;
+}
+
 export interface SubscriptionPlan {
   id: string;
   name: string;
-  price: number;
-  currency: string;
+  prices: PlanPrice[];
   is_active: boolean;
   limits: any;
   created_at: string;
@@ -13,8 +18,7 @@ export interface SubscriptionPlan {
 
 export interface CreatePlanRequest {
   name: string;
-  price: number;
-  currency: string;
+  prices: PlanPrice[];
   is_active: boolean;
   limits?: any;
 }

@@ -74,13 +74,33 @@ const Pricing = () => {
 
   const isFreeTier = tier === "free";
   
+  // Helper to get display price (default to USD or first available)
+  const getDisplayPrice = (plan: SubscriptionPlan) => {
+      if (!plan.prices || plan.prices.length === 0) {
+          console.warn("Plan has no prices:", plan);
+          return { price: 0, currency: 'USD' };
+      }
+      // TODO: improvements to match user locale
+      const usdPrice = plan.prices.find(p => p.currency === 'USD');
+      const price = usdPrice || plan.prices[0];
+      
+      const result = { 
+          price: price?.price ?? 0, 
+          currency: price?.currency || 'USD' 
+      };
+      // Debug log
+      if (!result.currency) console.error("Computed invalid currency for plan:", plan, result);
+      return result;
+  }
+
   // Helper to get plan features from limits (simplified)
   const getPlanFeatures = (plan: SubscriptionPlan) => {
+      const displayPrice = getDisplayPrice(plan);
       return [
           { name: "Patients", value: plan.limits?.patient_limit === -1 ? "Unlimited" : plan.limits?.patient_limit },
           { name: "Team Members", value: plan.limits?.clinician_limit === -1 ? "Unlimited" : plan.limits?.clinician_limit },
           { name: "Clinical Notes", value: "Unlimited" }, // Placeholder
-          { name: "Support", value: plan.price > 0 ? "Priority" : "Community" },
+          { name: "Support", value: displayPrice.price > 0 ? "Priority" : "Community" },
       ];
   };
 
@@ -118,7 +138,7 @@ const Pricing = () => {
                   </p>
                   <div className="flex flex-wrap gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-primary" />
+                       <Users className="w-4 h-4 text-primary" />
                       <span>Unlimited patients</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -171,7 +191,8 @@ const Pricing = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {plans.map((plan) => {
              const isCurrentPlan = false; // TODO: Match with current subscription ID from org
-             const isPlanFree = plan.price === 0;
+             const displayPrice = getDisplayPrice(plan);
+             const isPlanFree = displayPrice.price === 0;
 
              // Aesthetic decision: Highlight the first paid plan or a specific "Pro" plan
              const isHighlighted = !isPlanFree; 
@@ -204,7 +225,18 @@ const Pricing = () => {
 
                 <div className="mb-6 flex items-baseline gap-1">
                   <span className="text-4xl font-extrabold font-heading text-foreground">
-                      {(plan.price / 100).toLocaleString('en-US', { style: 'currency', currency: plan.currency })}
+                      {(() => {
+                          if (!displayPrice.currency) {
+                              console.error("Missing Currency for plan:", plan.id, plan);
+                              return "N/A";
+                          }
+                          try {
+                              return (displayPrice.price / 100).toLocaleString('en-US', { style: 'currency', currency: displayPrice.currency });
+                          } catch (e) {
+                              console.error("Error formatting price:", e, displayPrice);
+                              return `$${displayPrice.price / 100}`;
+                          }
+                      })()}
                   </span>
                   <span className="text-sm font-medium text-muted-foreground">/month</span>
                 </div>
@@ -260,7 +292,7 @@ const Pricing = () => {
           open={showUpgradeModal}
           onOpenChange={setShowUpgradeModal}
           onSuccess={handleUpgradeSuccess}
-          planPrice={selectedPlan ? selectedPlan.price / 100 : 0}
+          planPrice={selectedPlan ? getDisplayPrice(selectedPlan).price / 100 : 0}
         />
       </div>
     </DashboardLayout>
