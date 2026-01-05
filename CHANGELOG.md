@@ -1,3 +1,10 @@
+# [1.0.0-alpha.3](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2026-01-05)
+
+
+### Features
+
+* Add subscription plan management, admin panel, and foundational JWT/tenant routing. ([26add39](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/26add39f123e037c732ad9e84fca11894c8fd6ad))
+
 # [1.0.0-alpha.2](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.1...v1.0.0-alpha.2) (2025-12-21)
 
 
