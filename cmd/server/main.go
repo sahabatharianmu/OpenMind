@@ -37,6 +37,8 @@ import (
 	paymentHandler "github.com/sahabatharianmu/OpenMind/internal/modules/payment/handler"
 	paymentRepository "github.com/sahabatharianmu/OpenMind/internal/modules/payment/repository"
 	paymentService "github.com/sahabatharianmu/OpenMind/internal/modules/payment/service"
+	subscriptionHandler "github.com/sahabatharianmu/OpenMind/internal/modules/subscription/handler"
+	subscriptionRepository "github.com/sahabatharianmu/OpenMind/internal/modules/subscription/repository"
 	subscriptionService "github.com/sahabatharianmu/OpenMind/internal/modules/subscription/service"
 	teamHandler "github.com/sahabatharianmu/OpenMind/internal/modules/team/handler"
 	teamRepository "github.com/sahabatharianmu/OpenMind/internal/modules/team/repository"
@@ -109,6 +111,8 @@ func main() {
 
 	usageSvc := subscriptionService.NewUsageService(patientRepo, organizationRepo, appLogger)
 	gatingSvc := subscriptionService.NewFeatureGatingService(organizationRepo, usageSvc, appLogger, cfg.Application.URL)
+	planRepo := subscriptionRepository.NewPlanRepository(db, appLogger)
+	planSvc := subscriptionService.NewPlanService(planRepo, appLogger)
 
 	patientSvc := patientService.NewPatientService(patientRepo, patientHandoffRepo, userRepo, gatingSvc, appLogger)
 	appointmentSvc := service.NewAppointmentService(appointmentRepo, patientRepo, userRepo, appLogger)
@@ -220,6 +224,8 @@ func main() {
 	teamHdlr := teamHandler.NewTeamInvitationHandler(teamInvitationSvc)
 	notificationHdlr := notificationHandler.NewNotificationHandler(notificationSvc)
 	patientHandoffHdlr := patientHandler.NewPatientHandoffHandler(patientHandoffSvc, cfg.Application.URL)
+	adminPlanHdlr := subscriptionHandler.NewAdminPlanHandler(planSvc)
+	publicPlanHdlr := subscriptionHandler.NewPublicPlanHandler(planSvc)
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	auditMiddleware := middleware.NewAuditMiddleware(auditLogSvc)
@@ -251,6 +257,8 @@ func main() {
 		importHdlr,
 		teamHdlr,
 		notificationHdlr,
+		adminPlanHdlr,
+		publicPlanHdlr,
 		authMiddleware,
 		auditMiddleware,
 		rbacMiddleware,

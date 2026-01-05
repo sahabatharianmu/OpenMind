@@ -12,9 +12,10 @@ import (
 
 // JWTClaims represents the claims in a JWT token
 type JWTClaims struct {
-	UserID uuid.UUID `json:"user_id"`
-	Email  string    `json:"email"`
-	Role   string    `json:"role"`
+	UserID     uuid.UUID `json:"user_id"`
+	Email      string    `json:"email"`
+	Role       string    `json:"role"`
+	SystemRole string    `json:"system_role"`
 	jwt.RegisteredClaims
 }
 
@@ -33,14 +34,15 @@ func NewJWTService(cfg *config.Config) *JWTService {
 // GenerateTokens generates both access and refresh tokens
 func (s *JWTService) GenerateTokens(
 	userID uuid.UUID,
-	email, role string,
+	email, role, systemRole string,
 ) (string, string, error) {
 	now := time.Now()
 
 	accessClaims := JWTClaims{
-		UserID: userID,
-		Email:  email,
-		Role:   role,
+		UserID:     userID,
+		Email:      email,
+		Role:       role,
+		SystemRole: systemRole,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.config.Security.JWTAccessExpiry)),
 			IssuedAt:  jwt.NewNumericDate(now),

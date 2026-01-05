@@ -1,11 +1,18 @@
 import api from "@/api/client";
-import { organizationService, UsageStats } from "./organizationService";
+import { organizationService } from "./organizationService";
 
 export interface UpgradePrompt {
   feature: string; // "patients" or "clinicians"
   current: number;
   limit: number;
   upgrade_url: string;
+}
+
+export interface UsageStats {
+  patient_count: number;
+  clinician_count: number;
+  patient_limit: number;
+  clinician_limit: number;
 }
 
 export interface SubscriptionTier {

@@ -46,6 +46,7 @@ func (m *AuthMiddleware) Middleware() app.HandlerFunc {
 		c.Set("userID", claims.UserID)
 		c.Set("email", claims.Email)
 		c.Set("role", claims.Role)
+		c.Set("system_role", claims.SystemRole)
 
 		c.Next(ctx)
 	}
