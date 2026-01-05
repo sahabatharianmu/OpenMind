@@ -12,7 +12,7 @@ import (
 func WithSchema(db *gorm.DB, schemaName string) *gorm.DB {
 	// Sanitize schema name to prevent SQL injection
 	schemaName = sanitizeSchemaName(schemaName)
-	
+
 	// Set search_path for this session
 	return db.Exec(fmt.Sprintf("SET search_path TO %s, public", schemaName))
 }
@@ -67,4 +67,3 @@ func sanitizeTableName(name string) string {
 func TableNameWithSchema(schemaName, tableName string) string {
 	return SchemaQualifiedTableName(schemaName, tableName)
 }
-

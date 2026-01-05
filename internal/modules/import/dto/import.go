@@ -4,14 +4,14 @@ import "github.com/google/uuid"
 
 // ImportPreviewRequest represents a request to preview an import
 type ImportPreviewRequest struct {
-	Type     string `json:"type" binding:"required,oneof=patients notes"`
+	Type     string `json:"type"      binding:"required,oneof=patients notes"`
 	FileData string `json:"file_data" binding:"required"` // Base64 encoded file
 	FileName string `json:"file_name" binding:"required"`
 }
 
 // ImportExecuteRequest represents a request to execute an import
 type ImportExecuteRequest struct {
-	Type     string `json:"type" binding:"required,oneof=patients notes"`
+	Type     string `json:"type"      binding:"required,oneof=patients notes"`
 	FileData string `json:"file_data" binding:"required"` // Base64 encoded file
 	FileName string `json:"file_name" binding:"required"`
 }
@@ -22,8 +22,8 @@ type ImportPreviewResponse struct {
 	ValidRows   int                      `json:"valid_rows"`
 	InvalidRows int                      `json:"invalid_rows"`
 	Preview     []map[string]interface{} `json:"preview"` // First 10 valid rows
-	Errors      []RowError                `json:"errors,omitempty"`
-	Warnings    []RowWarning              `json:"warnings,omitempty"`
+	Errors      []RowError               `json:"errors,omitempty"`
+	Warnings    []RowWarning             `json:"warnings,omitempty"`
 }
 
 // ImportExecuteResponse represents the import execution results
@@ -71,4 +71,3 @@ type ClinicalNoteCSVRow struct {
 	Plan          string `csv:"plan"`
 	IsSigned      string `csv:"is_signed"`
 }
-

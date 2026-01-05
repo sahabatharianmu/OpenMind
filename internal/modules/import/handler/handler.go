@@ -156,14 +156,34 @@ func (h *ImportHandler) DownloadTemplate(_ context.Context, c *app.RequestContex
 			f.DeleteSheet("Sheet1")
 
 			// Headers
-			headers := []string{"patient_id", "appointment_id", "note_type", "icd10_code", "subjective", "objective", "assessment", "plan", "is_signed"}
+			headers := []string{
+				"patient_id",
+				"appointment_id",
+				"note_type",
+				"icd10_code",
+				"subjective",
+				"objective",
+				"assessment",
+				"plan",
+				"is_signed",
+			}
 			for i, h := range headers {
 				cell := fmt.Sprintf("%c1", 'A'+i)
 				f.SetCellValue(sheetName, cell, h)
 			}
 
 			// Example row
-			example := []interface{}{"patient-uuid-here", "appointment-uuid-here", "soap", "E11.9", "Patient reports...", "Physical examination reveals...", "Assessment and diagnosis...", "Treatment plan includes...", "false"}
+			example := []interface{}{
+				"patient-uuid-here",
+				"appointment-uuid-here",
+				"soap",
+				"E11.9",
+				"Patient reports...",
+				"Physical examination reveals...",
+				"Assessment and diagnosis...",
+				"Treatment plan includes...",
+				"false",
+			}
 			for colIdx, val := range example {
 				cell := fmt.Sprintf("%c2", 'A'+colIdx)
 				f.SetCellValue(sheetName, cell, val)

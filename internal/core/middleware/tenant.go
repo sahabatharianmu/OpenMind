@@ -22,7 +22,11 @@ const (
 )
 
 // TenantContextMiddleware creates middleware that sets tenant context per request
-func TenantContextMiddleware(tenantSvc tenantService.TenantService, orgRepo orgRepo.OrganizationRepository, log logger.Logger) app.HandlerFunc {
+func TenantContextMiddleware(
+	tenantSvc tenantService.TenantService,
+	orgRepo orgRepo.OrganizationRepository,
+	log logger.Logger,
+) app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		// Get user ID from context (set by auth middleware)
 		userIDVal, exists := c.Get("userID")
@@ -70,11 +74,19 @@ func TenantContextMiddleware(tenantSvc tenantService.TenantService, orgRepo orgR
 		// Get tenant for this organization
 		tenant, err := tenantSvc.GetTenantByOrganizationID(ctx, orgID)
 		if err != nil {
-			log.Error("Failed to get tenant for organization", zap.Error(err), zap.String("organization_id", orgID.String()))
+			log.Error(
+				"Failed to get tenant for organization",
+				zap.Error(err),
+				zap.String("organization_id", orgID.String()),
+			)
 			// If tenant doesn't exist, create it
 			tenant, err = tenantSvc.CreateTenantForOrganization(ctx, orgID)
 			if err != nil {
-				log.Error("Failed to create tenant for organization", zap.Error(err), zap.String("organization_id", orgID.String()))
+				log.Error(
+					"Failed to create tenant for organization",
+					zap.Error(err),
+					zap.String("organization_id", orgID.String()),
+				)
 				response.InternalServerError(c, "Failed to initialize tenant")
 				c.Abort()
 				return
@@ -108,7 +120,11 @@ func TenantContextMiddleware(tenantSvc tenantService.TenantService, orgRepo orgR
 		c.Set(string(OrgIDKey), orgID)
 		c.Set("role", role) // Organization-specific role from organization_members table
 
-		log.Debug("Tenant context set", zap.String("schema_name", tenant.SchemaName), zap.String("organization_id", orgID.String()))
+		log.Debug(
+			"Tenant context set",
+			zap.String("schema_name", tenant.SchemaName),
+			zap.String("organization_id", orgID.String()),
+		)
 
 		c.Next(ctx)
 	}

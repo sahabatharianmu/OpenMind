@@ -24,11 +24,19 @@ import (
 )
 
 type TeamInvitationService interface {
-	SendInvitation(ctx context.Context, organizationID, invitedBy uuid.UUID, email, role string) (*teamEntity.TeamInvitation, error)
+	SendInvitation(
+		ctx context.Context,
+		organizationID, invitedBy uuid.UUID,
+		email, role string,
+	) (*teamEntity.TeamInvitation, error)
 	AcceptInvitation(ctx context.Context, token string, userID *uuid.UUID) error
 	RegisterAndAcceptInvitation(ctx context.Context, token string, email, password, fullName string) (*uuid.UUID, error)
 	GetInvitationByToken(ctx context.Context, token string) (*teamEntity.TeamInvitation, error)
-	ListInvitations(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]teamEntity.TeamInvitation, int64, error)
+	ListInvitations(
+		ctx context.Context,
+		organizationID uuid.UUID,
+		page, pageSize int,
+	) ([]teamEntity.TeamInvitation, int64, error)
 	CancelInvitation(ctx context.Context, invitationID, organizationID uuid.UUID) error
 	ResendInvitation(ctx context.Context, invitationID, organizationID uuid.UUID) error
 }
@@ -103,11 +111,15 @@ func (s *teamInvitationService) SendInvitation(
 				return nil, response.NewConflict("User is already a member of this organization")
 			}
 			// User exists in a different organization - prevent cross-organization invitations
-			return nil, response.NewBadRequest("This email is already registered with another organization. Users cannot be members of multiple organizations.")
+			return nil, response.NewBadRequest(
+				"This email is already registered with another organization. Users cannot be members of multiple organizations.",
+			)
 		}
 		// User exists but not in any organization (edge case) - still reject
 		// because they should have their own organization when they register
-		return nil, response.NewBadRequest("This email is already registered. Existing users cannot accept invitations as they already belong to their own organization.")
+		return nil, response.NewBadRequest(
+			"This email is already registered. Existing users cannot accept invitations as they already belong to their own organization.",
+		)
 	}
 
 	// Cancel any pending invitations for this email and organization
@@ -199,11 +211,17 @@ func (s *teamInvitationService) AcceptInvitation(ctx context.Context, token stri
 
 	// Reject - existing users cannot accept invitations
 	// They already have their own organization/tenant
-	return response.NewBadRequest("Existing users cannot accept invitations. You already belong to your own organization. Only new users can accept invitations to join an organization.")
+	return response.NewBadRequest(
+		"Existing users cannot accept invitations. You already belong to your own organization. Only new users can accept invitations to join an organization.",
+	)
 }
 
 // RegisterAndAcceptInvitation creates a new user account and accepts the invitation
-func (s *teamInvitationService) RegisterAndAcceptInvitation(ctx context.Context, token string, email, password, fullName string) (*uuid.UUID, error) {
+func (s *teamInvitationService) RegisterAndAcceptInvitation(
+	ctx context.Context,
+	token string,
+	email, password, fullName string,
+) (*uuid.UUID, error) {
 	// Get invitation by token
 	invitation, err := s.invitationRepo.GetByToken(token)
 	if err != nil {
@@ -228,7 +246,9 @@ func (s *teamInvitationService) RegisterAndAcceptInvitation(ctx context.Context,
 	// Check if user already exists - reject if they do (they already have their own organization/tenant)
 	existingUser, _ := s.userRepo.FindByEmail(email)
 	if existingUser != nil {
-		return nil, response.NewBadRequest("This email is already registered. Existing users cannot accept invitations as they already belong to their own organization.")
+		return nil, response.NewBadRequest(
+			"This email is already registered. Existing users cannot accept invitations as they already belong to their own organization.",
+		)
 	}
 
 	// Hash password
@@ -285,7 +305,10 @@ func (s *teamInvitationService) RegisterAndAcceptInvitation(ctx context.Context,
 }
 
 // GetInvitationByToken retrieves an invitation by token
-func (s *teamInvitationService) GetInvitationByToken(ctx context.Context, token string) (*teamEntity.TeamInvitation, error) {
+func (s *teamInvitationService) GetInvitationByToken(
+	ctx context.Context,
+	token string,
+) (*teamEntity.TeamInvitation, error) {
 	return s.invitationRepo.GetByToken(token)
 }
 
@@ -372,4 +395,3 @@ func (s *teamInvitationService) ResendInvitation(ctx context.Context, invitation
 
 	return nil
 }
-

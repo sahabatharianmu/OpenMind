@@ -55,4 +55,3 @@ func IsValidRole(role string) bool {
 	}
 	return false
 }
-

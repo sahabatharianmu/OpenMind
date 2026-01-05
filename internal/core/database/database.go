@@ -126,7 +126,12 @@ func RunMigrations(db *gorm.DB, appLogger logger.Logger, schemaName ...string) e
 // RunMigrationsForAllTenants runs migrations for all active tenant schemas.
 // This ensures all tenants are synced with the latest migration files.
 // Uses pagination to handle large numbers of tenants efficiently.
-func RunMigrationsForAllTenants(ctx context.Context, db *gorm.DB, tenantRepo repository.TenantRepository, appLogger logger.Logger) error {
+func RunMigrationsForAllTenants(
+	ctx context.Context,
+	db *gorm.DB,
+	tenantRepo repository.TenantRepository,
+	appLogger logger.Logger,
+) error {
 	const batchSize = 1000
 	offset := 0
 	successCount := 0

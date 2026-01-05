@@ -106,7 +106,15 @@ func main() {
 	tenantSvc.SetEncryptionService(encryptService)
 	tenantSvc.SetKeyRepository(tenantKeyRepo)
 
-	authService := userService.NewAuthService(userRepo, organizationRepo, jwtService, passwordService, tenantSvc, emailService, appLogger)
+	authService := userService.NewAuthService(
+		userRepo,
+		organizationRepo,
+		jwtService,
+		passwordService,
+		tenantSvc,
+		emailService,
+		appLogger,
+	)
 	userSvc := userService.NewUserService(userRepo, organizationRepo, appLogger)
 
 	usageSvc := subscriptionService.NewUsageService(patientRepo, organizationRepo, appLogger)
@@ -116,7 +124,12 @@ func main() {
 
 	patientSvc := patientService.NewPatientService(patientRepo, patientHandoffRepo, userRepo, gatingSvc, appLogger)
 	appointmentSvc := service.NewAppointmentService(appointmentRepo, patientRepo, userRepo, appLogger)
-	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, patientRepo, encryptService, appLogger)
+	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(
+		clinicalNoteRepo,
+		patientRepo,
+		encryptService,
+		appLogger,
+	)
 	invoiceSvc := invoiceService.NewInvoiceService(
 		invoiceRepo,
 		organizationRepo,
@@ -127,7 +140,13 @@ func main() {
 	)
 	auditLogSvc := auditLogService.NewAuditLogService(auditLogRepo, appLogger)
 
-	organizationSvc := organizationService.NewOrganizationService(organizationRepo, userRepo, usageSvc, gatingSvc, appLogger)
+	organizationSvc := organizationService.NewOrganizationService(
+		organizationRepo,
+		userRepo,
+		usageSvc,
+		gatingSvc,
+		appLogger,
+	)
 	exportSvc := exportService.NewExportService(
 		organizationRepo,
 		patientRepo,

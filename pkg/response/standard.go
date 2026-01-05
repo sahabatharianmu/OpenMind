@@ -131,14 +131,11 @@ func PaginatedResponse(c *app.RequestContext, data interface{}, page, limit int,
 }
 
 func HandleError(c *app.RequestContext, err error) {
-	// Check for LimitReachedError with upgrade prompt
-	// This is a special case that needs to include upgrade prompt in details
-	// We need to check if the error implements the methods we need
-	if limitErr, ok := err.(interface {
-		GetUpgradePrompt() interface{}
+	var limitErr interface {
 		GetAppError() *AppError
-		Error() string
-	}); ok {
+		GetUpgradePrompt() interface{}
+	}
+	if errors.As(err, &limitErr) {
 		appErr := limitErr.GetAppError()
 		upgradePrompt := limitErr.GetUpgradePrompt()
 		if appErr != nil && upgradePrompt != nil {

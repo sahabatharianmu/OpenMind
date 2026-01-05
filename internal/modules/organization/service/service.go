@@ -79,18 +79,18 @@ func (s *organizationService) GetMyOrganization(userID uuid.UUID) (*dto.Organiza
 	}
 
 	return &dto.OrganizationResponse{
-		ID:              org.ID,
-		Name:            org.Name,
-		Type:            org.Type,
+		ID:               org.ID,
+		Name:             org.Name,
+		Type:             org.Type,
 		SubscriptionTier: org.SubscriptionTier,
-		TaxID:           org.TaxID,
-		NPI:             org.NPI,
-		Address:         org.Address,
-		Currency:        org.Currency,
-		Locale:          org.Locale,
-		MemberCount:     int(memberCount),
-		UsageStats:      usageStats,
-		CreatedAt:       org.CreatedAt,
+		TaxID:            org.TaxID,
+		NPI:              org.NPI,
+		Address:          org.Address,
+		Currency:         org.Currency,
+		Locale:           org.Locale,
+		MemberCount:      int(memberCount),
+		UsageStats:       usageStats,
+		CreatedAt:        org.CreatedAt,
 	}, nil
 }
 
@@ -152,18 +152,18 @@ func (s *organizationService) UpdateOrganization(
 	}
 
 	return &dto.OrganizationResponse{
-		ID:              org.ID,
-		Name:            org.Name,
-		Type:            org.Type,
+		ID:               org.ID,
+		Name:             org.Name,
+		Type:             org.Type,
 		SubscriptionTier: org.SubscriptionTier,
-		TaxID:           org.TaxID,
-		NPI:             org.NPI,
-		Address:         org.Address,
-		Currency:        org.Currency,
-		Locale:          org.Locale,
-		MemberCount:     int(memberCount),
-		UsageStats:      usageStats,
-		CreatedAt:       org.CreatedAt,
+		TaxID:            org.TaxID,
+		NPI:              org.NPI,
+		Address:          org.Address,
+		Currency:         org.Currency,
+		Locale:           org.Locale,
+		MemberCount:      int(memberCount),
+		UsageStats:       usageStats,
+		CreatedAt:        org.CreatedAt,
 	}, nil
 }
 
@@ -184,7 +184,11 @@ func (s *organizationService) ListTeamMembers(userID uuid.UUID) ([]dto.TeamMembe
 	for _, member := range members {
 		user, err := s.userRepo.GetByID(member.UserID)
 		if err != nil {
-			s.log.Warn("ListTeamMembers: failed to get user", zap.Error(err), zap.String("user_id", member.UserID.String()))
+			s.log.Warn(
+				"ListTeamMembers: failed to get user",
+				zap.Error(err),
+				zap.String("user_id", member.UserID.String()),
+			)
 			continue
 		}
 

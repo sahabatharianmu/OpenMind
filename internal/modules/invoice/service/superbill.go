@@ -26,9 +26,9 @@ func formatCurrency(amountCents int, currencyCode string, locale string) string 
 		tag = language.AmericanEnglish
 	}
 	p := message.NewPrinter(tag)
-	
+
 	amount := float64(amountCents) / 100.0
-	
+
 	// Basic implementation: currency code + formatted number
 	// In a full implementation, we'd use currency-specific symbols and positions.
 	return p.Sprintf("%s %.2f", currencyCode, amount)

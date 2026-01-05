@@ -8,7 +8,7 @@ import (
 
 type AssignClinicianRequest struct {
 	ClinicianID uuid.UUID `json:"clinician_id" binding:"required"`
-	Role        string    `json:"role" binding:"required,oneof=primary secondary"`
+	Role        string    `json:"role"         binding:"required,oneof=primary secondary"`
 }
 
 type ClinicianAssignmentResponse struct {
@@ -19,4 +19,3 @@ type ClinicianAssignmentResponse struct {
 	AssignedAt  time.Time `json:"assigned_at"`
 	AssignedBy  uuid.UUID `json:"assigned_by"`
 }
-

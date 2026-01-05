@@ -68,12 +68,19 @@ func (r *teamInvitationRepository) GetByToken(token string) (*entity.TeamInvitat
 	return &invitation, nil
 }
 
-func (r *teamInvitationRepository) GetByEmailAndOrganization(email string, organizationID uuid.UUID) (*entity.TeamInvitation, error) {
+func (r *teamInvitationRepository) GetByEmailAndOrganization(
+	email string,
+	organizationID uuid.UUID,
+) (*entity.TeamInvitation, error) {
 	var invitation entity.TeamInvitation
 	if err := r.db.Where("email = ? AND organization_id = ? AND deleted_at IS NULL", email, organizationID).
 		Order("created_at DESC").First(&invitation).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("invitation not found for email %s in organization %s", email, organizationID.String())
+			return nil, fmt.Errorf(
+				"invitation not found for email %s in organization %s",
+				email,
+				organizationID.String(),
+			)
 		}
 		r.log.Error("Failed to get invitation by email and organization", zap.Error(err),
 			zap.String("email", email),
@@ -83,7 +90,10 @@ func (r *teamInvitationRepository) GetByEmailAndOrganization(email string, organ
 	return &invitation, nil
 }
 
-func (r *teamInvitationRepository) ListByOrganization(organizationID uuid.UUID, limit, offset int) ([]entity.TeamInvitation, int64, error) {
+func (r *teamInvitationRepository) ListByOrganization(
+	organizationID uuid.UUID,
+	limit, offset int,
+) ([]entity.TeamInvitation, int64, error) {
 	var invitations []entity.TeamInvitation
 	var total int64
 
@@ -132,4 +142,3 @@ func (r *teamInvitationRepository) CancelPendingInvitations(email string, organi
 	}
 	return nil
 }
-

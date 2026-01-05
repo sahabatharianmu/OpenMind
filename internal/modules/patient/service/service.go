@@ -32,23 +32,56 @@ type PatientService interface {
 		userRole string,
 	) (*dto.PatientResponse, error)
 	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
-	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, userID uuid.UUID, userRole string) (*dto.PatientResponse, error)
-	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int, userID uuid.UUID, userRole string) ([]dto.PatientResponse, int64, error)
+	Get(
+		ctx context.Context,
+		id uuid.UUID,
+		organizationID uuid.UUID,
+		userID uuid.UUID,
+		userRole string,
+	) (*dto.PatientResponse, error)
+	List(
+		ctx context.Context,
+		organizationID uuid.UUID,
+		page, pageSize int,
+		userID uuid.UUID,
+		userRole string,
+	) ([]dto.PatientResponse, int64, error)
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
-	AssignClinician(ctx context.Context, patientID uuid.UUID, req dto.AssignClinicianRequest, organizationID uuid.UUID, userID uuid.UUID) error
-	UnassignClinician(ctx context.Context, patientID, clinicianID uuid.UUID, organizationID uuid.UUID, userID uuid.UUID) error
-	GetAssignedClinicians(ctx context.Context, patientID uuid.UUID, organizationID uuid.UUID) ([]dto.ClinicianAssignmentResponse, error)
+	AssignClinician(
+		ctx context.Context,
+		patientID uuid.UUID,
+		req dto.AssignClinicianRequest,
+		organizationID uuid.UUID,
+		userID uuid.UUID,
+	) error
+	UnassignClinician(
+		ctx context.Context,
+		patientID, clinicianID uuid.UUID,
+		organizationID uuid.UUID,
+		userID uuid.UUID,
+	) error
+	GetAssignedClinicians(
+		ctx context.Context,
+		patientID uuid.UUID,
+		organizationID uuid.UUID,
+	) ([]dto.ClinicianAssignmentResponse, error)
 }
 
 type patientService struct {
-	repo            repository.PatientRepository
-	handoffRepo     repository.PatientHandoffRepository
-	userRepo        userRepo.UserRepository
-	gatingService   subscriptionService.FeatureGatingService
-	log             logger.Logger
+	repo          repository.PatientRepository
+	handoffRepo   repository.PatientHandoffRepository
+	userRepo      userRepo.UserRepository
+	gatingService subscriptionService.FeatureGatingService
+	log           logger.Logger
 }
 
-func NewPatientService(repo repository.PatientRepository, handoffRepo repository.PatientHandoffRepository, userRepo userRepo.UserRepository, gatingService subscriptionService.FeatureGatingService, log logger.Logger) PatientService {
+func NewPatientService(
+	repo repository.PatientRepository,
+	handoffRepo repository.PatientHandoffRepository,
+	userRepo userRepo.UserRepository,
+	gatingService subscriptionService.FeatureGatingService,
+	log logger.Logger,
+) PatientService {
 	return &patientService{
 		repo:          repo,
 		handoffRepo:   handoffRepo,

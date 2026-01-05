@@ -46,7 +46,11 @@ func (p *stripeProvider) CreatePaymentMethod(ctx context.Context, token string) 
 func (p *stripeProvider) DeletePaymentMethod(ctx context.Context, paymentMethodID string) error {
 	_, err := paymentmethod.Detach(paymentMethodID, nil)
 	if err != nil {
-		p.log.Error("Failed to delete payment method from Stripe", zap.Error(err), zap.String("payment_method_id", paymentMethodID))
+		p.log.Error(
+			"Failed to delete payment method from Stripe",
+			zap.Error(err),
+			zap.String("payment_method_id", paymentMethodID),
+		)
 		return fmt.Errorf("failed to delete payment method: %w", err)
 	}
 
@@ -67,7 +71,11 @@ func (p *stripeProvider) ListPaymentMethods(ctx context.Context) ([]PaymentMetho
 func (p *stripeProvider) GetPaymentMethod(ctx context.Context, paymentMethodID string) (*PaymentMethodInfo, error) {
 	pm, err := paymentmethod.Get(paymentMethodID, nil)
 	if err != nil {
-		p.log.Error("Failed to get payment method from Stripe", zap.Error(err), zap.String("payment_method_id", paymentMethodID))
+		p.log.Error(
+			"Failed to get payment method from Stripe",
+			zap.Error(err),
+			zap.String("payment_method_id", paymentMethodID),
+		)
 		return nil, fmt.Errorf("failed to get payment method: %w", err)
 	}
 
@@ -82,4 +90,3 @@ func (p *stripeProvider) GetPaymentMethod(ctx context.Context, paymentMethodID s
 
 	return info, nil
 }
-

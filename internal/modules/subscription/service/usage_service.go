@@ -87,4 +87,3 @@ func (s *usageService) GetUsageStats(ctx context.Context, organizationID uuid.UU
 		ClinicianCount: clinicianCount,
 	}, nil
 }
-

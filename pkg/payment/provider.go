@@ -44,10 +44,10 @@ const (
 
 // WebhookResult represents the result of processing a payment webhook
 type WebhookResult struct {
-	GatewayTransactionID string       // Transaction ID from payment gateway
-	PaymentCode          string       // Our internal payment reference code
+	GatewayTransactionID string        // Transaction ID from payment gateway
+	PaymentCode          string        // Our internal payment reference code
 	Status               PaymentStatus // Payment status
-	RawPayload           string       // Raw webhook payload for debugging
+	RawPayload           string        // Raw webhook payload for debugging
 }
 
 // PaymentStatus represents the status of a payment
@@ -60,4 +60,3 @@ const (
 	PaymentStatusCancelled PaymentStatus = "cancelled"
 	PaymentStatusRefunded  PaymentStatus = "refunded"
 )
-

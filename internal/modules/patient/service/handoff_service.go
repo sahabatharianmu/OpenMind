@@ -157,7 +157,7 @@ func (s *patientHandoffService) RequestHandoff(
 		ReceivingClinicianID:  receivingClinicianID,
 		Status:                handoffEntity.StatusRequested,
 		RequestedRole:         roleToAssign,
-		Message:             message,
+		Message:               message,
 		RequestedAt:           time.Now(),
 	}
 
@@ -166,7 +166,7 @@ func (s *patientHandoffService) RequestHandoff(
 			zap.String("patient_id", patientID.String()),
 			zap.String("requesting_clinician_id", requestingClinicianID.String()),
 			zap.String("receiving_clinician_id", receivingClinicianID.String()))
-		
+
 		// Check if it's a foreign key constraint error
 		if strings.Contains(err.Error(), "foreign key constraint") {
 			// Verify patient still exists
@@ -176,7 +176,7 @@ func (s *patientHandoffService) RequestHandoff(
 			}
 			return nil, response.NewInternalServerError("Failed to create handoff request. Please try again.")
 		}
-		
+
 		return nil, fmt.Errorf("failed to create handoff: %w", err)
 	}
 
@@ -224,23 +224,23 @@ func (s *patientHandoffService) RequestHandoff(
 
 	// 12. Build response
 	response := &dto.HandoffResponse{
-		ID:                     handoff.ID,
-		PatientID:              handoff.PatientID,
-		PatientName:            patientName,
-		RequestingClinicianID:  handoff.RequestingClinicianID,
-		RequestingClinicianName: requestingUser.FullName,
+		ID:                       handoff.ID,
+		PatientID:                handoff.PatientID,
+		PatientName:              patientName,
+		RequestingClinicianID:    handoff.RequestingClinicianID,
+		RequestingClinicianName:  requestingUser.FullName,
 		RequestingClinicianEmail: requestingUser.Email,
-		ReceivingClinicianID:   handoff.ReceivingClinicianID,
-		ReceivingClinicianName: receivingUser.FullName,
-		ReceivingClinicianEmail: receivingUser.Email,
-		Status:                 handoff.Status,
-		RequestedRole:          handoff.RequestedRole,
-		Message:                handoff.Message,
-		RequestedAt:            handoff.RequestedAt,
-		RespondedAt:            handoff.RespondedAt,
-		RespondedBy:            handoff.RespondedBy,
-		CreatedAt:              handoff.CreatedAt,
-		UpdatedAt:              handoff.UpdatedAt,
+		ReceivingClinicianID:     handoff.ReceivingClinicianID,
+		ReceivingClinicianName:   receivingUser.FullName,
+		ReceivingClinicianEmail:  receivingUser.Email,
+		Status:                   handoff.Status,
+		RequestedRole:            handoff.RequestedRole,
+		Message:                  handoff.Message,
+		RequestedAt:              handoff.RequestedAt,
+		RespondedAt:              handoff.RespondedAt,
+		RespondedBy:              handoff.RespondedBy,
+		CreatedAt:                handoff.CreatedAt,
+		UpdatedAt:                handoff.UpdatedAt,
 	}
 
 	s.log.Info("Patient handoff requested", zap.String("handoff_id", handoff.ID.String()),
@@ -336,7 +336,13 @@ func (s *patientHandoffService) ApproveHandoff(
 	if err := s.patientSvc.UnassignClinician(ctx, handoff.PatientID, handoff.RequestingClinicianID, organizationID, approvingClinicianID); err != nil {
 		s.log.Error("Failed to unassign requesting clinician", zap.Error(err))
 		// Try to rollback: unassign receiving clinician
-		_ = s.patientSvc.UnassignClinician(ctx, handoff.PatientID, handoff.ReceivingClinicianID, organizationID, approvingClinicianID)
+		_ = s.patientSvc.UnassignClinician(
+			ctx,
+			handoff.PatientID,
+			handoff.ReceivingClinicianID,
+			organizationID,
+			approvingClinicianID,
+		)
 		return fmt.Errorf("failed to unassign requesting clinician: %w", err)
 	}
 
@@ -479,7 +485,11 @@ func (s *patientHandoffService) RejectHandoff(
 	// 8. Create in-app notification
 	handoffEntityType := entity.RelatedEntityTypePatientHandoff
 	if requestingUser != nil {
-		rejectionMessage := fmt.Sprintf("%s has rejected your handoff request for patient %s.", rejectingUser.FullName, patientName)
+		rejectionMessage := fmt.Sprintf(
+			"%s has rejected your handoff request for patient %s.",
+			rejectingUser.FullName,
+			patientName,
+		)
 		if reasonText != "" {
 			rejectionMessage += fmt.Sprintf(" Reason: %s", reasonText)
 		}
@@ -567,7 +577,10 @@ func (s *patientHandoffService) CancelHandoff(
 	return nil
 }
 
-func (s *patientHandoffService) GetHandoff(ctx context.Context, handoffID, userID, organizationID uuid.UUID) (*dto.HandoffResponse, error) {
+func (s *patientHandoffService) GetHandoff(
+	ctx context.Context,
+	handoffID, userID, organizationID uuid.UUID,
+) (*dto.HandoffResponse, error) {
 	handoff, err := s.handoffRepo.GetByID(handoffID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get handoff: %w", err)
@@ -595,7 +608,10 @@ func (s *patientHandoffService) GetHandoff(ctx context.Context, handoffID, userI
 	return s.mapHandoffToResponse(handoff, patient)
 }
 
-func (s *patientHandoffService) ListHandoffs(ctx context.Context, patientID, userID, organizationID uuid.UUID) ([]dto.HandoffResponse, error) {
+func (s *patientHandoffService) ListHandoffs(
+	ctx context.Context,
+	patientID, userID, organizationID uuid.UUID,
+) ([]dto.HandoffResponse, error) {
 	// Verify patient belongs to organization
 	patient, err := s.patientRepo.FindByID(patientID)
 	if err != nil {
@@ -623,7 +639,10 @@ func (s *patientHandoffService) ListHandoffs(ctx context.Context, patientID, use
 	return responses, nil
 }
 
-func (s *patientHandoffService) ListPendingHandoffs(ctx context.Context, clinicianID, organizationID uuid.UUID) ([]dto.HandoffResponse, error) {
+func (s *patientHandoffService) ListPendingHandoffs(
+	ctx context.Context,
+	clinicianID, organizationID uuid.UUID,
+) ([]dto.HandoffResponse, error) {
 	handoffs, err := s.handoffRepo.GetPendingByReceivingClinician(clinicianID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pending handoffs: %w", err)
@@ -651,7 +670,10 @@ func (s *patientHandoffService) ListPendingHandoffs(ctx context.Context, clinici
 	return responses, nil
 }
 
-func (s *patientHandoffService) mapHandoffToResponse(handoff *handoffEntity.PatientHandoff, patient *handoffEntity.Patient) (*dto.HandoffResponse, error) {
+func (s *patientHandoffService) mapHandoffToResponse(
+	handoff *handoffEntity.PatientHandoff,
+	patient *handoffEntity.Patient,
+) (*dto.HandoffResponse, error) {
 	requestingUser, err := s.userRepo.GetByID(handoff.RequestingClinicianID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get requesting user: %w", err)
@@ -665,23 +687,22 @@ func (s *patientHandoffService) mapHandoffToResponse(handoff *handoffEntity.Pati
 	patientName := fmt.Sprintf("%s %s", patient.FirstName, patient.LastName)
 
 	return &dto.HandoffResponse{
-		ID:                     handoff.ID,
-		PatientID:             handoff.PatientID,
-		PatientName:            patientName,
-		RequestingClinicianID:  handoff.RequestingClinicianID,
-		RequestingClinicianName: requestingUser.FullName,
+		ID:                       handoff.ID,
+		PatientID:                handoff.PatientID,
+		PatientName:              patientName,
+		RequestingClinicianID:    handoff.RequestingClinicianID,
+		RequestingClinicianName:  requestingUser.FullName,
 		RequestingClinicianEmail: requestingUser.Email,
-		ReceivingClinicianID:   handoff.ReceivingClinicianID,
-		ReceivingClinicianName: receivingUser.FullName,
-		ReceivingClinicianEmail: receivingUser.Email,
-		Status:                 handoff.Status,
-		RequestedRole:          handoff.RequestedRole,
-		Message:                handoff.Message,
-		RequestedAt:            handoff.RequestedAt,
-		RespondedAt:            handoff.RespondedAt,
-		RespondedBy:            handoff.RespondedBy,
-		CreatedAt:              handoff.CreatedAt,
-		UpdatedAt:              handoff.UpdatedAt,
+		ReceivingClinicianID:     handoff.ReceivingClinicianID,
+		ReceivingClinicianName:   receivingUser.FullName,
+		ReceivingClinicianEmail:  receivingUser.Email,
+		Status:                   handoff.Status,
+		RequestedRole:            handoff.RequestedRole,
+		Message:                  handoff.Message,
+		RequestedAt:              handoff.RequestedAt,
+		RespondedAt:              handoff.RespondedAt,
+		RespondedBy:              handoff.RespondedBy,
+		CreatedAt:                handoff.CreatedAt,
+		UpdatedAt:                handoff.UpdatedAt,
 	}, nil
 }
-

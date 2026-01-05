@@ -42,8 +42,10 @@ func (p *midtransProvider) CreatePaymentMethod(ctx context.Context, token string
 	// For now, we'll create a QRIS payment with a default amount
 	// TODO: Extend the interface to support amount for QRIS payments
 
-	p.log.Warn("CreatePaymentMethod called for Midtrans QRIS - QRIS requires amount which is not available in the interface",
-		zap.String("token", token))
+	p.log.Warn(
+		"CreatePaymentMethod called for Midtrans QRIS - QRIS requires amount which is not available in the interface",
+		zap.String("token", token),
+	)
 
 	// Return an error indicating that QRIS payments need amount
 	return "", fmt.Errorf("Midtrans QRIS payments require amount - use CreateQRISPayment directly")
@@ -70,7 +72,11 @@ func (p *midtransProvider) GetPaymentMethod(ctx context.Context, paymentMethodID
 	// Check transaction status
 	status, err := p.service.CheckTransactionStatus(ctx, paymentMethodID)
 	if err != nil {
-		p.log.Error("Failed to check QRIS transaction status", zap.Error(err), zap.String("transaction_id", paymentMethodID))
+		p.log.Error(
+			"Failed to check QRIS transaction status",
+			zap.Error(err),
+			zap.String("transaction_id", paymentMethodID),
+		)
 		return nil, fmt.Errorf("failed to get transaction status: %w", err)
 	}
 
@@ -94,11 +100,18 @@ func (p *midtransProvider) GetPaymentMethod(ctx context.Context, paymentMethodID
 
 // CreateQRISPayment is a helper method to create QRIS payments with amount
 // This should be called directly from the service layer, not through the PaymentProvider interface
-func (p *midtransProvider) CreateQRISPayment(ctx context.Context, paymentCode string, amount decimal.Decimal) (*midtrans.PaymentResponse, error) {
+func (p *midtransProvider) CreateQRISPayment(
+	ctx context.Context,
+	paymentCode string,
+	amount decimal.Decimal,
+) (*midtrans.PaymentResponse, error) {
 	return p.service.CreateQRISPayment(ctx, paymentCode, amount)
 }
 
 // CheckTransactionStatus is a helper method to check QRIS transaction status
-func (p *midtransProvider) CheckTransactionStatus(ctx context.Context, transactionID string) (*midtrans.TransactionStatusResponse, error) {
+func (p *midtransProvider) CheckTransactionStatus(
+	ctx context.Context,
+	transactionID string,
+) (*midtrans.TransactionStatusResponse, error) {
 	return p.service.CheckTransactionStatus(ctx, transactionID)
 }

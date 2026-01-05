@@ -124,4 +124,3 @@ func (r *notificationRepository) GetByID(id uuid.UUID) (*entity.Notification, er
 	}
 	return &notification, nil
 }
-

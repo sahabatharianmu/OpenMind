@@ -68,7 +68,10 @@ func (s *tenantService) GenerateSchemaName(organizationID uuid.UUID) string {
 }
 
 // CreateTenantForOrganization creates a tenant record and its schema
-func (s *tenantService) CreateTenantForOrganization(ctx context.Context, organizationID uuid.UUID) (*entity.Tenant, error) {
+func (s *tenantService) CreateTenantForOrganization(
+	ctx context.Context,
+	organizationID uuid.UUID,
+) (*entity.Tenant, error) {
 	schemaName := s.GenerateSchemaName(organizationID)
 
 	// Check if tenant already exists
@@ -93,7 +96,11 @@ func (s *tenantService) CreateTenantForOrganization(ctx context.Context, organiz
 	if err := s.repo.Create(tenant); err != nil {
 		// If tenant creation fails, try to clean up schema
 		_ = s.DropSchema(ctx, schemaName)
-		s.log.Error("Failed to create tenant record", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		s.log.Error(
+			"Failed to create tenant record",
+			zap.Error(err),
+			zap.String("organization_id", organizationID.String()),
+		)
 		return nil, fmt.Errorf("failed to create tenant record: %w", err)
 	}
 
@@ -119,7 +126,11 @@ func (s *tenantService) CreateTenantForOrganization(ctx context.Context, organiz
 		}
 	}
 
-	s.log.Info("Tenant created successfully", zap.String("organization_id", organizationID.String()), zap.String("schema_name", schemaName))
+	s.log.Info(
+		"Tenant created successfully",
+		zap.String("organization_id", organizationID.String()),
+		zap.String("schema_name", schemaName),
+	)
 	return tenant, nil
 }
 
@@ -161,7 +172,10 @@ func (s *tenantService) generateTenantEncryptionKey(ctx context.Context, tenantI
 }
 
 // GetTenantByOrganizationID retrieves tenant by organization ID
-func (s *tenantService) GetTenantByOrganizationID(ctx context.Context, organizationID uuid.UUID) (*entity.Tenant, error) {
+func (s *tenantService) GetTenantByOrganizationID(
+	ctx context.Context,
+	organizationID uuid.UUID,
+) (*entity.Tenant, error) {
 	return s.repo.GetByOrganizationID(organizationID)
 }
 

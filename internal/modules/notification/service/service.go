@@ -13,8 +13,18 @@ import (
 )
 
 type NotificationService interface {
-	CreateNotification(ctx context.Context, userID uuid.UUID, notificationType, title, message string, relatedEntityType *string, relatedEntityID *uuid.UUID) error
-	GetUserNotifications(ctx context.Context, userID uuid.UUID, limit, offset int) ([]dto.NotificationResponse, int64, error)
+	CreateNotification(
+		ctx context.Context,
+		userID uuid.UUID,
+		notificationType, title, message string,
+		relatedEntityType *string,
+		relatedEntityID *uuid.UUID,
+	) error
+	GetUserNotifications(
+		ctx context.Context,
+		userID uuid.UUID,
+		limit, offset int,
+	) ([]dto.NotificationResponse, int64, error)
 	MarkAsRead(ctx context.Context, notificationID, userID uuid.UUID) error
 	MarkAllAsRead(ctx context.Context, userID uuid.UUID) error
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -62,7 +72,11 @@ func (s *notificationService) CreateNotification(
 	return nil
 }
 
-func (s *notificationService) GetUserNotifications(ctx context.Context, userID uuid.UUID, limit, offset int) ([]dto.NotificationResponse, int64, error) {
+func (s *notificationService) GetUserNotifications(
+	ctx context.Context,
+	userID uuid.UUID,
+	limit, offset int,
+) ([]dto.NotificationResponse, int64, error) {
 	notifications, err := s.repo.GetByUserID(userID, limit, offset)
 	if err != nil {
 		s.log.Error("Failed to get user notifications", zap.Error(err),
@@ -73,17 +87,17 @@ func (s *notificationService) GetUserNotifications(ctx context.Context, userID u
 	responses := make([]dto.NotificationResponse, len(notifications))
 	for i, n := range notifications {
 		responses[i] = dto.NotificationResponse{
-			ID:               n.ID,
-			UserID:           n.UserID,
-			Type:             n.Type,
-			Title:            n.Title,
-			Message:          n.Message,
+			ID:                n.ID,
+			UserID:            n.UserID,
+			Type:              n.Type,
+			Title:             n.Title,
+			Message:           n.Message,
 			RelatedEntityType: n.RelatedEntityType,
 			RelatedEntityID:   n.RelatedEntityID,
-			IsRead:           n.IsRead,
-			ReadAt:           n.ReadAt,
-			CreatedAt:        n.CreatedAt,
-			UpdatedAt:        n.UpdatedAt,
+			IsRead:            n.IsRead,
+			ReadAt:            n.ReadAt,
+			CreatedAt:         n.CreatedAt,
+			UpdatedAt:         n.UpdatedAt,
 		}
 	}
 
@@ -143,4 +157,3 @@ func (s *notificationService) GetUnreadCount(ctx context.Context, userID uuid.UU
 
 	return count, nil
 }
-

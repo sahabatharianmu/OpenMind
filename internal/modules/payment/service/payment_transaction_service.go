@@ -23,8 +23,15 @@ import (
 
 // PaymentTransactionService defines the interface for payment transaction operations
 type PaymentTransactionService interface {
-	CreateQRISPayment(ctx context.Context, organizationID uuid.UUID, req dto.CreateQRISPaymentRequest) (*dto.QRISPaymentResponse, error)
-	CheckPaymentStatus(ctx context.Context, organizationID, transactionID uuid.UUID) (*dto.CheckPaymentStatusResponse, error)
+	CreateQRISPayment(
+		ctx context.Context,
+		organizationID uuid.UUID,
+		req dto.CreateQRISPaymentRequest,
+	) (*dto.QRISPaymentResponse, error)
+	CheckPaymentStatus(
+		ctx context.Context,
+		organizationID, transactionID uuid.UUID,
+	) (*dto.CheckPaymentStatusResponse, error)
 	ProcessQRISWebhook(ctx context.Context, payload []byte, headers map[string]string) error
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
@@ -89,7 +96,11 @@ func (s *paymentTransactionService) CreateQRISPayment(
 	// Create QRIS payment via Midtrans
 	midtransResp, err := s.midtransService.CreateQRISPayment(ctx, partnerReferenceNo, idrAmount)
 	if err != nil {
-		s.log.Error("Failed to create QRIS payment via Midtrans", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		s.log.Error(
+			"Failed to create QRIS payment via Midtrans",
+			zap.Error(err),
+			zap.String("organization_id", organizationID.String()),
+		)
 		return nil, response.NewInternalServerError(fmt.Sprintf("Failed to create QRIS payment: %v", err))
 	}
 
@@ -119,7 +130,11 @@ func (s *paymentTransactionService) CreateQRISPayment(
 
 	// Save to database
 	if err := s.transactionRepo.Create(transaction); err != nil {
-		s.log.Error("Failed to save payment transaction", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		s.log.Error(
+			"Failed to save payment transaction",
+			zap.Error(err),
+			zap.String("organization_id", organizationID.String()),
+		)
 		return nil, response.NewInternalServerError("Failed to save payment transaction")
 	}
 
@@ -147,7 +162,11 @@ func (s *paymentTransactionService) CheckPaymentStatus(
 	// Get transaction from database
 	transaction, err := s.transactionRepo.FindByID(transactionID)
 	if err != nil {
-		s.log.Error("Failed to find payment transaction", zap.Error(err), zap.String("transaction_id", transactionID.String()))
+		s.log.Error(
+			"Failed to find payment transaction",
+			zap.Error(err),
+			zap.String("transaction_id", transactionID.String()),
+		)
 		return nil, response.NewNotFound("Payment transaction not found")
 	}
 
@@ -171,7 +190,9 @@ func (s *paymentTransactionService) GetOrganizationID(ctx context.Context, userI
 }
 
 // mapTransactionToStatusResponse maps a payment transaction to status response DTO
-func (s *paymentTransactionService) mapTransactionToStatusResponse(transaction *paymentEntity.PaymentTransaction) *dto.CheckPaymentStatusResponse {
+func (s *paymentTransactionService) mapTransactionToStatusResponse(
+	transaction *paymentEntity.PaymentTransaction,
+) *dto.CheckPaymentStatusResponse {
 	amountInUSD := float64(transaction.Amount) / 100.0 // Convert cents to USD
 
 	return &dto.CheckPaymentStatusResponse{
@@ -225,7 +246,11 @@ func (s *paymentTransactionService) ProcessMidtransWebhook(
 	// Find transaction by partner reference number
 	transaction, err := s.transactionRepo.FindByPartnerReferenceNo(partnerRefNo)
 	if err != nil {
-		s.log.Error("Failed to find payment transaction for webhook", zap.Error(err), zap.String("partner_reference_no", partnerRefNo))
+		s.log.Error(
+			"Failed to find payment transaction for webhook",
+			zap.Error(err),
+			zap.String("partner_reference_no", partnerRefNo),
+		)
 		return response.NewNotFound("Payment transaction not found")
 	}
 
@@ -265,13 +290,21 @@ func (s *paymentTransactionService) ProcessMidtransWebhook(
 		newStatus = "failed"
 	default:
 		// For other statuses, keep as pending or map appropriately
-		s.log.Warn("Unknown Midtrans status code", zap.String("status", latestStatus), zap.String("partner_reference_no", partnerRefNo))
+		s.log.Warn(
+			"Unknown Midtrans status code",
+			zap.String("status", latestStatus),
+			zap.String("partner_reference_no", partnerRefNo),
+		)
 		newStatus = "pending"
 	}
 
 	// Update transaction status
 	if err := s.transactionRepo.UpdateStatus(transaction.ID, newStatus, paidAt); err != nil {
-		s.log.Error("Failed to update payment transaction status from webhook", zap.Error(err), zap.String("transaction_id", transaction.ID.String()))
+		s.log.Error(
+			"Failed to update payment transaction status from webhook",
+			zap.Error(err),
+			zap.String("transaction_id", transaction.ID.String()),
+		)
 		return response.NewInternalServerError("Failed to update payment transaction status")
 	}
 
@@ -285,7 +318,11 @@ func (s *paymentTransactionService) ProcessMidtransWebhook(
 	// If payment is successful and type is subscription, upgrade organization tier
 	if newStatus == "paid" && transaction.Type == "subscription" {
 		if err := s.handleSubscriptionUpgrade(ctx, transaction); err != nil {
-			s.log.Error("Failed to handle subscription upgrade", zap.Error(err), zap.String("transaction_id", transaction.ID.String()))
+			s.log.Error(
+				"Failed to handle subscription upgrade",
+				zap.Error(err),
+				zap.String("transaction_id", transaction.ID.String()),
+			)
 			// Don't fail the webhook, just log the error
 		}
 	}
@@ -390,7 +427,11 @@ func (s *paymentTransactionService) ProcessQRISWebhook(
 
 	// Update transaction status
 	if err := s.transactionRepo.UpdateStatus(transaction.ID, newStatus, paidAt); err != nil {
-		s.log.Error("Failed to update payment transaction status from webhook", zap.Error(err), zap.String("transaction_id", transaction.ID.String()))
+		s.log.Error(
+			"Failed to update payment transaction status from webhook",
+			zap.Error(err),
+			zap.String("transaction_id", transaction.ID.String()),
+		)
 		return response.NewInternalServerError("Failed to update payment transaction status")
 	}
 
@@ -405,7 +446,11 @@ func (s *paymentTransactionService) ProcessQRISWebhook(
 	// If payment is successful and type is subscription, upgrade organization tier
 	if newStatus == "paid" && transaction.Type == "subscription" {
 		if err := s.handleSubscriptionUpgrade(ctx, transaction); err != nil {
-			s.log.Error("Failed to handle subscription upgrade", zap.Error(err), zap.String("transaction_id", transaction.ID.String()))
+			s.log.Error(
+				"Failed to handle subscription upgrade",
+				zap.Error(err),
+				zap.String("transaction_id", transaction.ID.String()),
+			)
 			// Don't fail the webhook, just log the error
 		}
 	}
@@ -414,7 +459,10 @@ func (s *paymentTransactionService) ProcessQRISWebhook(
 }
 
 // handleSubscriptionUpgrade upgrades organization subscription tier and sends notifications
-func (s *paymentTransactionService) handleSubscriptionUpgrade(ctx context.Context, transaction *paymentEntity.PaymentTransaction) error {
+func (s *paymentTransactionService) handleSubscriptionUpgrade(
+	ctx context.Context,
+	transaction *paymentEntity.PaymentTransaction,
+) error {
 	// Get organization
 	org, err := s.organizationRepo.GetByID(transaction.OrganizationID)
 	if err != nil {
@@ -459,7 +507,11 @@ func (s *paymentTransactionService) handleSubscriptionUpgrade(ctx context.Contex
 
 		user, err := s.userRepo.GetByID(member.UserID)
 		if err != nil {
-			s.log.Warn("Failed to get user for payment notification", zap.Error(err), zap.String("user_id", member.UserID.String()))
+			s.log.Warn(
+				"Failed to get user for payment notification",
+				zap.Error(err),
+				zap.String("user_id", member.UserID.String()),
+			)
 			continue
 		}
 
@@ -474,7 +526,11 @@ func (s *paymentTransactionService) handleSubscriptionUpgrade(ctx context.Contex
 }
 
 // sendPaymentSuccessEmail sends an email notification when payment is successful
-func (s *paymentTransactionService) sendPaymentSuccessEmail(to, userName, orgName string, amount float64, currency string) error {
+func (s *paymentTransactionService) sendPaymentSuccessEmail(
+	to, userName, orgName string,
+	amount float64,
+	currency string,
+) error {
 	subject := "Payment Successful - Subscription Upgraded"
 
 	htmlBody := fmt.Sprintf(`

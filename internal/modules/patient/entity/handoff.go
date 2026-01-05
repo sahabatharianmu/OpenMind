@@ -9,17 +9,17 @@ import (
 // PatientHandoff represents a patient handoff request between clinicians
 type PatientHandoff struct {
 	ID                    uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	PatientID             uuid.UUID  `gorm:"type:uuid;not null" json:"patient_id"`
-	RequestingClinicianID uuid.UUID  `gorm:"type:uuid;not null" json:"requesting_clinician_id"`
-	ReceivingClinicianID  uuid.UUID  `gorm:"type:uuid;not null" json:"receiving_clinician_id"`
-	Status                string     `gorm:"type:varchar(50);not null;default:'requested'" json:"status"`
-	RequestedRole         *string    `gorm:"type:varchar(50)" json:"requested_role"` // Role receiving clinician should get (inherits if null)
-	Message               *string    `gorm:"type:text" json:"message"`
-	RequestedAt           time.Time  `gorm:"autoCreateTime" json:"requested_at"`
-	RespondedAt           *time.Time `gorm:"" json:"responded_at"`
-	RespondedBy           *uuid.UUID `gorm:"type:uuid" json:"responded_by"`
-	CreatedAt             time.Time  `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt             time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
+	PatientID             uuid.UUID  `gorm:"type:uuid;not null"                             json:"patient_id"`
+	RequestingClinicianID uuid.UUID  `gorm:"type:uuid;not null"                             json:"requesting_clinician_id"`
+	ReceivingClinicianID  uuid.UUID  `gorm:"type:uuid;not null"                             json:"receiving_clinician_id"`
+	Status                string     `gorm:"type:varchar(50);not null;default:'requested'"  json:"status"`
+	RequestedRole         *string    `gorm:"type:varchar(50)"                               json:"requested_role"` // Role receiving clinician should get (inherits if null)
+	Message               *string    `gorm:"type:text"                                      json:"message"`
+	RequestedAt           time.Time  `gorm:"autoCreateTime"                                 json:"requested_at"`
+	RespondedAt           *time.Time `gorm:""                                               json:"responded_at"`
+	RespondedBy           *uuid.UUID `gorm:"type:uuid"                                      json:"responded_by"`
+	CreatedAt             time.Time  `gorm:"autoCreateTime"                                 json:"created_at"`
+	UpdatedAt             time.Time  `gorm:"autoUpdateTime"                                 json:"updated_at"`
 }
 
 func (PatientHandoff) TableName() string {
@@ -58,4 +58,3 @@ func (h *PatientHandoff) CanBeCancelled() bool {
 func (h *PatientHandoff) IsFinal() bool {
 	return h.Status == StatusApproved || h.Status == StatusRejected || h.Status == StatusCancelled
 }
-

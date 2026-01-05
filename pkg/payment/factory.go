@@ -25,4 +25,3 @@ func NewPaymentProvider(cfg *config.PaymentConfig, log logger.Logger) (PaymentPr
 		return nil, fmt.Errorf("unsupported payment provider: %s", cfg.Provider)
 	}
 }
-

@@ -24,10 +24,10 @@ func NewAdminPlanHandler(service service.PlanService) *AdminPlanHandler {
 }
 
 type CreatePlanRequest struct {
-	Name        string                 `json:"name" validate:"required"`
+	Name        string                 `json:"name"        validate:"required"`
 	Description string                 `json:"description"`
-	Price       int64                  `json:"price" validate:"gte=0"`
-	Currency    string                 `json:"currency" validate:"required,len=3"`
+	Price       int64                  `json:"price"       validate:"gte=0"`
+	Currency    string                 `json:"currency"    validate:"required,len=3"`
 	Limits      map[string]interface{} `json:"limits"`
 	IsActive    bool                   `json:"is_active"`
 }
@@ -35,8 +35,8 @@ type CreatePlanRequest struct {
 type UpdatePlanRequest struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
-	Price       int64                  `json:"price" validate:"gte=0"`
-	Currency    string                 `json:"currency" validate:"len=3"`
+	Price       int64                  `json:"price"       validate:"gte=0"`
+	Currency    string                 `json:"currency"    validate:"len=3"`
 	Limits      map[string]interface{} `json:"limits"`
 	IsActive    *bool                  `json:"is_active"`
 }

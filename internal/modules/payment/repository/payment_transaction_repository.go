@@ -38,7 +38,11 @@ func NewPaymentTransactionRepository(db *gorm.DB, log logger.Logger) PaymentTran
 // Create a new payment transaction
 func (r *paymentTransactionRepository) Create(transaction *entity.PaymentTransaction) error {
 	if err := r.db.Create(transaction).Error; err != nil {
-		r.log.Error("Failed to create payment transaction", zap.Error(err), zap.String("organization_id", transaction.OrganizationID.String()))
+		r.log.Error(
+			"Failed to create payment transaction",
+			zap.Error(err),
+			zap.String("organization_id", transaction.OrganizationID.String()),
+		)
 		return err
 	}
 	return nil
@@ -66,11 +70,17 @@ func (r *paymentTransactionRepository) FindByID(id uuid.UUID) (*entity.PaymentTr
 }
 
 // FindByPartnerReferenceNo finds a payment transaction by partner reference number
-func (r *paymentTransactionRepository) FindByPartnerReferenceNo(partnerReferenceNo string) (*entity.PaymentTransaction, error) {
+func (r *paymentTransactionRepository) FindByPartnerReferenceNo(
+	partnerReferenceNo string,
+) (*entity.PaymentTransaction, error) {
 	var transaction entity.PaymentTransaction
 	if err := r.db.Where("partner_reference_no = ?", partnerReferenceNo).First(&transaction).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			r.log.Error("Failed to find payment transaction by partner reference", zap.Error(err), zap.String("partner_reference_no", partnerReferenceNo))
+			r.log.Error(
+				"Failed to find payment transaction by partner reference",
+				zap.Error(err),
+				zap.String("partner_reference_no", partnerReferenceNo),
+			)
 		}
 		return nil, err
 	}
@@ -78,11 +88,17 @@ func (r *paymentTransactionRepository) FindByPartnerReferenceNo(partnerReference
 }
 
 // FindByProviderTransactionID finds a payment transaction by provider transaction ID
-func (r *paymentTransactionRepository) FindByProviderTransactionID(providerTransactionID string) (*entity.PaymentTransaction, error) {
+func (r *paymentTransactionRepository) FindByProviderTransactionID(
+	providerTransactionID string,
+) (*entity.PaymentTransaction, error) {
 	var transaction entity.PaymentTransaction
 	if err := r.db.Where("provider_transaction_id = ?", providerTransactionID).First(&transaction).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			r.log.Error("Failed to find payment transaction by provider transaction ID", zap.Error(err), zap.String("provider_transaction_id", providerTransactionID))
+			r.log.Error(
+				"Failed to find payment transaction by provider transaction ID",
+				zap.Error(err),
+				zap.String("provider_transaction_id", providerTransactionID),
+			)
 		}
 		return nil, err
 	}
@@ -90,13 +106,20 @@ func (r *paymentTransactionRepository) FindByProviderTransactionID(providerTrans
 }
 
 // ListByOrganizationID lists payment transactions for an organization with pagination
-func (r *paymentTransactionRepository) ListByOrganizationID(organizationID uuid.UUID, limit, offset int) ([]entity.PaymentTransaction, int64, error) {
+func (r *paymentTransactionRepository) ListByOrganizationID(
+	organizationID uuid.UUID,
+	limit, offset int,
+) ([]entity.PaymentTransaction, int64, error) {
 	var transactions []entity.PaymentTransaction
 	var total int64
 
 	// Count total
 	if err := r.db.Model(&entity.PaymentTransaction{}).Where("organization_id = ?", organizationID).Count(&total).Error; err != nil {
-		r.log.Error("Failed to count payment transactions", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		r.log.Error(
+			"Failed to count payment transactions",
+			zap.Error(err),
+			zap.String("organization_id", organizationID.String()),
+		)
 		return nil, 0, err
 	}
 
@@ -106,7 +129,11 @@ func (r *paymentTransactionRepository) ListByOrganizationID(organizationID uuid.
 		Limit(limit).
 		Offset(offset).
 		Find(&transactions).Error; err != nil {
-		r.log.Error("Failed to list payment transactions", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		r.log.Error(
+			"Failed to list payment transactions",
+			zap.Error(err),
+			zap.String("organization_id", organizationID.String()),
+		)
 		return nil, 0, err
 	}
 
@@ -123,9 +150,13 @@ func (r *paymentTransactionRepository) UpdateStatus(id uuid.UUID, status string,
 	}
 
 	if err := r.db.Model(&entity.PaymentTransaction{}).Where("id = ?", id).Updates(updates).Error; err != nil {
-		r.log.Error("Failed to update payment transaction status", zap.Error(err), zap.String("id", id.String()), zap.String("status", status))
+		r.log.Error(
+			"Failed to update payment transaction status",
+			zap.Error(err),
+			zap.String("id", id.String()),
+			zap.String("status", status),
+		)
 		return err
 	}
 	return nil
 }
-

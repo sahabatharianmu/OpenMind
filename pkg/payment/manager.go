@@ -12,19 +12,19 @@ import (
 // PaymentProviderManager manages multiple payment provider instances
 // This allows organizations to use different payment gateways simultaneously
 type PaymentProviderManager struct {
-	providers map[ProviderType]PaymentProvider
+	providers       map[ProviderType]PaymentProvider
 	defaultProvider ProviderType
-	log logger.Logger
-	mu sync.RWMutex
+	log             logger.Logger
+	mu              sync.RWMutex
 }
 
 // NewPaymentProviderManager creates a new payment provider manager
 // Initializes all configured payment providers
 func NewPaymentProviderManager(cfg *config.PaymentConfig, log logger.Logger) (*PaymentProviderManager, error) {
 	manager := &PaymentProviderManager{
-		providers: make(map[ProviderType]PaymentProvider),
+		providers:       make(map[ProviderType]PaymentProvider),
 		defaultProvider: ProviderType(cfg.Provider),
-		log: log,
+		log:             log,
 	}
 
 	// Initialize Stripe provider if configured
@@ -75,7 +75,7 @@ func (m *PaymentProviderManager) GetProvider(providerType ProviderType) (Payment
 	provider, exists := m.providers[providerType]
 	if !exists {
 		// Fallback to default provider
-		m.log.Warn("Requested payment provider not found, using default", 
+		m.log.Warn("Requested payment provider not found, using default",
 			zap.String("requested", string(providerType)),
 			zap.String("default", string(m.defaultProvider)))
 		provider, exists = m.providers[m.defaultProvider]
@@ -109,11 +109,10 @@ func (m *PaymentProviderManager) IsProviderAvailable(providerType ProviderType) 
 func (m *PaymentProviderManager) GetAvailableProviders() []ProviderType {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	providers := make([]ProviderType, 0, len(m.providers))
 	for providerType := range m.providers {
 		providers = append(providers, providerType)
 	}
 	return providers
 }
-

@@ -105,4 +105,3 @@ func (h *NotificationHandler) MarkAllAsRead(_ context.Context, c *app.RequestCon
 
 	c.JSON(consts.StatusOK, response.Success("All notifications marked as read", nil))
 }
-

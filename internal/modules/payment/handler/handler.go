@@ -25,7 +25,7 @@ func NewPaymentMethodHandler(
 ) *PaymentMethodHandler {
 	return &PaymentMethodHandler{
 		svc:        svc,
-		orgService:  orgService,
+		orgService: orgService,
 	}
 }
 
@@ -156,4 +156,3 @@ func (h *PaymentMethodHandler) SetDefaultPaymentMethod(_ context.Context, c *app
 
 	c.JSON(consts.StatusOK, response.Success("Default payment method updated successfully", nil))
 }
-

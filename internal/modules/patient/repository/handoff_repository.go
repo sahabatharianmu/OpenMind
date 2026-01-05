@@ -68,7 +68,9 @@ func (r *patientHandoffRepository) GetByPatientID(patientID uuid.UUID) ([]entity
 	return handoffs, nil
 }
 
-func (r *patientHandoffRepository) GetPendingByReceivingClinician(clinicianID uuid.UUID) ([]entity.PatientHandoff, error) {
+func (r *patientHandoffRepository) GetPendingByReceivingClinician(
+	clinicianID uuid.UUID,
+) ([]entity.PatientHandoff, error) {
 	var handoffs []entity.PatientHandoff
 	if err := r.db.Where("receiving_clinician_id = ? AND status = ?", clinicianID, entity.StatusRequested).
 		Order("requested_at DESC").
@@ -80,7 +82,9 @@ func (r *patientHandoffRepository) GetPendingByReceivingClinician(clinicianID uu
 	return handoffs, nil
 }
 
-func (r *patientHandoffRepository) GetPendingByRequestingClinician(clinicianID uuid.UUID) ([]entity.PatientHandoff, error) {
+func (r *patientHandoffRepository) GetPendingByRequestingClinician(
+	clinicianID uuid.UUID,
+) ([]entity.PatientHandoff, error) {
 	var handoffs []entity.PatientHandoff
 	if err := r.db.Where("requesting_clinician_id = ? AND status = ?", clinicianID, entity.StatusRequested).
 		Order("requested_at DESC").
@@ -114,7 +118,9 @@ func (r *patientHandoffRepository) GetByStatus(status string, limit, offset int)
 	return handoffs, nil
 }
 
-func (r *patientHandoffRepository) GetPendingByPatientAndClinician(patientID, clinicianID uuid.UUID) (*entity.PatientHandoff, error) {
+func (r *patientHandoffRepository) GetPendingByPatientAndClinician(
+	patientID, clinicianID uuid.UUID,
+) (*entity.PatientHandoff, error) {
 	var handoff entity.PatientHandoff
 	if err := r.db.Where("patient_id = ? AND (requesting_clinician_id = ? OR receiving_clinician_id = ?) AND status = ?",
 		patientID, clinicianID, clinicianID, entity.StatusRequested).
@@ -130,7 +136,9 @@ func (r *patientHandoffRepository) GetPendingByPatientAndClinician(patientID, cl
 	return &handoff, nil
 }
 
-func (r *patientHandoffRepository) HasPendingHandoffAsReceivingClinician(patientID, clinicianID uuid.UUID) (bool, error) {
+func (r *patientHandoffRepository) HasPendingHandoffAsReceivingClinician(
+	patientID, clinicianID uuid.UUID,
+) (bool, error) {
 	var count int64
 	if err := r.db.Model(&entity.PatientHandoff{}).
 		Where("patient_id = ? AND receiving_clinician_id = ? AND status = ?",
@@ -143,4 +151,3 @@ func (r *patientHandoffRepository) HasPendingHandoffAsReceivingClinician(patient
 	}
 	return count > 0, nil
 }
-

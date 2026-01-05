@@ -354,7 +354,13 @@ func (h *ClinicalNoteHandler) DownloadAttachment(_ context.Context, c *app.Reque
 		userRole = "member" // Default to member if role not found
 	}
 
-	fileName, data, contentType, err := h.svc.DownloadAttachment(context.Background(), attachmentID, orgID, userID, userRole)
+	fileName, data, contentType, err := h.svc.DownloadAttachment(
+		context.Background(),
+		attachmentID,
+		orgID,
+		userID,
+		userRole,
+	)
 	if err != nil {
 		response.HandleError(c, err)
 		return

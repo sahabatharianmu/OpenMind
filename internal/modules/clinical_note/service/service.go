@@ -36,8 +36,20 @@ type ClinicalNoteService interface {
 		userRole string,
 	) (*dto.ClinicalNoteResponse, error)
 	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, userID uuid.UUID, userRole string) error
-	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, userID uuid.UUID, userRole string) (*dto.ClinicalNoteResponse, error)
-	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int, userID uuid.UUID, userRole string) ([]dto.ClinicalNoteResponse, int64, error)
+	Get(
+		ctx context.Context,
+		id uuid.UUID,
+		organizationID uuid.UUID,
+		userID uuid.UUID,
+		userRole string,
+	) (*dto.ClinicalNoteResponse, error)
+	List(
+		ctx context.Context,
+		organizationID uuid.UUID,
+		page, pageSize int,
+		userID uuid.UUID,
+		userRole string,
+	) ([]dto.ClinicalNoteResponse, int64, error)
 	AddAddendum(
 		ctx context.Context,
 		noteID uuid.UUID,
@@ -215,7 +227,13 @@ func (s *clinicalNoteService) Update(
 	return s.mapEntityToResponse(note), nil
 }
 
-func (s *clinicalNoteService) Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, userID uuid.UUID, userRole string) error {
+func (s *clinicalNoteService) Delete(
+	ctx context.Context,
+	id uuid.UUID,
+	organizationID uuid.UUID,
+	userID uuid.UUID,
+	userRole string,
+) error {
 	note, err := s.repo.FindByID(id)
 	if err != nil {
 		return err
@@ -471,7 +489,9 @@ func (s *clinicalNoteService) DownloadAttachment(
 			return "", nil, "", fmt.Errorf("failed to check access: %w", err)
 		}
 		if !isAssigned {
-			return "", nil, "", response.NewForbidden("Only assigned clinicians can download attachments from clinical notes")
+			return "", nil, "", response.NewForbidden(
+				"Only assigned clinicians can download attachments from clinical notes",
+			)
 		}
 	}
 

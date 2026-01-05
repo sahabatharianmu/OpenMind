@@ -18,7 +18,11 @@ import (
 
 // PaymentMethodService defines the interface for payment method operations
 type PaymentMethodService interface {
-	CreatePaymentMethod(ctx context.Context, organizationID uuid.UUID, req dto.CreatePaymentMethodRequest) (*dto.PaymentMethodResponse, error)
+	CreatePaymentMethod(
+		ctx context.Context,
+		organizationID uuid.UUID,
+		req dto.CreatePaymentMethodRequest,
+	) (*dto.PaymentMethodResponse, error)
 	ListPaymentMethods(ctx context.Context, organizationID uuid.UUID) (*dto.ListPaymentMethodsResponse, error)
 	GetPaymentMethod(ctx context.Context, organizationID, paymentMethodID uuid.UUID) (*dto.PaymentMethodResponse, error)
 	DeletePaymentMethod(ctx context.Context, organizationID, paymentMethodID uuid.UUID) error
@@ -81,14 +85,23 @@ func (s *paymentMethodService) CreatePaymentMethod(
 	// This verifies the token and retrieves payment method details
 	providerPaymentMethodID, err := provider.CreatePaymentMethod(ctx, req.Token)
 	if err != nil {
-		s.log.Error("Failed to create payment method in provider", zap.Error(err), zap.String("token", req.Token), zap.String("provider", string(providerType)))
+		s.log.Error(
+			"Failed to create payment method in provider",
+			zap.Error(err),
+			zap.String("token", req.Token),
+			zap.String("provider", string(providerType)),
+		)
 		return nil, response.NewBadRequest("invalid payment method token")
 	}
 
 	// Get payment method details from provider
 	pmInfo, err := provider.GetPaymentMethod(ctx, providerPaymentMethodID)
 	if err != nil {
-		s.log.Error("Failed to get payment method details from provider", zap.Error(err), zap.String("provider_payment_method_id", providerPaymentMethodID))
+		s.log.Error(
+			"Failed to get payment method details from provider",
+			zap.Error(err),
+			zap.String("provider_payment_method_id", providerPaymentMethodID),
+		)
 		return nil, response.NewInternalServerError("failed to retrieve payment method details")
 	}
 
@@ -158,7 +171,11 @@ func (s *paymentMethodService) ListPaymentMethods(
 ) (*dto.ListPaymentMethodsResponse, error) {
 	paymentMethods, err := s.repo.GetByOrganizationID(organizationID)
 	if err != nil {
-		s.log.Error("Failed to list payment methods", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		s.log.Error(
+			"Failed to list payment methods",
+			zap.Error(err),
+			zap.String("organization_id", organizationID.String()),
+		)
 		return nil, response.NewInternalServerError("failed to list payment methods")
 	}
 
@@ -180,7 +197,11 @@ func (s *paymentMethodService) GetPaymentMethod(
 ) (*dto.PaymentMethodResponse, error) {
 	paymentMethod, err := s.repo.GetByID(paymentMethodID)
 	if err != nil {
-		s.log.Error("Failed to get payment method", zap.Error(err), zap.String("payment_method_id", paymentMethodID.String()))
+		s.log.Error(
+			"Failed to get payment method",
+			zap.Error(err),
+			zap.String("payment_method_id", paymentMethodID.String()),
+		)
 		return nil, response.NewInternalServerError("failed to get payment method")
 	}
 
@@ -204,7 +225,11 @@ func (s *paymentMethodService) DeletePaymentMethod(
 	// Get payment method to verify ownership
 	paymentMethod, err := s.repo.GetByID(paymentMethodID)
 	if err != nil {
-		s.log.Error("Failed to get payment method for deletion", zap.Error(err), zap.String("payment_method_id", paymentMethodID.String()))
+		s.log.Error(
+			"Failed to get payment method for deletion",
+			zap.Error(err),
+			zap.String("payment_method_id", paymentMethodID.String()),
+		)
 		return response.NewInternalServerError("failed to get payment method")
 	}
 
@@ -221,15 +246,15 @@ func (s *paymentMethodService) DeletePaymentMethod(
 	providerType := payment.ProviderType(paymentMethod.Provider)
 	provider, err := s.providerManager.GetProvider(providerType)
 	if err != nil {
-		s.log.Warn("Failed to get payment provider for deletion, continuing with database deletion", 
-			zap.Error(err), 
+		s.log.Warn("Failed to get payment provider for deletion, continuing with database deletion",
+			zap.Error(err),
 			zap.String("provider", paymentMethod.Provider),
 			zap.String("payment_method_id", paymentMethodID.String()))
 	} else {
 		// Delete from provider first
 		if err := provider.DeletePaymentMethod(ctx, paymentMethod.ProviderPaymentMethodID); err != nil {
-			s.log.Error("Failed to delete payment method from provider", 
-				zap.Error(err), 
+			s.log.Error("Failed to delete payment method from provider",
+				zap.Error(err),
 				zap.String("provider_payment_method_id", paymentMethod.ProviderPaymentMethodID),
 				zap.String("provider", paymentMethod.Provider))
 			// Continue with database deletion even if provider deletion fails
@@ -239,7 +264,11 @@ func (s *paymentMethodService) DeletePaymentMethod(
 
 	// Delete from database
 	if err := s.repo.Delete(paymentMethodID); err != nil {
-		s.log.Error("Failed to delete payment method from database", zap.Error(err), zap.String("payment_method_id", paymentMethodID.String()))
+		s.log.Error(
+			"Failed to delete payment method from database",
+			zap.Error(err),
+			zap.String("payment_method_id", paymentMethodID.String()),
+		)
 		return response.NewInternalServerError("failed to delete payment method")
 	}
 
@@ -254,7 +283,11 @@ func (s *paymentMethodService) SetDefaultPaymentMethod(
 	// Verify the payment method exists and belongs to the organization
 	paymentMethod, err := s.repo.GetByID(paymentMethodID)
 	if err != nil {
-		s.log.Error("Failed to get payment method", zap.Error(err), zap.String("payment_method_id", paymentMethodID.String()))
+		s.log.Error(
+			"Failed to get payment method",
+			zap.Error(err),
+			zap.String("payment_method_id", paymentMethodID.String()),
+		)
 		return response.NewInternalServerError("failed to get payment method")
 	}
 
@@ -269,7 +302,11 @@ func (s *paymentMethodService) SetDefaultPaymentMethod(
 
 	// Set as default
 	if err := s.repo.SetDefault(organizationID, paymentMethodID); err != nil {
-		s.log.Error("Failed to set default payment method", zap.Error(err), zap.String("payment_method_id", paymentMethodID.String()))
+		s.log.Error(
+			"Failed to set default payment method",
+			zap.Error(err),
+			zap.String("payment_method_id", paymentMethodID.String()),
+		)
 		return response.NewInternalServerError("failed to set default payment method")
 	}
 
@@ -280,14 +317,13 @@ func (s *paymentMethodService) SetDefaultPaymentMethod(
 func (s *paymentMethodService) mapEntityToResponse(pm *paymentEntity.PaymentMethod) *dto.PaymentMethodResponse {
 	return &dto.PaymentMethodResponse{
 		ID:          pm.ID,
-		Provider:   pm.Provider,
-		Last4:      pm.Last4,
-		Brand:      pm.Brand,
+		Provider:    pm.Provider,
+		Last4:       pm.Last4,
+		Brand:       pm.Brand,
 		ExpiryMonth: pm.ExpiryMonth,
 		ExpiryYear:  pm.ExpiryYear,
-		IsDefault:  pm.IsDefault,
-		CreatedAt:  pm.CreatedAt,
-		UpdatedAt:  pm.UpdatedAt,
+		IsDefault:   pm.IsDefault,
+		CreatedAt:   pm.CreatedAt,
+		UpdatedAt:   pm.UpdatedAt,
 	}
 }
-

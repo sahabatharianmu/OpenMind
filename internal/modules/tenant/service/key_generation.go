@@ -72,4 +72,3 @@ func (s *tenantService) EnsureTenantHasKey(ctx context.Context, tenantID, organi
 
 	return s.generateTenantEncryptionKey(ctx, tenantID, organizationID)
 }
-

@@ -98,9 +98,12 @@ func (h *TeamInvitationHandler) RegisterAndAcceptInvitation(ctx context.Context,
 		return
 	}
 
-	c.JSON(consts.StatusOK, response.Success("Account created and invitation accepted successfully", map[string]interface{}{
-		"user_id": userID,
-	}))
+	c.JSON(
+		consts.StatusOK,
+		response.Success("Account created and invitation accepted successfully", map[string]interface{}{
+			"user_id": userID,
+		}),
+	)
 }
 
 // GetInvitation retrieves an invitation by token (for public access)
@@ -229,4 +232,3 @@ func (h *TeamInvitationHandler) mapToResponse(invitation *teamEntity.TeamInvitat
 		CreatedAt:      invitation.CreatedAt,
 	}
 }
-

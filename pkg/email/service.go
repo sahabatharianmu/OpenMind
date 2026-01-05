@@ -35,7 +35,10 @@ func (s *EmailService) SendEmail(to, subject, body string) error {
 	case "aws_ses":
 		return s.sendViaAWSES(to, subject, body)
 	default:
-		s.log.Warn("Email provider not configured, logging email instead", zap.String("provider", s.config.Email.Provider))
+		s.log.Warn(
+			"Email provider not configured, logging email instead",
+			zap.String("provider", s.config.Email.Provider),
+		)
 		s.log.Info("Email would be sent", zap.String("to", to), zap.String("subject", subject))
 		return nil
 	}

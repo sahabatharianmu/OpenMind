@@ -99,10 +99,26 @@ func RegisterRoutes(
 		organizations := protected.Group("/organizations")
 		{
 			organizations.GET("/me", organizationHandler.GetMyOrganization)
-			organizations.PUT("/me", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.UpdateOrganization)
-			organizations.GET("/me/members", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.ListTeamMembers)
-			organizations.PUT("/me/members/:user_id/role", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.UpdateMemberRole)
-			organizations.DELETE("/me/members/:user_id", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.RemoveMember)
+			organizations.PUT(
+				"/me",
+				rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner),
+				organizationHandler.UpdateOrganization,
+			)
+			organizations.GET(
+				"/me/members",
+				rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner),
+				organizationHandler.ListTeamMembers,
+			)
+			organizations.PUT(
+				"/me/members/:user_id/role",
+				rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner),
+				organizationHandler.UpdateMemberRole,
+			)
+			organizations.DELETE(
+				"/me/members/:user_id",
+				rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner),
+				organizationHandler.RemoveMember,
+			)
 		}
 
 		protected.GET("/export", rbacMiddleware.HasRole(constants.RoleAdmin), exportHandler.ExportData)
@@ -125,7 +141,11 @@ func RegisterRoutes(
 			patients.POST("/:id/assign", patientHandler.AssignClinician)
 			patients.DELETE("/:id/assign/:clinician_id", patientHandler.UnassignClinician)
 			patients.GET("/:id/assignments", patientHandler.GetAssignedClinicians)
-			patients.POST("/:id/handoff", rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner), patientHandoffHandler.RequestHandoff)
+			patients.POST(
+				"/:id/handoff",
+				rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner),
+				patientHandoffHandler.RequestHandoff,
+			)
 			patients.GET("/:id/handoffs", patientHandoffHandler.ListHandoffs)
 		}
 
@@ -133,9 +153,21 @@ func RegisterRoutes(
 		{
 			handoffs.GET("/pending", patientHandoffHandler.ListPendingHandoffs)
 			handoffs.GET("/:id", patientHandoffHandler.GetHandoff)
-			handoffs.POST("/:id/approve", rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner), patientHandoffHandler.ApproveHandoff)
-			handoffs.POST("/:id/reject", rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner), patientHandoffHandler.RejectHandoff)
-			handoffs.POST("/:id/cancel", rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner), patientHandoffHandler.CancelHandoff)
+			handoffs.POST(
+				"/:id/approve",
+				rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner),
+				patientHandoffHandler.ApproveHandoff,
+			)
+			handoffs.POST(
+				"/:id/reject",
+				rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner),
+				patientHandoffHandler.RejectHandoff,
+			)
+			handoffs.POST(
+				"/:id/cancel",
+				rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner),
+				patientHandoffHandler.CancelHandoff,
+			)
 		}
 
 		notifications := protected.Group("/notifications")

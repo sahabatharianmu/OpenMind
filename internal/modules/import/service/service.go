@@ -177,8 +177,8 @@ func convertExcelDates(
 	minReasonableYear int,
 	maxReasonableYear int,
 ) {
-	for i := 0; i < len(rows); i++ {
-		for j := 0; j < maxCol; j++ {
+	for i := range rows {
+		for j := range maxCol {
 			processExcelCell(rows, f, sheetName, i, j, minReasonableYear, maxReasonableYear)
 		}
 	}
@@ -506,9 +506,12 @@ func (s *importService) validateAndCreatePatient(
 	dob, err := parseDate(dobStr)
 	if err != nil {
 		return nil, &dto.RowError{
-			Row:     rowNum,
-			Field:   "date_of_birth",
-			Message: fmt.Sprintf("Invalid date format: %s. Supported formats: YYYY-MM-DD, MM/DD/YYYY, M/D/YYYY, MM-DD-YYYY, M-D-YYYY", dobStr),
+			Row:   rowNum,
+			Field: "date_of_birth",
+			Message: fmt.Sprintf(
+				"Invalid date format: %s. Supported formats: YYYY-MM-DD, MM/DD/YYYY, M/D/YYYY, MM-DD-YYYY, M-D-YYYY",
+				dobStr,
+			),
 		}
 	}
 
@@ -598,7 +601,10 @@ func (s *importService) previewNotesImport(
 }
 
 // validateNoteRow validates a clinical note row and returns errors, warnings, and validity status
-func (s *importService) validateNoteRow(rowMap map[string]interface{}, rowNum int) ([]dto.RowError, []dto.RowWarning, bool) {
+func (s *importService) validateNoteRow(
+	rowMap map[string]interface{},
+	rowNum int,
+) ([]dto.RowError, []dto.RowWarning, bool) {
 	var errors []dto.RowError
 	var warnings []dto.RowWarning
 	rowValid := true
@@ -935,7 +941,10 @@ func parseDate(dateStr string) (time.Time, error) {
 		}
 	}
 
-	return time.Time{}, fmt.Errorf("unable to parse date: %s. Supported formats: YYYY-MM-DD, MM/DD/YYYY, M/D/YYYY, MM-DD-YYYY, M-D-YYYY", dateStr)
+	return time.Time{}, fmt.Errorf(
+		"unable to parse date: %s. Supported formats: YYYY-MM-DD, MM/DD/YYYY, M/D/YYYY, MM-DD-YYYY, M-D-YYYY",
+		dateStr,
+	)
 }
 
 // convertTwoDigitYear attempts to convert a date string with 2-digit year to 4-digit year

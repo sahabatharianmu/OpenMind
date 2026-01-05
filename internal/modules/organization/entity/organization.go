@@ -12,7 +12,7 @@ type Organization struct {
 	Name               string         `gorm:"type:varchar(255);not null"                       json:"name"`
 	Type               string         `gorm:"type:varchar(50);not null"                        json:"type"`
 	SubscriptionPlanID *uuid.UUID     `gorm:"type:uuid"                                        json:"subscription_plan_id"`
-	SubscriptionTier   string         `gorm:"type:varchar(50);not null;default:'free'"        json:"subscription_tier"`
+	SubscriptionTier   string         `gorm:"type:varchar(50);not null;default:'free'"         json:"subscription_tier"`
 	TaxID              string         `gorm:"type:varchar(50)"                                 json:"tax_id"`
 	NPI                string         `gorm:"type:varchar(50)"                                 json:"npi"`
 	Address            string         `gorm:"type:text"                                        json:"address"`

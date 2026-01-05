@@ -27,18 +27,18 @@ type UpdateAppointmentRequest struct {
 }
 
 type AppointmentResponse struct {
-	ID                uuid.UUID `json:"id"`
-	OrganizationID    uuid.UUID `json:"organization_id"`
-	PatientID         uuid.UUID `json:"patient_id"`
-	ClinicianID       uuid.UUID `json:"clinician_id"`
-	ClinicianName     *string   `json:"clinician_name,omitempty"`     // Name of the clinician
-	ClinicianEmail    *string   `json:"clinician_email,omitempty"`     // Email of the clinician
-	StartTime         time.Time `json:"start_time"`
-	EndTime           time.Time `json:"end_time"`
-	Status            string    `json:"status"`
-	Type              string    `json:"appointment_type"`
-	Mode              string    `json:"mode"`
-	Notes             *string   `json:"notes"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID             uuid.UUID `json:"id"`
+	OrganizationID uuid.UUID `json:"organization_id"`
+	PatientID      uuid.UUID `json:"patient_id"`
+	ClinicianID    uuid.UUID `json:"clinician_id"`
+	ClinicianName  *string   `json:"clinician_name,omitempty"`  // Name of the clinician
+	ClinicianEmail *string   `json:"clinician_email,omitempty"` // Email of the clinician
+	StartTime      time.Time `json:"start_time"`
+	EndTime        time.Time `json:"end_time"`
+	Status         string    `json:"status"`
+	Type           string    `json:"appointment_type"`
+	Mode           string    `json:"mode"`
+	Notes          *string   `json:"notes"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }

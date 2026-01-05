@@ -30,8 +30,20 @@ type AppointmentService interface {
 		req dto.UpdateAppointmentRequest,
 	) (*dto.AppointmentResponse, error)
 	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
-	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, userID uuid.UUID, userRole string) (*dto.AppointmentResponse, error)
-	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int, userID uuid.UUID, userRole string) ([]dto.AppointmentResponse, int64, error)
+	Get(
+		ctx context.Context,
+		id uuid.UUID,
+		organizationID uuid.UUID,
+		userID uuid.UUID,
+		userRole string,
+	) (*dto.AppointmentResponse, error)
+	List(
+		ctx context.Context,
+		organizationID uuid.UUID,
+		page, pageSize int,
+		userID uuid.UUID,
+		userRole string,
+	) ([]dto.AppointmentResponse, int64, error)
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
 
@@ -42,7 +54,12 @@ type appointmentService struct {
 	log         logger.Logger
 }
 
-func NewAppointmentService(repo repository.AppointmentRepository, patientRepo patientRepo.PatientRepository, userRepo userRepo.UserRepository, log logger.Logger) AppointmentService {
+func NewAppointmentService(
+	repo repository.AppointmentRepository,
+	patientRepo patientRepo.PatientRepository,
+	userRepo userRepo.UserRepository,
+	log logger.Logger,
+) AppointmentService {
 	return &appointmentService{
 		repo:        repo,
 		patientRepo: patientRepo,
@@ -266,13 +283,13 @@ func (s *appointmentService) mapEntityToResponse(a *entity.Appointment) *dto.App
 	// Fetch clinician information
 	var clinicianName *string
 	var clinicianEmail *string
-	
+
 	clinician, err := s.userRepo.GetByID(a.ClinicianID)
 	if err == nil && clinician != nil {
 		clinicianName = &clinician.FullName
 		clinicianEmail = &clinician.Email
 	} else {
-		s.log.Warn("Failed to fetch clinician information for appointment", 
+		s.log.Warn("Failed to fetch clinician information for appointment",
 			zap.String("appointment_id", a.ID.String()),
 			zap.String("clinician_id", a.ClinicianID.String()),
 			zap.Error(err))

@@ -21,7 +21,11 @@ type userService struct {
 	log     logger.Logger
 }
 
-func NewUserService(repo repository.UserRepository, orgRepo orgRepo.OrganizationRepository, log logger.Logger) UserService {
+func NewUserService(
+	repo repository.UserRepository,
+	orgRepo orgRepo.OrganizationRepository,
+	log logger.Logger,
+) UserService {
 	return &userService{
 		repo:    repo,
 		orgRepo: orgRepo,
@@ -39,7 +43,11 @@ func (s *userService) GetProfile(userID uuid.UUID) (*dto.UserResponse, error) {
 	// Get user's organization and role
 	org, err := s.orgRepo.GetByUserID(userID)
 	if err != nil {
-		s.log.Error("GetProfile failed: user has no organization", zap.Error(err), zap.String("user_id", userID.String()))
+		s.log.Error(
+			"GetProfile failed: user has no organization",
+			zap.Error(err),
+			zap.String("user_id", userID.String()),
+		)
 		return nil, response.ErrNotFound
 	}
 
@@ -76,7 +84,11 @@ func (s *userService) UpdateProfile(userID uuid.UUID, req dto.UpdateProfileReque
 	// Get user's organization and role
 	org, err := s.orgRepo.GetByUserID(userID)
 	if err != nil {
-		s.log.Error("UpdateProfile failed: user has no organization", zap.Error(err), zap.String("user_id", userID.String()))
+		s.log.Error(
+			"UpdateProfile failed: user has no organization",
+			zap.Error(err),
+			zap.String("user_id", userID.String()),
+		)
 		return nil, response.ErrNotFound
 	}
 

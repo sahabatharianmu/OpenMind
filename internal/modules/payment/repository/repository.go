@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/payment/entity"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
@@ -37,7 +39,11 @@ func NewPaymentMethodRepository(db *gorm.DB, log logger.Logger) PaymentMethodRep
 // Create creates a new payment method
 func (r *paymentMethodRepository) Create(paymentMethod *entity.PaymentMethod) error {
 	if err := r.db.Create(paymentMethod).Error; err != nil {
-		r.log.Error("Failed to create payment method", zap.Error(err), zap.String("organization_id", paymentMethod.OrganizationID.String()))
+		r.log.Error(
+			"Failed to create payment method",
+			zap.Error(err),
+			zap.String("organization_id", paymentMethod.OrganizationID.String()),
+		)
 		return err
 	}
 	return nil
@@ -47,7 +53,7 @@ func (r *paymentMethodRepository) Create(paymentMethod *entity.PaymentMethod) er
 func (r *paymentMethodRepository) GetByID(id uuid.UUID) (*entity.PaymentMethod, error) {
 	var paymentMethod entity.PaymentMethod
 	if err := r.db.Where("id = ?", id).First(&paymentMethod).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		r.log.Error("Failed to get payment method by ID", zap.Error(err), zap.String("id", id.String()))
@@ -62,7 +68,11 @@ func (r *paymentMethodRepository) GetByOrganizationID(organizationID uuid.UUID) 
 	if err := r.db.Where("organization_id = ?", organizationID).
 		Order("is_default DESC, created_at DESC").
 		Find(&paymentMethods).Error; err != nil {
-		r.log.Error("Failed to get payment methods by organization ID", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		r.log.Error(
+			"Failed to get payment methods by organization ID",
+			zap.Error(err),
+			zap.String("organization_id", organizationID.String()),
+		)
 		return nil, err
 	}
 	return paymentMethods, nil
@@ -73,10 +83,14 @@ func (r *paymentMethodRepository) GetDefaultByOrganizationID(organizationID uuid
 	var paymentMethod entity.PaymentMethod
 	if err := r.db.Where("organization_id = ? AND is_default = ?", organizationID, true).
 		First(&paymentMethod).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		r.log.Error("Failed to get default payment method", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		r.log.Error(
+			"Failed to get default payment method",
+			zap.Error(err),
+			zap.String("organization_id", organizationID.String()),
+		)
 		return nil, err
 	}
 	return &paymentMethod, nil
@@ -116,7 +130,11 @@ func (r *paymentMethodRepository) SetDefault(organizationID, paymentMethodID uui
 		Where("organization_id = ? AND is_default = ?", organizationID, true).
 		Update("is_default", false).Error; err != nil {
 		tx.Rollback()
-		r.log.Error("Failed to unset existing default payment methods", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		r.log.Error(
+			"Failed to unset existing default payment methods",
+			zap.Error(err),
+			zap.String("organization_id", organizationID.String()),
+		)
 		return err
 	}
 
@@ -125,7 +143,11 @@ func (r *paymentMethodRepository) SetDefault(organizationID, paymentMethodID uui
 		Where("id = ? AND organization_id = ?", paymentMethodID, organizationID).
 		Update("is_default", true).Error; err != nil {
 		tx.Rollback()
-		r.log.Error("Failed to set default payment method", zap.Error(err), zap.String("payment_method_id", paymentMethodID.String()))
+		r.log.Error(
+			"Failed to set default payment method",
+			zap.Error(err),
+			zap.String("payment_method_id", paymentMethodID.String()),
+		)
 		return err
 	}
 
@@ -144,9 +166,12 @@ func (r *paymentMethodRepository) CountByOrganizationID(organizationID uuid.UUID
 	if err := r.db.Model(&entity.PaymentMethod{}).
 		Where("organization_id = ?", organizationID).
 		Count(&count).Error; err != nil {
-		r.log.Error("Failed to count payment methods", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		r.log.Error(
+			"Failed to count payment methods",
+			zap.Error(err),
+			zap.String("organization_id", organizationID.String()),
+		)
 		return 0, err
 	}
 	return count, nil
 }
-

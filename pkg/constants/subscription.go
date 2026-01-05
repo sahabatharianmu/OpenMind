@@ -56,4 +56,3 @@ func AllTiers() []string {
 func IsUnlimited(limit int) bool {
 	return limit == -1
 }
-

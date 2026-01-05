@@ -73,7 +73,11 @@ func (r *patientRepository) FindByID(id uuid.UUID) (*entity.Patient, error) {
 	return &patient, nil
 }
 
-func (r *patientRepository) List(organizationID uuid.UUID, limit, offset int, assignedPatientIDs []uuid.UUID) ([]entity.Patient, int64, error) {
+func (r *patientRepository) List(
+	organizationID uuid.UUID,
+	limit, offset int,
+	assignedPatientIDs []uuid.UUID,
+) ([]entity.Patient, int64, error) {
 	var patients []entity.Patient
 	var total int64
 

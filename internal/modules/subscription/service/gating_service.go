@@ -104,7 +104,11 @@ func (s *featureGatingService) CheckPatientLimit(ctx context.Context, organizati
 	if patientCount >= int64(limits.MaxPatients) {
 		return &LimitReachedError{
 			AppError: response.NewBadRequest(
-				fmt.Sprintf("Patient limit reached. You have %d of %d patients. Upgrade to add more patients.", patientCount, limits.MaxPatients),
+				fmt.Sprintf(
+					"Patient limit reached. You have %d of %d patients. Upgrade to add more patients.",
+					patientCount,
+					limits.MaxPatients,
+				),
 			),
 			UpgradePrompt: &UpgradePrompt{
 				Feature:    "patients",
@@ -148,7 +152,11 @@ func (s *featureGatingService) CheckClinicianLimit(ctx context.Context, organiza
 	if clinicianCount >= int64(limits.MaxClinicians) {
 		return &LimitReachedError{
 			AppError: response.NewBadRequest(
-				fmt.Sprintf("Clinician limit reached. You have %d of %d clinicians. Upgrade to add more team members.", clinicianCount, limits.MaxClinicians),
+				fmt.Sprintf(
+					"Clinician limit reached. You have %d of %d clinicians. Upgrade to add more team members.",
+					clinicianCount,
+					limits.MaxClinicians,
+				),
 			),
 			UpgradePrompt: &UpgradePrompt{
 				Feature:    "clinicians",
@@ -161,4 +169,3 @@ func (s *featureGatingService) CheckClinicianLimit(ctx context.Context, organiza
 
 	return nil
 }
-

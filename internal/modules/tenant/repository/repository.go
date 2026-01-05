@@ -35,7 +35,11 @@ func NewTenantRepository(db *gorm.DB, log logger.Logger) TenantRepository {
 
 func (r *tenantRepository) Create(tenant *entity.Tenant) error {
 	if err := r.db.Create(tenant).Error; err != nil {
-		r.log.Error("Failed to create tenant", zap.Error(err), zap.String("organization_id", tenant.OrganizationID.String()))
+		r.log.Error(
+			"Failed to create tenant",
+			zap.Error(err),
+			zap.String("organization_id", tenant.OrganizationID.String()),
+		)
 		return err
 	}
 	return nil
@@ -47,7 +51,11 @@ func (r *tenantRepository) GetByOrganizationID(organizationID uuid.UUID) (*entit
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("tenant not found for organization %s", organizationID.String())
 		}
-		r.log.Error("Failed to get tenant by organization ID", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		r.log.Error(
+			"Failed to get tenant by organization ID",
+			zap.Error(err),
+			zap.String("organization_id", organizationID.String()),
+		)
 		return nil, err
 	}
 	return &tenant, nil
@@ -109,4 +117,3 @@ func (r *tenantRepository) List(limit, offset int) ([]entity.Tenant, int64, erro
 
 	return tenants, total, nil
 }
-

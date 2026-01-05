@@ -310,4 +310,3 @@ func (h *PatientHandoffHandler) ListPendingHandoffs(_ context.Context, c *app.Re
 
 	c.JSON(consts.StatusOK, response.Success("Pending handoffs retrieved successfully", handoffs))
 }
-
