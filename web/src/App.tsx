@@ -21,6 +21,9 @@ import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
 import PaymentMethods from "./pages/PaymentMethods";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import SubscriptionPlans from "./pages/admin/SubscriptionPlans";
+import Tenants from "./pages/admin/Tenants";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +51,11 @@ const App = () => (
             <Route path="/dashboard/payment-methods" element={<PaymentMethods />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/accept-invitation" element={<AcceptInvitation />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/plans" element={<SubscriptionPlans />} />
+            <Route path="/admin/tenants" element={<Tenants />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

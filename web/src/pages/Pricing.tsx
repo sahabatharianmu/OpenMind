@@ -9,6 +9,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import UpgradeModal from "@/components/payment/UpgradeModal";
 import { subscriptionService, UsageStats } from "@/services/subscriptionService";
+import { publicPlanService } from "@/services/publicPlanService";
+import { SubscriptionPlan } from "@/services/adminPlanService";
 
 const Pricing = () => {
   const { user } = useAuth();
@@ -16,21 +18,25 @@ const Pricing = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
   const [tier, setTier] = useState<string>("free");
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
 
-  const planPrice = 29; // Monthly price in USD
+  // const planPrice = 29; // Monthly price in USD - Now dynamic
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [stats, currentTier] = await Promise.all([
+        const [stats, currentTier, activePlans] = await Promise.all([
           subscriptionService.getUsageStats(),
           subscriptionService.getSubscriptionTier(),
+          publicPlanService.listActivePlans(),
         ]);
         setUsageStats(stats);
         setTier(currentTier);
+        setPlans(activePlans);
       } catch (error) {
-        console.error("Failed to load usage stats", error);
+        console.error("Failed to load pricing data", error);
       } finally {
         setLoading(false);
       }
@@ -51,12 +57,13 @@ const Pricing = () => {
     { name: "Email Support", free: "Community", paid: "Priority" },
   ];
 
-  const handleUpgrade = () => {
+  const handleUpgrade = (plan: SubscriptionPlan) => {
     // Check if user can upgrade (owner/admin only)
     const canManagePaymentMethods = user?.role === "admin" || user?.role === "owner";
     if (!canManagePaymentMethods) {
       return;
     }
+    setSelectedPlan(plan);
     setShowUpgradeModal(true);
   };
 
@@ -66,6 +73,18 @@ const Pricing = () => {
   };
 
   const isFreeTier = tier === "free";
+  
+  // Helper to get plan features from limits (simplified)
+  const getPlanFeatures = (plan: SubscriptionPlan) => {
+      return [
+          { name: "Patients", value: plan.limits?.patient_limit === -1 ? "Unlimited" : plan.limits?.patient_limit },
+          { name: "Team Members", value: plan.limits?.clinician_limit === -1 ? "Unlimited" : plan.limits?.clinician_limit },
+          { name: "Clinical Notes", value: "Unlimited" }, // Placeholder
+          { name: "Support", value: plan.price > 0 ? "Priority" : "Community" },
+      ];
+  };
+
+  // ... (Keep Usage Indicators Logic if needed) ...
   const patientUsage = usageStats ? `${usageStats.patient_count}/${usageStats.patient_limit === -1 ? "∞" : usageStats.patient_limit}` : "0/10";
   const clinicianUsage = usageStats ? `${usageStats.clinician_count}/${usageStats.clinician_limit === -1 ? "∞" : usageStats.clinician_limit}` : "0/1";
   const patientProgress = usageStats && usageStats.patient_limit !== -1 
@@ -74,6 +93,7 @@ const Pricing = () => {
   const clinicianProgress = usageStats && usageStats.clinician_limit !== -1
     ? Math.min((usageStats.clinician_count / usageStats.clinician_limit) * 100, 100)
     : 0;
+
 
   return (
     <DashboardLayout>
@@ -85,7 +105,7 @@ const Pricing = () => {
           </p>
         </div>
 
-        {/* Upgrade Benefits Banner */}
+        {/* Upgrade Benefits Banner, Usage Indicators - Keep existing structure but maybe hide if loading */}
         {isFreeTier && (
           <Card className="mb-6 border-primary/20 bg-primary/5">
             <CardContent className="p-4">
@@ -148,105 +168,99 @@ const Pricing = () => {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Free Plan */}
-          <Card className={isFreeTier ? "border-primary" : ""}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Free</CardTitle>
-                <Badge variant={isFreeTier ? "default" : "secondary"}>
-                  {isFreeTier ? "Current Plan" : "Previous"}
-                </Badge>
-              </div>
-              <CardDescription>
-                Perfect for getting started
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6">
-                <span className="text-4xl font-bold">$0</span>
-                <span className="text-muted-foreground">/month</span>
-              </div>
-              <ul className="space-y-3 mb-6">
-                {features.map((feature, index) => (
-                  <li key={index} className="flex items-start justify-between">
-                    <span className="text-sm">{feature.name}</span>
-                    <div className="flex items-center gap-2">
-                      {feature.free === "Yes" || feature.free === "Unlimited" ? (
-                        <Check className="h-4 w-4 text-primary" />
-                      ) : (
-                        <X className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <span className="text-sm text-muted-foreground">{feature.free}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <Button variant="outline" className="w-full" disabled>
-                Current Plan
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          {plans.map((plan) => {
+             const isCurrentPlan = false; // TODO: Match with current subscription ID from org
+             const isPlanFree = plan.price === 0;
 
-          {/* Paid Plan */}
-          <Card className={!isFreeTier ? "border-primary shadow-lg" : "border-primary/50"}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Paid</CardTitle>
-                <Badge variant={!isFreeTier ? "default" : "default"}>
-                  {!isFreeTier ? "Current Plan" : "Recommended"}
-                </Badge>
-              </div>
-              <CardDescription>
-                For growing practices
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6">
-                <span className="text-4xl font-bold">$29</span>
-                <span className="text-muted-foreground">/month</span>
-              </div>
-              <ul className="space-y-3 mb-6">
-                {features.map((feature, index) => (
-                  <li key={index} className="flex items-start justify-between">
-                    <span className="text-sm">{feature.name}</span>
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">{feature.paid}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <Button 
-                onClick={handleUpgrade} 
-                className="w-full"
-                disabled={!isFreeTier}
+             // Aesthetic decision: Highlight the first paid plan or a specific "Pro" plan
+             const isHighlighted = !isPlanFree; 
+
+             return (
+              <div 
+                key={plan.id} 
+                className={`
+                  relative rounded-2xl p-8 transition-all duration-300
+                  ${isHighlighted 
+                    ? "bg-white border-2 border-primary/20 shadow-xl shadow-primary/5 scale-105 z-10" 
+                    : "bg-white/50 border border-border/50 hover:border-primary/20 hover:shadow-lg hover:-translate-y-1"
+                  }
+                `}
               >
-                {isFreeTier ? "Upgrade Now" : "Current Plan"}
-              </Button>
-            </CardContent>
-          </Card>
+                {isHighlighted && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                    <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
+
+                <div className="mb-6">
+                  <h3 className="font-heading text-lg font-bold text-foreground">{plan.name}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {isPlanFree ? "Perfect for getting started" : "For growing practices"}
+                  </p>
+                </div>
+
+                <div className="mb-6 flex items-baseline gap-1">
+                  <span className="text-4xl font-extrabold font-heading text-foreground">
+                      {(plan.price / 100).toLocaleString('en-US', { style: 'currency', currency: plan.currency })}
+                  </span>
+                  <span className="text-sm font-medium text-muted-foreground">/month</span>
+                </div>
+
+                <Button 
+                    onClick={() => handleUpgrade(plan)} 
+                    className={`
+                        w-full mb-8 font-semibold transition-all
+                        ${isHighlighted 
+                            ? "bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20" 
+                            : "bg-white border-2 border-primary/10 hover:border-primary hover:bg-primary/5 text-foreground"
+                        }
+                    `}
+                    variant={isHighlighted ? "default" : "outline"}
+                    disabled={isCurrentPlan}
+                >
+                    {isCurrentPlan ? "Current Plan" : (isPlanFree ? "Get Started" : "Upgrade Now")}
+                </Button>
+
+                <div className="space-y-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Features</p>
+                    <ul className="space-y-3">
+                        {getPlanFeatures(plan).map((feature, index) => (
+                        <li key={index} className="flex items-start gap-3 text-sm group">
+                            <div className={`
+                                mt-0.5 rounded-full p-0.5 
+                                ${isHighlighted ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-500 group-hover:text-primary transition-colors"}
+                            `}>
+                                <Check className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-foreground/80">
+                                <span className="font-semibold text-foreground">{feature.value}</span> {feature.name}
+                            </span>
+                        </li>
+                        ))}
+                    </ul>
+                </div>
+              </div>
+             );
+          })}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Need Help Choosing?</CardTitle>
-            <CardDescription>
-              Contact our team to discuss which plan is right for you.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" onClick={() => navigate("/dashboard")}>
-              Back to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-
+        <div className="bg-slate-50 border border-border/50 rounded-2xl p-8 text-center max-w-2xl mx-auto">
+             <h3 className="font-heading text-lg font-bold mb-2">Need a Custom Enterprise Plan?</h3>
+             <p className="text-muted-foreground mb-6">
+               For large organizations requiring custom limits, dedicated support, or on-premise deployment.
+             </p>
+             <Button variant="outline" onClick={() => navigate("/dashboard")}>
+               Contact Sales
+             </Button>
+        </div>
         <UpgradeModal
           open={showUpgradeModal}
           onOpenChange={setShowUpgradeModal}
           onSuccess={handleUpgradeSuccess}
-          planPrice={planPrice}
+          planPrice={selectedPlan ? selectedPlan.price / 100 : 0}
         />
       </div>
     </DashboardLayout>

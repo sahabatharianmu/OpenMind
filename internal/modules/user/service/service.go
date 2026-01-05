@@ -106,7 +106,7 @@ func (s *authService) Register(email, password, fullName, practiceName, baseURL 
 	}
 
 	// Generate JWT tokens for auto-login
-	accessToken, refreshToken, err := s.jwt.GenerateTokens(user.ID, user.Email, role)
+	accessToken, refreshToken, err := s.jwt.GenerateTokens(user.ID, user.Email, role, "user")
 	if err != nil {
 		s.log.Error("Registration failed: token generation error", zap.Error(err))
 		return nil, response.ErrInternalServerError
@@ -162,7 +162,7 @@ func (s *authService) Login(email, password string) (*dto.LoginResponse, error) 
 		return nil, response.ErrUnauthorized
 	}
 
-	accessToken, refreshToken, err := s.jwt.GenerateTokens(user.ID, user.Email, role)
+	accessToken, refreshToken, err := s.jwt.GenerateTokens(user.ID, user.Email, role, user.SystemRole)
 	if err != nil {
 		s.log.Error("Login failed: token generation error", zap.Error(err))
 		return nil, response.ErrInternalServerError

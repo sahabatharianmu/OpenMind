@@ -21,6 +21,7 @@ import (
 	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
 	paymentHandler "github.com/sahabatharianmu/OpenMind/internal/modules/payment/handler"
 	paymentTransactionHandler "github.com/sahabatharianmu/OpenMind/internal/modules/payment/handler"
+	subscriptionHandler "github.com/sahabatharianmu/OpenMind/internal/modules/subscription/handler"
 	teamHandler "github.com/sahabatharianmu/OpenMind/internal/modules/team/handler"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/handler"
 	"github.com/sahabatharianmu/OpenMind/pkg/constants"
@@ -43,6 +44,8 @@ func RegisterRoutes(
 	importHandler *importHandler.ImportHandler,
 	teamHandler *teamHandler.TeamInvitationHandler,
 	notificationHandler *notificationHandler.NotificationHandler,
+	adminPlanHandler *subscriptionHandler.AdminPlanHandler,
+	publicPlanHandler *subscriptionHandler.PublicPlanHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	auditMiddleware *middleware.AuditMiddleware,
 	rbacMiddleware *middleware.RBACMiddleware,
@@ -57,20 +60,34 @@ func RegisterRoutes(
 		auth.POST("/login", authHandler.Login)
 	}
 
-	// Public team invitation routes (for accepting invitations - new users only)
+	plans := v1.Group("/plans")
+	{
+		plans.GET("", publicPlanHandler.ListActivePlans)
+	}
+
+	admin := v1.Group("/admin")
+	admin.Use(authMiddleware.Middleware())
+	admin.Use(middleware.RequireSystemRole("admin"))
+	{
+		plans := admin.Group("/plans")
+		{
+			plans.POST("", adminPlanHandler.CreatePlan)
+			plans.GET("", adminPlanHandler.ListPlans)
+			plans.GET("/:id", adminPlanHandler.GetPlan)
+			plans.PUT("/:id", adminPlanHandler.UpdatePlan)
+		}
+	}
+
 	team := v1.Group("/team")
 	{
-		// Public route to get invitation details by token (for invitation page)
 		team.GET("/invitations/:token", teamHandler.GetInvitation)
-		// Register and accept invitation (for new users only - existing users cannot accept)
 		team.POST("/invitations/register", teamHandler.RegisterAndAcceptInvitation)
 	}
 	protected := v1.Group("/")
 	protected.Use(authMiddleware.Middleware())
-	protected.Use(tenantMiddleware)             // Set tenant context after authentication
-	protected.Use(auditMiddleware.Middleware()) // Add audit logging
+	protected.Use(tenantMiddleware)
+	protected.Use(auditMiddleware.Middleware())
 	{
-		// User routes
 		users := protected.Group("/users")
 		{
 			users.GET("/me", userHandler.GetProfile)
@@ -83,7 +100,6 @@ func RegisterRoutes(
 		{
 			organizations.GET("/me", organizationHandler.GetMyOrganization)
 			organizations.PUT("/me", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.UpdateOrganization)
-			// Team management (admin/owner only)
 			organizations.GET("/me/members", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.ListTeamMembers)
 			organizations.PUT("/me/members/:user_id/role", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.UpdateMemberRole)
 			organizations.DELETE("/me/members/:user_id", rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner), organizationHandler.RemoveMember)
@@ -106,16 +122,13 @@ func RegisterRoutes(
 			patients.GET("/:id", patientHandler.Get)
 			patients.PUT("/:id", rbacMiddleware.HasRole(constants.RoleClinician), patientHandler.Update)
 			patients.DELETE("/:id", rbacMiddleware.HasRole(constants.RoleAdmin), patientHandler.Delete)
-			// Assignment routes (all authenticated users can assign/unassign)
 			patients.POST("/:id/assign", patientHandler.AssignClinician)
 			patients.DELETE("/:id/assign/:clinician_id", patientHandler.UnassignClinician)
 			patients.GET("/:id/assignments", patientHandler.GetAssignedClinicians)
-			// Handoff routes (clinicians can request/approve/reject handoffs)
 			patients.POST("/:id/handoff", rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner), patientHandoffHandler.RequestHandoff)
 			patients.GET("/:id/handoffs", patientHandoffHandler.ListHandoffs)
 		}
 
-		// Handoff management routes
 		handoffs := protected.Group("/patients/handoffs")
 		{
 			handoffs.GET("/pending", patientHandoffHandler.ListPendingHandoffs)
@@ -125,7 +138,6 @@ func RegisterRoutes(
 			handoffs.POST("/:id/cancel", rbacMiddleware.HasRole(constants.RoleClinician, constants.RoleAdmin, constants.RoleOwner), patientHandoffHandler.CancelHandoff)
 		}
 
-		// Notification routes
 		notifications := protected.Group("/notifications")
 		{
 			notifications.GET("", notificationHandler.GetNotifications)
