@@ -1,3 +1,10 @@
+# [1.0.0-alpha.9](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.8...v1.0.0-alpha.9) (2026-03-02)
+
+
+### Features
+
+* Implement CI/CD workflows for testing, Docker builds, and frontend deployment, alongside a new web API client with automatic token refresh and CORS configuration. ([f08bc25](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/f08bc25915f860fe712daaf5faa896abbc7ea68c))
+
 # [1.0.0-alpha.8](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.7...v1.0.0-alpha.8) (2026-03-02)
 
 
