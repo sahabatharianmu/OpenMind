@@ -1,3 +1,10 @@
+# [1.0.0-alpha.7](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.6...v1.0.0-alpha.7) (2026-03-02)
+
+
+### Features
+
+* Introduce comprehensive patient management features including API, services, and UI. ([ddafa67](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/ddafa67d7d207f9a991e744ffef5ce859e03408c))
+
 # [1.0.0-alpha.6](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.5...v1.0.0-alpha.6) (2026-03-02)
 
 
