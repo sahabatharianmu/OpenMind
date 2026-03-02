@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -58,20 +59,26 @@ func GetDB() *gorm.DB {
 	return DB
 }
 
-// RunMigrations runs database migrations using golang-migrate.
-// If schemaName is provided, migrations will run in that schema context.
-// If schemaName is empty, migrations run in the default (public) schema.
-func RunMigrations(db *gorm.DB, appLogger logger.Logger, schemaName ...string) error {
+// runMigrationsWithFS runs migrations from a given filesystem against a specific schema.
+// This is the core migration runner used by both public and tenant migration functions.
+func runMigrationsWithFS(db *gorm.DB, migrationsFS fs.FS, appLogger logger.Logger, schemaName string, migrationsTableSuffix string) error {
 	sqlDB, err := db.DB()
 	if err != nil {
 		appLogger.Error("Failed to get sql.DB from gorm.DB", zap.Error(err))
 		return err
 	}
 
-	config := &migratepostgres.Config{}
-	if len(schemaName) > 0 && schemaName[0] != "" {
-		config.SchemaName = schemaName[0]
-		appLogger.Info("Running migrations in schema", zap.String("schema", schemaName[0]))
+	config := &migratepostgres.Config{
+		// Use a distinct migrations table name so public and tenant tracks
+		// don't collide if both ever target the same schema (shouldn't happen,
+		// but this is defensive).
+		MigrationsTable: "schema_migrations" + migrationsTableSuffix,
+	}
+	if schemaName != "" {
+		config.SchemaName = schemaName
+		appLogger.Info("Running migrations in schema",
+			zap.String("schema", schemaName),
+			zap.String("migrations_table", config.MigrationsTable))
 	}
 
 	driver, err := migratepostgres.WithInstance(sqlDB, config)
@@ -79,7 +86,7 @@ func RunMigrations(db *gorm.DB, appLogger logger.Logger, schemaName ...string) e
 		appLogger.Error("Failed to create postgres driver", zap.Error(err))
 		return err
 	}
-	migrationsFS := migrations.GetMigrationsFS()
+
 	source, err := iofs.New(migrationsFS, ".")
 	if err != nil {
 		appLogger.Error("Failed to create migration source", zap.Error(err))
@@ -97,36 +104,42 @@ func RunMigrations(db *gorm.DB, appLogger logger.Logger, schemaName ...string) e
 		return err
 	}
 
-	if appLogger != nil {
-		if len(schemaName) > 0 && schemaName[0] != "" {
-			appLogger.Info("Running database migrations...", zap.String("schema", schemaName[0]))
-		} else {
-			appLogger.Info("Running database migrations...")
-		}
-	}
 	err = m.Up()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		appLogger.Error("Failed to run migrations", zap.Error(err))
+		appLogger.Error("Failed to run migrations", zap.Error(err),
+			zap.String("schema", schemaName))
 		return err
 	}
 
 	if errors.Is(err, migrate.ErrNoChange) {
-		if appLogger != nil {
-			appLogger.Info("No new migrations to apply")
-		}
+		appLogger.Info("No new migrations to apply",
+			zap.String("schema", schemaName))
 	} else {
-		if appLogger != nil {
-			appLogger.Info("Migrations completed successfully")
-		}
+		appLogger.Info("Migrations completed successfully",
+			zap.String("schema", schemaName))
 	}
 
 	return nil
 }
 
-// RunMigrationsForAllTenants runs migrations for all active tenant schemas.
-// This ensures all tenants are synced with the latest migration files.
+// RunPublicMigrations runs migrations for the public schema only.
+// These include: users, organizations, tenants, audit_logs, notifications, etc.
+func RunPublicMigrations(db *gorm.DB, appLogger logger.Logger) error {
+	appLogger.Info("Running PUBLIC schema migrations...")
+	return runMigrationsWithFS(db, migrations.GetPublicMigrationsFS(), appLogger, "", "")
+}
+
+// RunTenantMigrations runs tenant-specific migrations for a single tenant schema.
+// These include: patients, appointments, clinical_notes, invoices, etc.
+func RunTenantMigrations(db *gorm.DB, appLogger logger.Logger, schemaName string) error {
+	appLogger.Info("Running TENANT schema migrations...", zap.String("schema", schemaName))
+	return runMigrationsWithFS(db, migrations.GetTenantMigrationsFS(), appLogger, schemaName, "")
+}
+
+// RunTenantMigrationsForAll runs tenant migrations for all active tenant schemas.
+// This ensures all tenants are synced with the latest tenant migration files.
 // Uses pagination to handle large numbers of tenants efficiently.
-func RunMigrationsForAllTenants(ctx context.Context, db *gorm.DB, tenantRepo repository.TenantRepository, appLogger logger.Logger) error {
+func RunTenantMigrationsForAll(ctx context.Context, db *gorm.DB, tenantRepo repository.TenantRepository, appLogger logger.Logger) error {
 	const batchSize = 1000
 	offset := 0
 	successCount := 0
@@ -156,7 +169,7 @@ func RunMigrationsForAllTenants(ctx context.Context, db *gorm.DB, tenantRepo rep
 				continue
 			}
 
-			if err := RunMigrations(db, appLogger, tenant.SchemaName); err != nil {
+			if err := RunTenantMigrations(db, appLogger, tenant.SchemaName); err != nil {
 				appLogger.Error("Failed to run migrations for tenant",
 					zap.Error(err),
 					zap.String("schema_name", tenant.SchemaName),
@@ -194,4 +207,13 @@ func RunMigrationsForAllTenants(ctx context.Context, db *gorm.DB, tenantRepo rep
 	}
 
 	return nil
+}
+
+// RunMigrations is kept for backward compatibility but delegates to RunPublicMigrations.
+// Deprecated: Use RunPublicMigrations or RunTenantMigrations directly.
+func RunMigrations(db *gorm.DB, appLogger logger.Logger, schemaName ...string) error {
+	if len(schemaName) > 0 && schemaName[0] != "" {
+		return RunTenantMigrations(db, appLogger, schemaName[0])
+	}
+	return RunPublicMigrations(db, appLogger)
 }

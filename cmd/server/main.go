@@ -73,8 +73,8 @@ func main() {
 	database.InitDB(cfg, appLogger)
 	db := database.GetDB()
 
-	if err := database.RunMigrations(db, appLogger); err != nil {
-		appLogger.Fatal("Failed to run database migrations", zap.Error(err))
+	if err := database.RunPublicMigrations(db, appLogger); err != nil {
+		appLogger.Fatal("Failed to run public schema migrations", zap.Error(err))
 	}
 
 	userRepo := userRepository.NewUserRepository(db, appLogger)
@@ -87,7 +87,7 @@ func main() {
 	tenantRepo := tenantRepository.NewTenantRepository(db, appLogger)
 
 	ctx := context.Background()
-	if err := database.RunMigrationsForAllTenants(ctx, db, tenantRepo, appLogger); err != nil {
+	if err := database.RunTenantMigrationsForAll(ctx, db, tenantRepo, appLogger); err != nil {
 		appLogger.Warn("Some tenant migrations failed", zap.Error(err))
 	}
 	tenantKeyRepo := tenantRepository.NewTenantEncryptionKeyRepository(db, appLogger)

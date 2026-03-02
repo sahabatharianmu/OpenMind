@@ -97,9 +97,10 @@ func (s *tenantService) CreateTenantForOrganization(ctx context.Context, organiz
 		return nil, fmt.Errorf("failed to create tenant record: %w", err)
 	}
 
-	// Run migrations for the new tenant schema
-	// Uses the same migration files as public schema, but in tenant schema context
-	if err := database.RunMigrations(s.db, s.log, schemaName); err != nil {
+	// Run tenant-specific migrations for the new tenant schema
+	// This uses the tenant migration track (pkg/migrations/tenant/) which only
+	// contains tenant-scoped DDL (patients, appointments, clinical_notes, etc.)
+	if err := database.RunTenantMigrations(s.db, s.log, schemaName); err != nil {
 		s.log.Error("Failed to run migrations for tenant schema", zap.Error(err), zap.String("schema_name", schemaName))
 		// Don't fail the entire operation, but log the error
 	}

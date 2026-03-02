@@ -1,0 +1,3 @@
+ALTER TABLE organizations DROP COLUMN IF EXISTS tax_id;
+ALTER TABLE organizations DROP COLUMN IF EXISTS npi;
+ALTER TABLE organizations DROP COLUMN IF EXISTS address;
