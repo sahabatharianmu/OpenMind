@@ -6,9 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/sahabatharianmu/OpenMind/internal/core/middleware"
 	appointmentHandler "github.com/sahabatharianmu/OpenMind/internal/modules/appointment/handler"
 	auditLogHandler "github.com/sahabatharianmu/OpenMind/internal/modules/audit_log/handler"
@@ -54,10 +56,22 @@ func RegisterRoutes(
 	api := h.Group("/api")
 	v1 := api.Group("/v1")
 
+	// Health check endpoint (no auth required)
+	v1.GET("/health", func(ctx context.Context, c *app.RequestContext) {
+		c.JSON(consts.StatusOK, map[string]interface{}{
+			"status":  "ok",
+			"service": "openmind-cloud",
+		})
+	})
+
 	auth := v1.Group("/auth")
+	auth.Use(middleware.RateLimit(10, time.Minute)) //nolint:mnd // 10 req/min for auth
 	{
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
+		auth.POST("/forgot-password", authHandler.ForgotPassword)
+		auth.POST("/reset-password", authHandler.ResetPassword)
+		auth.POST("/refresh", authHandler.RefreshToken)
 	}
 
 	plans := v1.Group("/plans")

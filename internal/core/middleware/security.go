@@ -140,11 +140,25 @@ func RequestSizeLimit(maxSize int64) app.HandlerFunc {
 }
 
 // TimeoutMiddleware adds request timeout protection
-func TimeoutMiddleware(_ time.Duration) app.HandlerFunc {
+func TimeoutMiddleware(timeout time.Duration) app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
-		// For now, just call next without timeout handling
-		// TODO: Implement proper timeout handling compatible with Hertz
-		c.Next(ctx)
+		ctx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+
+		// Create a channel to signal completion
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			c.Next(ctx)
+		}()
+
+		select {
+		case <-done:
+			// Request completed normally
+		case <-ctx.Done():
+			// Timeout exceeded
+			c.AbortWithStatus(consts.StatusGatewayTimeout)
+		}
 	}
 }
 

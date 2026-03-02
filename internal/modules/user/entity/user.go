@@ -9,14 +9,16 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID           uuid.UUID      `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
-	CreatedAt    time.Time      `gorm:"autoCreateTime"                                  json:"created_at"`
-	UpdatedAt    time.Time      `gorm:"autoUpdateTime"                                  json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `gorm:"index"                                           json:"-"`
-	Email        string         `gorm:"uniqueIndex;not null"                            json:"email"`
-	PasswordHash string         `gorm:"not null"                                        json:"-"` // Never return password hash in JSON
-	FullName     string         `gorm:"not null"                                        json:"full_name"`
-	SystemRole   string         `gorm:"type:varchar(50);not null;default:'user'"        json:"system_role"` // user, admin (platform admin)
+	ID                     uuid.UUID      `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()" json:"id"`
+	CreatedAt              time.Time      `gorm:"autoCreateTime"                                  json:"created_at"`
+	UpdatedAt              time.Time      `gorm:"autoUpdateTime"                                  json:"updated_at"`
+	DeletedAt              gorm.DeletedAt `gorm:"index"                                           json:"-"`
+	Email                  string         `gorm:"uniqueIndex;not null"                            json:"email"`
+	PasswordHash           string         `gorm:"not null"                                        json:"-"` // Never return password hash in JSON
+	FullName               string         `gorm:"not null"                                        json:"full_name"`
+	SystemRole             string         `gorm:"type:varchar(50);not null;default:'user'"        json:"system_role"` // user, admin (platform admin)
+	PasswordResetToken     *string        `gorm:"type:varchar(255)"                               json:"-"`
+	PasswordResetExpiresAt *time.Time     `gorm:"type:timestamptz"                                json:"-"`
 	// Note: Role is now per-organization in organization_members table
 }
 

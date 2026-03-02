@@ -18,6 +18,7 @@ type UserRepository interface {
 	GetByID(id uuid.UUID) (*entity.User, error)
 	Update(user *entity.User) error
 	CountUsers() (int64, error)
+	FindByResetToken(token string) (*entity.User, error)
 }
 
 type userRepository struct {
@@ -109,4 +110,16 @@ func (r *userRepository) CountUsers() (int64, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+func (r *userRepository) FindByResetToken(token string) (*entity.User, error) {
+	var user entity.User
+	err := r.db.Where("password_reset_token = ? AND password_reset_expires_at > NOW()", token).First(&user).Error
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			r.log.Error("Failed to find user by reset token", zap.Error(err))
+		}
+		return nil, err
+	}
+	return &user, nil
 }

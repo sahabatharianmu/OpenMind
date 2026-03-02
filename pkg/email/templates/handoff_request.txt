@@ -1,0 +1,10 @@
+Patient Handoff Request
+
+Hello,
+
+{{.RequestingClinicianName}} has requested to hand off patient {{.PatientName}} to you.
+
+Please review and respond to this handoff request by visiting:
+{{.HandoffURL}}
+
+This is an automated notification from OpenMind Practice.

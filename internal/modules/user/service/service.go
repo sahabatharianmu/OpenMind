@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"time"
 
 	"github.com/google/uuid"
 	orgRepo "github.com/sahabatharianmu/OpenMind/internal/modules/organization/repository"
@@ -22,6 +25,9 @@ type AuthService interface {
 	Register(email, password, fullName, practiceName, baseURL string) (*dto.RegisterResponse, error)
 	Login(email, password string) (*dto.LoginResponse, error)
 	ChangePassword(userID uuid.UUID, oldPassword, newPassword string) error
+	ForgotPassword(email, baseURL string) error
+	ResetPassword(token, newPassword string) error
+	RefreshToken(refreshToken string) (*dto.LoginResponse, error)
 }
 
 type authService struct {
@@ -217,4 +223,123 @@ func (s *authService) ChangePassword(userID uuid.UUID, oldPassword, newPassword 
 
 	s.log.Info("Password changed successfully", zap.String("user_id", userID.String()))
 	return nil
+}
+
+// ForgotPassword generates a password reset token, saves it to the database,
+// and sends a password reset email to the user.
+func (s *authService) ForgotPassword(emailAddr, baseURL string) error {
+	user, err := s.repo.FindByEmail(emailAddr)
+	if err != nil {
+		// Don't reveal whether email exists — always return success to prevent enumeration
+		s.log.Info("ForgotPassword: email not found (returning success to prevent enumeration)",
+			zap.String("email", emailAddr))
+		return nil
+	}
+
+	// Generate secure random token (32 bytes → 64 hex characters)
+	tokenBytes := make([]byte, 32) //nolint:mnd
+	if _, err := rand.Read(tokenBytes); err != nil {
+		s.log.Error("ForgotPassword: failed to generate reset token", zap.Error(err))
+		return response.ErrInternalServerError
+	}
+	token := hex.EncodeToString(tokenBytes)
+
+	// Token expires in 1 hour
+	expiresAt := time.Now().Add(1 * time.Hour)
+	user.PasswordResetToken = &token
+	user.PasswordResetExpiresAt = &expiresAt
+
+	if err := s.repo.Update(user); err != nil {
+		s.log.Error("ForgotPassword: failed to save reset token", zap.Error(err))
+		return response.ErrInternalServerError
+	}
+
+	// Send password reset email
+	resetURL := baseURL + "/auth?mode=reset&token=" + token
+	if err := s.emailService.SendPasswordResetEmail(emailAddr, user.FullName, resetURL); err != nil {
+		s.log.Error("ForgotPassword: failed to send reset email",
+			zap.Error(err), zap.String("email", emailAddr))
+		// Still return nil to prevent enumeration
+	}
+
+	s.log.Info("Password reset token generated", zap.String("email", emailAddr))
+	return nil
+}
+
+// ResetPassword validates the reset token, updates the password, and clears
+// the reset token from the database.
+func (s *authService) ResetPassword(token, newPassword string) error {
+	user, err := s.repo.FindByResetToken(token)
+	if err != nil {
+		s.log.Warn("ResetPassword: invalid or expired token")
+		return response.ErrInvalidInput
+	}
+
+	// Hash new password
+	hashedPassword, err := s.passwordService.HashPassword(newPassword)
+	if err != nil {
+		s.log.Error("ResetPassword: password hashing error", zap.Error(err))
+		return response.ErrInternalServerError
+	}
+
+	// Update password and clear reset token
+	user.PasswordHash = hashedPassword
+	user.PasswordResetToken = nil
+	user.PasswordResetExpiresAt = nil
+
+	if err := s.repo.Update(user); err != nil {
+		s.log.Error("ResetPassword: failed to update password", zap.Error(err))
+		return response.ErrInternalServerError
+	}
+
+	s.log.Info("Password reset successfully", zap.String("user_id", user.ID.String()))
+	return nil
+}
+
+// RefreshToken generates a new access token (and refresh token) from a valid refresh token.
+func (s *authService) RefreshToken(refreshToken string) (*dto.LoginResponse, error) {
+	// Validate refresh token and extract user ID
+	claims, err := s.jwt.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		s.log.Warn("RefreshToken: invalid refresh token", zap.Error(err))
+		return nil, response.ErrUnauthorized
+	}
+
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		s.log.Error("RefreshToken: invalid subject in token", zap.Error(err))
+		return nil, response.ErrUnauthorized
+	}
+
+	// Look up current user details from DB
+	user, err := s.repo.GetByID(userID)
+	if err != nil {
+		s.log.Warn("RefreshToken: user not found", zap.String("user_id", userID.String()))
+		return nil, response.ErrUnauthorized
+	}
+
+	// Get the user's current org role
+	org, err := s.orgRepo.GetByUserID(user.ID)
+	if err != nil {
+		s.log.Warn("RefreshToken: user has no organization", zap.String("user_id", userID.String()))
+		return nil, response.ErrUnauthorized
+	}
+
+	role, err := s.orgRepo.GetMemberRole(org.ID, user.ID)
+	if err != nil {
+		s.log.Warn("RefreshToken: could not get user role", zap.String("user_id", userID.String()))
+		return nil, response.ErrUnauthorized
+	}
+
+	// Generate new token pair
+	newAccessToken, newRefreshToken, err := s.jwt.GenerateTokens(user.ID, user.Email, role, user.SystemRole)
+	if err != nil {
+		s.log.Error("RefreshToken: token generation error", zap.Error(err))
+		return nil, response.ErrInternalServerError
+	}
+
+	return &dto.LoginResponse{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+	}, nil
 }

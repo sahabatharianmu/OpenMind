@@ -97,8 +97,9 @@ func (s *JWTService) ValidateToken(tokenString string) (*JWTClaims, error) {
 	return nil, errors.New("invalid token")
 }
 
-// RefreshToken generates a new access token from a refresh token
-func (s *JWTService) RefreshToken(refreshToken string) (string, error) {
+// ValidateRefreshToken validates a refresh token and returns the registered claims.
+// Unlike ValidateToken, refresh tokens only contain RegisteredClaims (no custom JWTClaims).
+func (s *JWTService) ValidateRefreshToken(refreshToken string) (*jwt.RegisteredClaims, error) {
 	token, err := jwt.ParseWithClaims(
 		refreshToken,
 		&jwt.RegisteredClaims{},
@@ -111,21 +112,18 @@ func (s *JWTService) RefreshToken(refreshToken string) (string, error) {
 	)
 
 	if err != nil {
-		return "", fmt.Errorf("failed to parse refresh token: %w", err)
+		return nil, fmt.Errorf("failed to parse refresh token: %w", err)
 	}
 
 	if claims, ok := token.Claims.(*jwt.RegisteredClaims); ok && token.Valid {
-		// Generate new access token
-		_, err := uuid.Parse(claims.Subject)
-		if err != nil {
-			return "", fmt.Errorf("invalid subject in refresh token: %w", err)
-		}
-
-		// For refresh token, we need to get user details from database
-		// This will be implemented when we have the user repository
-		// For now, we'll return an error
-		return "", errors.New("user details required for token refresh")
+		return claims, nil
 	}
 
-	return "", errors.New("invalid refresh token")
+	return nil, errors.New("invalid refresh token")
+}
+
+// RefreshToken generates a new access token from a refresh token.
+// Deprecated: Use ValidateRefreshToken + GenerateTokens via the AuthService instead.
+func (s *JWTService) RefreshToken(refreshToken string) (string, error) {
+	return "", errors.New("use AuthService.RefreshToken instead")
 }

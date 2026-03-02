@@ -1,0 +1,18 @@
+Welcome to OpenMind Practice, {{.UserName}}!
+
+Thank you for joining OpenMind Practice! We're excited to help you manage your practice with secure, HIPAA-compliant tools.
+
+Getting Started:
+- Add Your First Patient — Start by adding patients to your practice
+- Schedule Appointments — Manage your calendar and appointments
+- Create Clinical Notes — Document patient sessions with encrypted notes
+- Invite Team Members — Collaborate with your team securely
+
+Go to Dashboard: {{.DashboardURL}}
+
+Your organization {{.OrganizationName}} has been set up and is ready to use.
+
+If you have any questions, please don't hesitate to reach out to our support team.
+
+Welcome aboard!
+The OpenMind Team
