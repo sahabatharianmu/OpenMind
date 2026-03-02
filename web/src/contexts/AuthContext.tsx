@@ -62,6 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id,
           email: resEmail,
           role,
+          system_role: 'user',
           full_name: fullName,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -99,10 +100,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       const payload = JSON.parse(atob(access_token.split('.')[1]));
       const userProfile: User = {
-        id: payload.user_id, // ensure payload has this
+        id: payload.user_id,
         email: payload.email,
         role: payload.role,
-        full_name: "User", // JWT might not have this unless I added it.
+        system_role: payload.system_role || 'user',
+        full_name: payload.full_name || 'User',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };

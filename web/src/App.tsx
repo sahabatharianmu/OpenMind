@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { ProtectedRoute, AdminRoute } from "@/components/guards/RouteGuards";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -31,35 +33,41 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/dashboard/patients" element={<Patients />} />
-            <Route path="/dashboard/patients/:id" element={<PatientProfile />} />
-            <Route path="/dashboard/appointments" element={<Appointments />} />
-            <Route path="/dashboard/notes" element={<Notes />} />
-            <Route path="/dashboard/notes/:id" element={<NoteEditor />} />
-            <Route path="/dashboard/billing" element={<Billing />} />
-            <Route path="/dashboard/settings" element={<Settings />} />
-            <Route path="/dashboard/audit-logs" element={<AuditLogs />} />
-            <Route path="/dashboard/teams" element={<Teams />} />
-            <Route path="/dashboard/payment-methods" element={<PaymentMethods />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/accept-invitation" element={<AcceptInvitation />} />
-            
-            {/* Admin Routes */}
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/plans" element={<SubscriptionPlans />} />
-            <Route path="/admin/tenants" element={<Tenants />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <ErrorBoundary>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/accept-invitation" element={<AcceptInvitation />} />
+
+              {/* Protected routes — require authentication */}
+              <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
+              <Route path="/dashboard/patients/:id" element={<ProtectedRoute><PatientProfile /></ProtectedRoute>} />
+              <Route path="/dashboard/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
+              <Route path="/dashboard/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
+              <Route path="/dashboard/notes/:id" element={<ProtectedRoute><NoteEditor /></ProtectedRoute>} />
+              <Route path="/dashboard/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
+              <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/dashboard/audit-logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
+              <Route path="/dashboard/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
+              <Route path="/dashboard/payment-methods" element={<ProtectedRoute><PaymentMethods /></ProtectedRoute>} />
+
+              {/* Admin routes — require authentication + system_role=admin */}
+              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="/admin/plans" element={<AdminRoute><SubscriptionPlans /></AdminRoute>} />
+              <Route path="/admin/tenants" element={<AdminRoute><Tenants /></AdminRoute>} />
+
+              {/* Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ErrorBoundary>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

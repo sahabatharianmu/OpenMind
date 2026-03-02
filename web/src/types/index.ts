@@ -3,6 +3,7 @@ export interface User {
   email: string;
   full_name: string;
   role: string;
+  system_role?: string; // 'user' | 'admin' — platform-level role from JWT
   created_at: string;
   updated_at: string;
 }
