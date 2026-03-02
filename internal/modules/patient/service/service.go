@@ -33,7 +33,7 @@ type PatientService interface {
 	) (*dto.PatientResponse, error)
 	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
 	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID, userID uuid.UUID, userRole string) (*dto.PatientResponse, error)
-	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int, userID uuid.UUID, userRole string) ([]dto.PatientResponse, int64, error)
+	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int, userID uuid.UUID, userRole string, search string) ([]dto.PatientResponse, int64, error)
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 	AssignClinician(ctx context.Context, patientID uuid.UUID, req dto.AssignClinicianRequest, organizationID uuid.UUID, userID uuid.UUID) error
 	UnassignClinician(ctx context.Context, patientID, clinicianID uuid.UUID, organizationID uuid.UUID, userID uuid.UUID) error
@@ -41,11 +41,11 @@ type PatientService interface {
 }
 
 type patientService struct {
-	repo            repository.PatientRepository
-	handoffRepo     repository.PatientHandoffRepository
-	userRepo        userRepo.UserRepository
-	gatingService   subscriptionService.FeatureGatingService
-	log             logger.Logger
+	repo          repository.PatientRepository
+	handoffRepo   repository.PatientHandoffRepository
+	userRepo      userRepo.UserRepository
+	gatingService subscriptionService.FeatureGatingService
+	log           logger.Logger
 }
 
 func NewPatientService(repo repository.PatientRepository, handoffRepo repository.PatientHandoffRepository, userRepo userRepo.UserRepository, gatingService subscriptionService.FeatureGatingService, log logger.Logger) PatientService {
@@ -212,6 +212,7 @@ func (s *patientService) List(
 	page, pageSize int,
 	userID uuid.UUID,
 	userRole string,
+	search string,
 ) ([]dto.PatientResponse, int64, error) {
 	offset := (page - 1) * pageSize
 
@@ -220,7 +221,7 @@ func (s *patientService) List(
 	// No assignment filtering - show all patients
 	var assignedPatientIDs []uuid.UUID // Empty - no filtering
 
-	patients, total, err := s.repo.List(organizationID, pageSize, offset, assignedPatientIDs)
+	patients, total, err := s.repo.List(organizationID, pageSize, offset, assignedPatientIDs, search)
 	if err != nil {
 		return nil, 0, err
 	}

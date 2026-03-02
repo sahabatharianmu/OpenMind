@@ -12,6 +12,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/sahabatharianmu/OpenMind/internal/core/middleware"
+	adminHandler "github.com/sahabatharianmu/OpenMind/internal/modules/admin/handler"
 	appointmentHandler "github.com/sahabatharianmu/OpenMind/internal/modules/appointment/handler"
 	auditLogHandler "github.com/sahabatharianmu/OpenMind/internal/modules/audit_log/handler"
 	clinicalNoteHandler "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/handler"
@@ -48,6 +49,7 @@ func RegisterRoutes(
 	notificationHandler *notificationHandler.NotificationHandler,
 	adminPlanHandler *subscriptionHandler.AdminPlanHandler,
 	publicPlanHandler *subscriptionHandler.PublicPlanHandler,
+	adminStatsHandler *adminHandler.AdminStatsHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	auditMiddleware *middleware.AuditMiddleware,
 	rbacMiddleware *middleware.RBACMiddleware,
@@ -90,6 +92,8 @@ func RegisterRoutes(
 			plans.GET("/:id", adminPlanHandler.GetPlan)
 			plans.PUT("/:id", adminPlanHandler.UpdatePlan)
 		}
+
+		admin.GET("/stats", adminStatsHandler.GetStats)
 	}
 
 	team := v1.Group("/team")

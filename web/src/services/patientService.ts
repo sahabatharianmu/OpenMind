@@ -64,8 +64,9 @@ export interface Handoff {
 }
 
 const patientService = {
-  list: async () => {
-    const response = await api.get<{ data: PaginatedResponse<Patient> }>("/patients");
+  list: async (search?: string) => {
+    const params = search ? { search } : {};
+    const response = await api.get<{ data: PaginatedResponse<Patient> }>("/patients", { params });
     return response.data.data.items;
   },
 

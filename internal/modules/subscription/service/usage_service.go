@@ -48,7 +48,7 @@ func (s *usageService) GetPatientCount(ctx context.Context, organizationID uuid.
 	// Use the patient repository's List method to count
 	// We pass empty assignedPatientIDs to count all patients
 	var assignedPatientIDs []uuid.UUID
-	_, total, err := s.patientRepo.List(organizationID, 1, 0, assignedPatientIDs)
+	_, total, err := s.patientRepo.List(organizationID, 1, 0, assignedPatientIDs, "")
 	if err != nil {
 		s.log.Error("Failed to count patients", zap.Error(err),
 			zap.String("organization_id", organizationID.String()))
@@ -87,4 +87,3 @@ func (s *usageService) GetUsageStats(ctx context.Context, organizationID uuid.UU
 		ClinicianCount: clinicianCount,
 	}, nil
 }
-

@@ -16,7 +16,7 @@ type PatientRepository interface {
 	Update(patient *entity.Patient) error
 	Delete(id uuid.UUID) error
 	FindByID(id uuid.UUID) (*entity.Patient, error)
-	List(organizationID uuid.UUID, limit, offset int, assignedPatientIDs []uuid.UUID) ([]entity.Patient, int64, error)
+	List(organizationID uuid.UUID, limit, offset int, assignedPatientIDs []uuid.UUID, search string) ([]entity.Patient, int64, error)
 	GetOrganizationID(userID uuid.UUID) (uuid.UUID, error)
 	AssignClinician(patientID, clinicianID uuid.UUID, role string, assignedBy uuid.UUID) error
 	UnassignClinician(patientID, clinicianID uuid.UUID) error
@@ -73,7 +73,7 @@ func (r *patientRepository) FindByID(id uuid.UUID) (*entity.Patient, error) {
 	return &patient, nil
 }
 
-func (r *patientRepository) List(organizationID uuid.UUID, limit, offset int, assignedPatientIDs []uuid.UUID) ([]entity.Patient, int64, error) {
+func (r *patientRepository) List(organizationID uuid.UUID, limit, offset int, assignedPatientIDs []uuid.UUID, search string) ([]entity.Patient, int64, error) {
 	var patients []entity.Patient
 	var total int64
 
@@ -82,6 +82,15 @@ func (r *patientRepository) List(organizationID uuid.UUID, limit, offset int, as
 	// Filter by assigned patients if provided (for non-admin users)
 	if len(assignedPatientIDs) > 0 {
 		query = query.Where("id IN ?", assignedPatientIDs)
+	}
+
+	// Search by name or email
+	if search != "" {
+		searchPattern := "%" + search + "%"
+		query = query.Where(
+			"first_name ILIKE ? OR last_name ILIKE ? OR email ILIKE ?",
+			searchPattern, searchPattern, searchPattern,
+		)
 	}
 
 	if err := query.Count(&total).Error; err != nil {

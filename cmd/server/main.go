@@ -9,6 +9,7 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/core/database"
 	"github.com/sahabatharianmu/OpenMind/internal/core/middleware"
 	"github.com/sahabatharianmu/OpenMind/internal/core/router"
+	adminHandler "github.com/sahabatharianmu/OpenMind/internal/modules/admin/handler"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/handler"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/repository"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/service"
@@ -226,6 +227,7 @@ func main() {
 	patientHandoffHdlr := patientHandler.NewPatientHandoffHandler(patientHandoffSvc, cfg.Application.URL)
 	adminPlanHdlr := subscriptionHandler.NewAdminPlanHandler(planSvc)
 	publicPlanHdlr := subscriptionHandler.NewPublicPlanHandler(planSvc)
+	adminStatsHdlr := adminHandler.NewAdminStatsHandler(db, tenantRepo, appLogger)
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	auditMiddleware := middleware.NewAuditMiddleware(auditLogSvc)
@@ -259,6 +261,7 @@ func main() {
 		notificationHdlr,
 		adminPlanHdlr,
 		publicPlanHdlr,
+		adminStatsHdlr,
 		authMiddleware,
 		auditMiddleware,
 		rbacMiddleware,

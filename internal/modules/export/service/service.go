@@ -63,7 +63,7 @@ func (s *exportService) ExportAllData(userID uuid.UUID) (map[string][]byte, erro
 
 	// Export patients - use large limit with offset 0 to get all records
 	// nil for assignedPatientIDs means no filter (admin export sees all)
-	patients, _, err := s.patientRepo.List(org.ID, 10000, 0, nil)
+	patients, _, err := s.patientRepo.List(org.ID, 10000, 0, nil, "")
 	if err != nil {
 		s.log.Error("Failed to fetch patients for export", zap.Error(err))
 	} else {

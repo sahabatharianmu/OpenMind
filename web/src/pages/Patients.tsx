@@ -64,9 +64,16 @@ const Patients = () => {
   const [newAddress, setNewAddress] = useState("");
 
   useEffect(() => {
-    fetchPatients();
     loadUsageStats();
   }, [user]);
+
+  // Debounced server-side search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchPatients(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, user]);
 
   const loadUsageStats = async () => {
     try {
@@ -82,12 +89,12 @@ const Patients = () => {
     }
   };
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (searchQuery?: string) => {
     if (!user) return; // Wait for user to be loaded
 
     setLoading(true);
     try {
-      const data = await patientService.list();
+      const data = await patientService.list(searchQuery);
       setPatients(data || []);
       
       // Check assignment status for each patient
@@ -165,9 +172,7 @@ const Patients = () => {
     setNewAddress("");
   };
 
-  const filteredPatients = patients.filter((p) =>
-    `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredPatients = patients;
 
   const activeCount = patients.filter(p => p.status === "active").length;
 

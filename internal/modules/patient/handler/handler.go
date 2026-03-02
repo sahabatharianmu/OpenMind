@@ -73,13 +73,15 @@ func (h *PatientHandler) List(_ context.Context, c *app.RequestContext) {
 		pageSize = 10
 	}
 
+	search := c.DefaultQuery("search", "")
+
 	// Get user role from context
 	userRole, _ := middleware.GetUserRoleFromContext(c)
 	if userRole == "" {
 		userRole = "member" // Default to member if role not found
 	}
 
-	resp, total, err := h.svc.List(context.Background(), orgID, page, pageSize, userID, userRole)
+	resp, total, err := h.svc.List(context.Background(), orgID, page, pageSize, userID, userRole, search)
 	if err != nil {
 		response.HandleError(c, err)
 		return
