@@ -12,15 +12,16 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Application ApplicationConfig `mapstructure:"application"`
-	Server      ServerConfig      `mapstructure:"server"`
-	Database    DatabaseConfig    `mapstructure:"database"`
-	Redis       RedisConfig       `mapstructure:"redis"`
-	Security    SecurityConfig    `mapstructure:"security"`
-	Email       EmailConfig       `mapstructure:"email"`
-	SMS         SMSConfig         `mapstructure:"sms"`
-	Storage     StorageConfig     `mapstructure:"storage"`
-	Payment     PaymentConfig     `mapstructure:"payment"`
+	Application  ApplicationConfig `mapstructure:"application"`
+	Server       ServerConfig      `mapstructure:"server"`
+	Database     DatabaseConfig    `mapstructure:"database"`
+	Redis        RedisConfig       `mapstructure:"redis"`
+	Security     SecurityConfig    `mapstructure:"security"`
+	Email        EmailConfig       `mapstructure:"email"`
+	SMS          SMSConfig         `mapstructure:"sms"`
+	Storage      StorageConfig     `mapstructure:"storage"`
+	Payment      PaymentConfig     `mapstructure:"payment"`
+	FeatureFlags FeatureFlagConfig `mapstructure:"feature_flags"`
 }
 
 // ApplicationConfig holds application configuration
@@ -302,4 +303,9 @@ func setDefaults() {
 	viper.SetDefault("payment.midtrans.is_production", viper.GetString("application.environment") == "production")
 	viper.SetDefault("payment.midtrans.client_key", "")
 	viper.SetDefault("payment.midtrans.server_key", "")
+
+	// Feature flags defaults
+	ffConfig := DefaultFeatureFlagConfig()
+	viper.SetDefault("feature_flags.provider", ffConfig.Provider)
+	viper.SetDefault("feature_flags.sdk_key", ffConfig.SDKKey)
 }

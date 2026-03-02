@@ -51,6 +51,7 @@ import (
 	userService "github.com/sahabatharianmu/OpenMind/internal/modules/user/service"
 	"github.com/sahabatharianmu/OpenMind/pkg/crypto"
 	"github.com/sahabatharianmu/OpenMind/pkg/email"
+	"github.com/sahabatharianmu/OpenMind/pkg/featureflags"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
 	"github.com/sahabatharianmu/OpenMind/pkg/midtrans"
 	"github.com/sahabatharianmu/OpenMind/pkg/payment"
@@ -77,6 +78,17 @@ func main() {
 	if err := database.RunPublicMigrations(db, appLogger); err != nil {
 		appLogger.Fatal("Failed to run public schema migrations", zap.Error(err))
 	}
+
+	// Initialize LaunchDarkly feature flags
+	ffClient, err := featureflags.New(
+		cfg.FeatureFlags.Provider,
+		cfg.FeatureFlags.SDKKey,
+		appLogger,
+	)
+	if err != nil {
+		appLogger.Warn("Feature flags initialization failed, continuing with defaults", zap.Error(err))
+	}
+	_ = ffClient // available for injection into handlers/services
 
 	userRepo := userRepository.NewUserRepository(db, appLogger)
 	patientRepo := patientRepository.NewPatientRepository(db, appLogger)
@@ -273,7 +285,11 @@ func main() {
 	h.OnShutdown = append(h.OnShutdown, func(_ context.Context) {
 		appLogger.Info("Shutting down server gracefully...")
 
-		// TODO: Add other cleanup logic here (e.g., closing Database connections, Redis, etc.)
+		if ffClient != nil {
+			if err := ffClient.Close(); err != nil {
+				appLogger.Error("Error closing feature flag client", zap.Error(err))
+			}
+		}
 
 		appLogger.Info("Server resources released")
 	})

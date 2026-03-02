@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { FeatureFlagProvider } from "@/lib/featureFlags";
 import { ProtectedRoute, AdminRoute } from "@/components/guards/RouteGuards";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -32,8 +33,9 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <ErrorBoundary>
+      <FeatureFlagProvider>
+        <TooltipProvider>
+          <ErrorBoundary>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -67,8 +69,9 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </ErrorBoundary>
-      </TooltipProvider>
+          </ErrorBoundary>
+        </TooltipProvider>
+      </FeatureFlagProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
