@@ -1,3 +1,10 @@
+# [1.0.0-alpha.5](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2026-03-02)
+
+
+### Features
+
+* Implement comprehensive user authentication and management, including registration, login, password reset, and email notifications. ([57e291d](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/57e291d4a47fbe1cb17be83c1f771f417a0b3843))
+
 # [1.0.0-alpha.4](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2026-03-02)
 
 
