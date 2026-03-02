@@ -266,6 +266,8 @@ func main() {
 		auditMiddleware,
 		rbacMiddleware,
 		tenantMiddleware,
+		appLogger,
+		db,
 	)
 
 	h.OnShutdown = append(h.OnShutdown, func(_ context.Context) {

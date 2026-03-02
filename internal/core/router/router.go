@@ -28,7 +28,11 @@ import (
 	teamHandler "github.com/sahabatharianmu/OpenMind/internal/modules/team/handler"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/user/handler"
 	"github.com/sahabatharianmu/OpenMind/pkg/constants"
+	"github.com/sahabatharianmu/OpenMind/pkg/logger"
+	"gorm.io/gorm"
 )
+
+var startTime = time.Now()
 
 func RegisterRoutes(
 	h *server.Hertz,
@@ -54,15 +58,36 @@ func RegisterRoutes(
 	auditMiddleware *middleware.AuditMiddleware,
 	rbacMiddleware *middleware.RBACMiddleware,
 	tenantMiddleware app.HandlerFunc,
+	log logger.Logger,
+	db *gorm.DB,
 ) {
 	api := h.Group("/api")
 	v1 := api.Group("/v1")
+	v1.Use(middleware.RequestLogging(log))
 
 	// Health check endpoint (no auth required)
 	v1.GET("/health", func(ctx context.Context, c *app.RequestContext) {
-		c.JSON(consts.StatusOK, map[string]interface{}{
-			"status":  "ok",
-			"service": "openmind-cloud",
+		// Check database connectivity
+		dbStatus := "connected"
+		sqlDB, err := db.DB()
+		if err != nil {
+			dbStatus = "error"
+		} else if err := sqlDB.Ping(); err != nil {
+			dbStatus = "disconnected"
+		}
+
+		status := "ok"
+		statusCode := consts.StatusOK
+		if dbStatus != "connected" {
+			status = "degraded"
+			statusCode = consts.StatusServiceUnavailable
+		}
+
+		c.JSON(statusCode, map[string]interface{}{
+			"status":         status,
+			"service":        "openmind-cloud",
+			"uptime_seconds": int(time.Since(startTime).Seconds()),
+			"database":       dbStatus,
 		})
 	})
 
