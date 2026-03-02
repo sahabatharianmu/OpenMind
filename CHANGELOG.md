@@ -1,3 +1,10 @@
+# [1.0.0-alpha.6](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.5...v1.0.0-alpha.6) (2026-03-02)
+
+
+### Features
+
+* initialize core application structure with authentication, routing, global state management, and core data types. ([3453960](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/3453960c44e31e30cb5799a9a2941ddb73c28551))
+
 # [1.0.0-alpha.5](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2026-03-02)
 
 
