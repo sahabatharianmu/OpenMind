@@ -1,3 +1,10 @@
+# [1.0.0-alpha.4](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2026-03-02)
+
+
+### Features
+
+* Initialize application with comprehensive database migrations, core service definitions, and server setup. ([34ea066](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/34ea0660f01e9ca013b6f8b558a649851304c9e3))
+
 # [1.0.0-alpha.3](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2026-01-05)
 
 
