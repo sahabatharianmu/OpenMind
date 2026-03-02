@@ -1,3 +1,10 @@
+# [1.0.0-alpha.8](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.7...v1.0.0-alpha.8) (2026-03-02)
+
+
+### Features
+
+* Establish initial server application structure, including main entry point, core routing, logging middleware, and a load testing script. ([d59ce46](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/d59ce46e2c017710b2f7db80a16a592ae06d8098))
+
 # [1.0.0-alpha.7](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0-alpha.6...v1.0.0-alpha.7) (2026-03-02)
 
 
