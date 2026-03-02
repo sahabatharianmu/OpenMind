@@ -2,9 +2,6 @@ package router
 
 import (
 	"context"
-	"mime"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -272,7 +269,7 @@ func RegisterRoutes(
 		}
 	}
 
-	h.Static("/assets", "./web/dist")
+	// h.Static("/assets", "./web/dist")
 
 	h.NoRoute(func(ctx context.Context, c *app.RequestContext) {
 		path := string(c.Request.URI().Path())
@@ -282,23 +279,23 @@ func RegisterRoutes(
 			return
 		}
 
-		publicPath := filepath.Join("./web/public", path)
-		if info, err := os.Stat(publicPath); err == nil && !info.IsDir() {
-			ext := filepath.Ext(publicPath)
-			contentType := mime.TypeByExtension(ext)
+		// publicPath := filepath.Join("./web/public", path)
+		// if info, err := os.Stat(publicPath); err == nil && !info.IsDir() {
+		// 	ext := filepath.Ext(publicPath)
+		// 	contentType := mime.TypeByExtension(ext)
 
-			if ext == ".svg" && contentType == "" {
-				contentType = "image/svg+xml"
-			}
+		// 	if ext == ".svg" && contentType == "" {
+		// 		contentType = "image/svg+xml"
+		// 	}
 
-			if contentType != "" {
-				c.Header("Content-Type", contentType)
-			}
+		// 	if contentType != "" {
+		// 		c.Header("Content-Type", contentType)
+		// 	}
 
-			c.File(publicPath)
-			return
-		}
+		// 	c.File(publicPath)
+		// 	return
+		// }
 
-		c.File("./web/dist/index.html")
+		// c.File("./web/dist/index.html")
 	})
 }

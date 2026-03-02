@@ -1,0 +1,21 @@
+# Frontend (deployed separately to Cloudflare Pages)
+web/
+
+# Version control & CI
+.git/
+.github/
+
+# Documentation
+*.md
+document/
+scripts/
+
+# IDE & editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build artifacts
+tmp_server.exe
+*.exe

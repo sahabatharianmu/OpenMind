@@ -1,10 +1,13 @@
 import axios from "axios";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 const api = axios.create({
-  baseURL: "/api/v1",
+  baseURL: `${API_BASE}/api/v1`,
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 // Flag to prevent multiple concurrent refresh attempts
@@ -71,7 +74,7 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem("refresh_token");
-        const response = await axios.post("/api/v1/auth/refresh", {
+        const response = await axios.post(`${API_BASE}/api/v1/auth/refresh`, {
           refresh_token: refreshToken,
         });
 
