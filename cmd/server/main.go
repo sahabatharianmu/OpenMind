@@ -242,6 +242,8 @@ func main() {
 	adminPlanHdlr := subscriptionHandler.NewAdminPlanHandler(planSvc)
 	publicPlanHdlr := subscriptionHandler.NewPublicPlanHandler(planSvc)
 	adminStatsHdlr := adminHandler.NewAdminStatsHandler(db, tenantRepo, appLogger)
+	adminTenantHdlr := adminHandler.NewAdminTenantHandler(db, appLogger)
+	adminUserHdlr := adminHandler.NewAdminUserHandler(db, appLogger)
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 	auditMiddleware := middleware.NewAuditMiddleware(auditLogSvc)
@@ -285,6 +287,8 @@ func main() {
 		adminPlanHdlr,
 		publicPlanHdlr,
 		adminStatsHdlr,
+		adminTenantHdlr,
+		adminUserHdlr,
 		authMiddleware,
 		auditMiddleware,
 		rbacMiddleware,

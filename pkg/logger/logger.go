@@ -30,6 +30,7 @@ func NewLogger(mode string) Logger {
 	} else {
 		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		config.DisableStacktrace = true
 	}
 
 	zapLogger, err := config.Build()

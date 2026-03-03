@@ -154,18 +154,33 @@ func (s *authService) Login(email, password string) (*dto.LoginResponse, error) 
 		return nil, response.ErrUnauthorized
 	}
 
-	// Get user's organization and role from organization_members
-	org, err := s.orgRepo.GetByUserID(user.ID)
-	if err != nil {
-		s.log.Warn("Login failed: user has no organization", zap.String("email", email), zap.Error(err))
-		return nil, response.ErrUnauthorized
-	}
+	var role string
 
-	// Get role from organization_members table
-	role, err := s.orgRepo.GetMemberRole(org.ID, user.ID)
-	if err != nil {
-		s.log.Warn("Login failed: could not get user role", zap.String("email", email), zap.Error(err))
-		return nil, response.ErrUnauthorized
+	// Platform admins may not have an organization — allow them through
+	if user.SystemRole == "admin" {
+		org, err := s.orgRepo.GetByUserID(user.ID)
+		if err != nil {
+			// Admin without org — use "admin" as their role
+			role = "admin"
+		} else {
+			role, _ = s.orgRepo.GetMemberRole(org.ID, user.ID)
+			if role == "" {
+				role = "admin"
+			}
+		}
+	} else {
+		// Regular users must have an organization
+		org, err := s.orgRepo.GetByUserID(user.ID)
+		if err != nil {
+			s.log.Warn("Login failed: user has no organization", zap.String("email", email), zap.Error(err))
+			return nil, response.ErrUnauthorized
+		}
+
+		role, err = s.orgRepo.GetMemberRole(org.ID, user.ID)
+		if err != nil {
+			s.log.Warn("Login failed: could not get user role", zap.String("email", email), zap.Error(err))
+			return nil, response.ErrUnauthorized
+		}
 	}
 
 	accessToken, refreshToken, err := s.jwt.GenerateTokens(user.ID, user.Email, role, user.SystemRole)

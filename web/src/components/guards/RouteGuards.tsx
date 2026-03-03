@@ -21,6 +21,11 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
+  // Platform admins should only access /admin routes
+  if (user.system_role === "admin") {
+    return <Navigate to="/admin" replace />;
+  }
+
   return <>{children}</>;
 }
 

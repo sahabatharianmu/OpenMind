@@ -51,6 +51,8 @@ func RegisterRoutes(
 	adminPlanHandler *subscriptionHandler.AdminPlanHandler,
 	publicPlanHandler *subscriptionHandler.PublicPlanHandler,
 	adminStatsHandler *adminHandler.AdminStatsHandler,
+	adminTenantHandler *adminHandler.AdminTenantHandler,
+	adminUserHandler *adminHandler.AdminUserHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	auditMiddleware *middleware.AuditMiddleware,
 	rbacMiddleware *middleware.RBACMiddleware,
@@ -116,6 +118,9 @@ func RegisterRoutes(
 		}
 
 		admin.GET("/stats", adminStatsHandler.GetStats)
+		admin.GET("/tenants", adminTenantHandler.ListTenants)
+		admin.GET("/users", adminUserHandler.ListUsers)
+		admin.PATCH("/users/:id", adminUserHandler.UpdateUserRole)
 	}
 
 	team := v1.Group("/team")

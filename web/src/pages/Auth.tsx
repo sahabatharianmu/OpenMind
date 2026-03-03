@@ -105,6 +105,15 @@ const Auth = () => {
             variant: "destructive",
           });
         }
+      } else {
+        // Role-based redirect after successful login
+        const stored = localStorage.getItem("user_profile");
+        const profile = stored ? JSON.parse(stored) : null;
+        if (profile?.system_role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (err) {
       if (err instanceof z.ZodError) {
