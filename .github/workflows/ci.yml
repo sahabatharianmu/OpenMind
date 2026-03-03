@@ -2,10 +2,10 @@ name: CI
 
 on:
   push:
-    branches: ["main", "alpha", "beta", "rc"]
+    branches: ["main"]
     tags: ["v*"]
   pull_request:
-    branches: ["main", "alpha", "beta", "rc"]
+    branches: ["main"]
 
 env:
   REGISTRY: ${{ secrets.REGISTRY }}
@@ -13,7 +13,7 @@ env:
 
 jobs:
   semantic-release:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/alpha' || github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/rc')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -91,10 +91,6 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=${{ github.ref == 'refs/tags/v*' && !contains(github.ref, '-') }}
             type=raw,value=dev,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=preview,enable=${{ contains(github.ref, 'preview') }}
-            type=raw,value=alpha,enable=${{ contains(github.ref, 'alpha') }}
-            type=raw,value=beta,enable=${{ contains(github.ref, 'beta') }}
-            type=raw,value=rc,enable=${{ contains(github.ref, 'rc') }}
             type=raw,value=v${{ needs.semantic-release.outputs.new_release_version }},enable=${{ needs.semantic-release.outputs.new_release_published == 'true' }}
 
       - name: Build and push Docker image
@@ -172,6 +168,7 @@ jobs:
         working-directory: web
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_LD_CLIENT_ID: ${{ secrets.VITE_LD_CLIENT_ID }}
         run: bun run build
 
       - name: Deploy to Cloudflare Pages
