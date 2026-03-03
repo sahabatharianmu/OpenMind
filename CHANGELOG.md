@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.2.0...v1.3.0) (2026-03-03)
+
+
+### Features
+
+* add GitHub Actions CI/CD pipeline for automated builds, tests, Docker images, and releases. ([e2ce36d](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/e2ce36d1e227a38810a808cf75b38dba43b17a4b))
+
 # [1.2.0](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.1.0...v1.2.0) (2026-03-03)
 
 
