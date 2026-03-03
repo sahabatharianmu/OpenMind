@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.1.0...v1.2.0) (2026-03-03)
+
+
+### Features
+
+* add comprehensive CI/CD pipeline for testing, semantic release, Docker builds, multi-platform binaries, and frontend deployment to Cloudflare Pages. ([bc8c41a](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/bc8c41a7b549dbb0f0a0abfc27fe7dc85a83e2e2))
+
 # [1.1.0](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0...v1.1.0) (2026-03-03)
 
 
