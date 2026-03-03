@@ -69,7 +69,7 @@ type SecurityConfig struct {
 func DefaultSecurityConfig() *SecurityConfig {
 	return &SecurityConfig{
 		// CORS settings
-		CORSAllowOrigins: []string{"http://localhost:3000", "https://smatax.id", "https://openmind.pages.dev"},
+		CORSAllowOrigins: []string{"http://localhost:3000", "http://localhost:5173", "https://smatax.id", "https://openmind.pages.dev"},
 		CORSAllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		CORSAllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization", "X-CSRF-Token", "X-Request-ID"},
 		CORSMaxAge:       86400, // 24 hours //nolint:mnd // standard max age

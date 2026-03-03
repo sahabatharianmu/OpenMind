@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/hertz-contrib/cors"
 	"github.com/sahabatharianmu/OpenMind/config"
 	"github.com/sahabatharianmu/OpenMind/internal/core/database"
 	"github.com/sahabatharianmu/OpenMind/internal/core/middleware"
@@ -248,11 +250,20 @@ func main() {
 
 	h := server.New(
 		server.WithHostPorts(fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)),
+		server.WithMaxRequestBodySize(20*1024*1024),
 		server.WithReadTimeout(cfg.Server.ReadTimeout),
 		server.WithWriteTimeout(cfg.Server.WriteTimeout),
 		server.WithIdleTimeout(cfg.Server.IdleTimeout),
 		server.WithExitWaitTime(cfg.Server.ExitTimeout),
 	)
+
+	h.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.Security.CORSAllowOrigins,
+		AllowMethods:     cfg.Security.CORSAllowMethods,
+		AllowHeaders:     cfg.Security.CORSAllowHeaders,
+		AllowCredentials: true,
+		MaxAge:           time.Duration(cfg.Security.CORSMaxAge) * time.Hour,
+	}))
 
 	router.RegisterRoutes(
 		h,
