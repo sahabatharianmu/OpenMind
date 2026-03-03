@@ -22,6 +22,7 @@ import { Upload, FileText, AlertCircle, CheckCircle2, XCircle, Download } from "
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useTranslation } from "react-i18next";
+import SubscriptionBilling from "@/components/settings/SubscriptionBilling";
 
 const Settings = () => {
   const { user, signOut } = useAuth();
@@ -551,6 +552,10 @@ const Settings = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="subscription">
+            <SubscriptionBilling organization={organization} />
           </TabsContent>
 
           <TabsContent value="security">

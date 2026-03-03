@@ -256,9 +256,15 @@ func RegisterRoutes(
 			payments := protected.Group("/payments")
 			payments.Use(rbacMiddleware.HasRole(constants.RoleAdmin, constants.RoleOwner))
 			{
+				payments.GET("", paymentTransactionHandler.ListPayments)
+				payments.GET("/:id/qris-data", paymentTransactionHandler.GetQRISData)
+
 				// QRIS payment routes
 				payments.POST("/qris/create", paymentTransactionHandler.CreateQRISPayment)
 				payments.GET("/qris/status/:id", paymentTransactionHandler.CheckPaymentStatus)
+
+				// General payment routes
+				payments.POST("/:id/cancel", paymentTransactionHandler.CancelPayment)
 			}
 		}
 	}

@@ -5,11 +5,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, QrCode, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/api/client";
+import { paymentService } from "@/services/paymentService";
 
 interface QRISPaymentFormProps {
-  amount: number;
+  amount?: number;
+  existingTransactionId?: string;
   onSuccess: () => void;
-  onError: (error: string) => void;
+  onError?: (error: string) => void;
   onCancel: () => void;
 }
 
@@ -38,13 +40,40 @@ interface PaymentStatusResponse {
   transaction_status_desc?: string;
 }
 
-const QRISPaymentForm = ({ amount, onSuccess, onError, onCancel }: QRISPaymentFormProps) => {
+const QRISPaymentForm = ({ amount, existingTransactionId, onSuccess, onError, onCancel }: QRISPaymentFormProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [qrData, setQrData] = useState<QRISPaymentResponse | null>(null);
   const [isPolling, setIsPolling] = useState(false);
 
+  const fetchExistingQRISData = async (transactionId: string) => {
+    setLoading(true);
+    try {
+      const data = await paymentService.getQRISData(transactionId);
+      setQrData({
+        id: data.id,
+        transaction_id: data.transaction_id,
+        partner_reference_no: data.partner_reference_no,
+        qr_code: data.qr_code,
+        qr_code_url: data.qr_code_url,
+        qr_code_image: data.qr_code_image,
+        amount: data.amount,
+        currency: data.currency,
+        status: data.status,
+        expires_at: data.expires_at,
+        created_at: data.created_at,
+      });
+      setIsPolling(true);
+      pollPaymentStatus(data.id);
+    } catch (err: any) {
+      if (onError) onError(err.message || "Failed to load existing QR transaction.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const createQRISPayment = async () => {
+    if (!amount) return;
     setLoading(true);
     try {
       const response = await api.post<{ data: QRISPaymentResponse }>("/payments/qris/create", {
@@ -65,7 +94,7 @@ const QRISPaymentForm = ({ amount, onSuccess, onError, onCancel }: QRISPaymentFo
       } else if (err instanceof Error) {
         errorMessage = err.message;
       }
-      onError(errorMessage);
+      if (onError) onError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -124,9 +153,29 @@ const QRISPaymentForm = ({ amount, onSuccess, onError, onCancel }: QRISPaymentFo
 
   useEffect(() => {
     if (!qrData) {
-      createQRISPayment();
+      if (existingTransactionId) {
+        fetchExistingQRISData(existingTransactionId);
+      } else {
+        createQRISPayment();
+      }
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingTransactionId]);
+
+  const handleCancelClick = async () => {
+    if (qrData && qrData.id) {
+      try {
+        setLoading(true);
+        setIsPolling(false);
+        await paymentService.cancelPayment(qrData.id);
+      } catch (err) {
+        console.error("Failed to cancel payment", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    onCancel();
+  };
 
   return (
     <Card>
@@ -136,7 +185,10 @@ const QRISPaymentForm = ({ amount, onSuccess, onError, onCancel }: QRISPaymentFo
           QRIS Payment
         </CardTitle>
         <CardDescription>
-          Scan the QR code below to complete your payment of ${amount.toFixed(2)}
+          {existingTransactionId 
+            ? "Scan the QR code below to complete your pending payment."
+            : `Scan the QR code below to complete your payment of $${amount?.toFixed(2)}`
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -181,7 +233,7 @@ const QRISPaymentForm = ({ amount, onSuccess, onError, onCancel }: QRISPaymentFo
 
               <div className="text-center space-y-2">
                 <p className="text-sm text-muted-foreground">Amount</p>
-                <p className="text-2xl font-bold">${amount.toFixed(2)}</p>
+                <p className="text-2xl font-bold">${qrData.amount?.toFixed(2) || amount?.toFixed(2)}</p>
               </div>
 
               <div className="text-center space-y-1">
@@ -196,7 +248,7 @@ const QRISPaymentForm = ({ amount, onSuccess, onError, onCancel }: QRISPaymentFo
             </div>
 
             <div className="flex gap-2 pt-4">
-                     <Button variant="outline" onClick={onCancel} disabled={isPolling} className="flex-1">
+                     <Button variant="outline" onClick={handleCancelClick} disabled={isPolling && !qrData} className="flex-1">
                        Cancel
                      </Button>
               {qrData.qr_code_url && (

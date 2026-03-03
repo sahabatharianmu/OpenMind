@@ -42,7 +42,7 @@ export interface ImportExecuteResponse {
 }
 
 export const importService = {
-  downloadTemplate: async (type: "patients" | "notes", format: "csv" | "xlsx" = "csv"): Promise<Blob> => {
+  downloadTemplate: async (type: "patients" | "appointments" | "notes", format: "csv" | "xlsx" = "csv"): Promise<Blob> => {
     const response = await api.get(`/import/template/${type}?format=${format}`, {
       responseType: "blob",
     });

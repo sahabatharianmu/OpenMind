@@ -717,6 +717,67 @@ func (m *Service) CheckTransactionStatus(
 	return &response, nil
 }
 
+// CancelQRISPayment cancels a pending QRIS payment using BI-SNAP API
+func (m *Service) CancelQRISPayment(
+	ctx context.Context,
+	transactionID string,
+) (*CancelPaymentResponse, error) {
+	accessToken, err := m.getAccessToken(ctx)
+	if err != nil {
+		return nil, fmt.Errorf(ErrFailedToGetAccessToken, err)
+	}
+
+	url := fmt.Sprintf("%s/v1.0/qr/qr-mpm-cancel", m.getBISnapBaseURL())
+	timestamp := time.Now().UTC().Format(TimestampFormatMilliseconds)
+	externalID := fmt.Sprintf("cancel-%d", time.Now().Unix())
+
+	requestBody := CancelQRISPaymentRequest{
+		OriginalPartnerReferenceNo: transactionID,
+		MerchantID:                 m.midtransConf.BISnapPartnerID,
+		ServiceCode:                "47", // QRIS payment service code
+	}
+
+	requestJSON, err := sonic.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	signature := m.generateSignature("POST", "/v1.0/qr/qr-mpm-cancel", accessToken, string(requestJSON), timestamp)
+
+	var response CancelPaymentResponse
+	opts := requestOptions{
+		ctx:    ctx,
+		method: "POST",
+		url:    url,
+		headers: map[string]string{
+			HeaderAuthorization: BearerPrefix + accessToken,
+			HeaderXPartnerID:    m.midtransConf.BISnapPartnerID,
+			HeaderXExternalID:   externalID,
+			HeaderXTimestamp:    timestamp,
+			HeaderXSignature:    signature,
+			HeaderXDeviceID:     "web-friends-v1.0",
+			HeaderChannelID:     generateNumericHash(),
+		},
+		body:         requestJSON,
+		responseDest: &response,
+	}
+
+	resp, err := m.doRequest(opts)
+	if resp != nil {
+		defer fasthttp.ReleaseResponse(resp)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if !IsSuccessCode(response.ResponseCode) {
+		userMessage := FormatErrorMessage(response.ResponseCode)
+		return nil, fmt.Errorf(ErrorMessageFormat, userMessage, response.ResponseCode)
+	}
+
+	return &response, nil
+}
+
 func (m *Service) ValidateWebhookSignatureBISnap(
 	method, endpoint, requestBody, timestamp, receivedSignature string,
 ) bool {

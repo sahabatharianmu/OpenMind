@@ -97,6 +97,80 @@ func (h *PaymentTransactionHandler) CheckPaymentStatus(_ context.Context, c *app
 	c.JSON(consts.StatusOK, response.Success("Payment status retrieved successfully", resp))
 }
 
+// CancelPayment handles POST /payments/:id/cancel
+func (h *PaymentTransactionHandler) CancelPayment(_ context.Context, c *app.RequestContext) {
+	orgID, err := h.getOrganizationID(c)
+	if err != nil {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	transactionIDStr := c.Param("id")
+	transactionID, err := uuid.Parse(transactionIDStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid transaction ID", nil)
+		return
+	}
+
+	if err := h.svc.CancelPayment(context.Background(), orgID, transactionID); err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.JSON(consts.StatusOK, response.Success("Payment cancelled successfully", nil))
+}
+
+// ListPayments handles GET /payments
+func (h *PaymentTransactionHandler) ListPayments(_ context.Context, c *app.RequestContext) {
+	orgID, err := h.getOrganizationID(c)
+	if err != nil {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	var req struct {
+		Limit  int `query:"limit,default=10" vd:"$ > 0 && $ <= 100"`
+		Offset int `query:"offset,default=0" vd:"$ >= 0"`
+	}
+
+	if err := c.BindAndValidate(&req); err != nil {
+		response.BadRequest(c, err.Error(), nil)
+		return
+	}
+
+	resp, err := h.svc.ListPayments(context.Background(), orgID, req.Limit, req.Offset)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.JSON(consts.StatusOK, response.Success("Payment transactions retrieved successfully", resp))
+}
+
+// GetQRISData handles GET /payments/:id/qris-data
+func (h *PaymentTransactionHandler) GetQRISData(_ context.Context, c *app.RequestContext) {
+	orgID, err := h.getOrganizationID(c)
+	if err != nil {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	transactionIDStr := c.Param("id")
+	transactionID, err := uuid.Parse(transactionIDStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid transaction ID", nil)
+		return
+	}
+
+	resp, err := h.svc.GetQRISData(context.Background(), orgID, transactionID)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.JSON(consts.StatusOK, response.Success("QRIS data retrieved successfully", resp))
+}
+
 // HandleQRISWebhook handles POST /webhooks/midtrans/v1.0/qr/qr-mpm-notify
 // This is a public endpoint that Midtrans calls to notify us of QRIS payment status changes
 func (h *PaymentTransactionHandler) HandleQRISWebhook(_ context.Context, c *app.RequestContext) {

@@ -27,6 +27,9 @@ type PaymentTransactionService interface {
 	CheckPaymentStatus(ctx context.Context, organizationID, transactionID uuid.UUID) (*dto.CheckPaymentStatusResponse, error)
 	ProcessQRISWebhook(ctx context.Context, payload []byte, headers map[string]string) error
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
+	CancelPayment(ctx context.Context, organizationID, transactionID uuid.UUID) error
+	ListPayments(ctx context.Context, organizationID uuid.UUID, limit, offset int) (*dto.PaginatedPaymentTransactionResponse, error)
+	GetQRISData(ctx context.Context, organizationID, transactionID uuid.UUID) (*dto.QRISDataResponse, error)
 }
 
 type paymentTransactionService struct {
@@ -160,6 +163,53 @@ func (s *paymentTransactionService) CheckPaymentStatus(
 	return s.mapTransactionToStatusResponse(transaction), nil
 }
 
+// CancelPayment cancels a pending payment transaction
+func (s *paymentTransactionService) CancelPayment(
+	ctx context.Context,
+	organizationID, transactionID uuid.UUID,
+) error {
+	// Get transaction from database
+	transaction, err := s.transactionRepo.FindByID(transactionID)
+	if err != nil {
+		s.log.Error("Failed to find payment transaction", zap.Error(err), zap.String("transaction_id", transactionID.String()))
+		return response.NewNotFound("Payment transaction not found")
+	}
+
+	// Verify organization ownership
+	if transaction.OrganizationID != organizationID {
+		return response.NewForbidden("You do not have permission to access this transaction")
+	}
+
+	// Validate status
+	if transaction.Status != "pending" {
+		return response.NewBadRequest(fmt.Sprintf("Cannot cancel transaction in '%s' status", transaction.Status))
+	}
+
+	// Cancel via Midtrans
+	if transaction.PaymentMethod == "qris" {
+		_, err = s.midtransService.CancelQRISPayment(ctx, transaction.PartnerReferenceNo)
+		if err != nil {
+			s.log.Error("Failed to cancel QRIS payment via Midtrans", zap.Error(err), zap.String("transaction_id", transactionID.String()))
+			return response.NewInternalServerError(fmt.Sprintf("Failed to cancel payment: %v", err))
+		}
+	} else {
+		return response.NewBadRequest(fmt.Sprintf("Cancellation for payment method '%s' is not supported yet", transaction.PaymentMethod))
+	}
+
+	// Update status in DB
+	if err := s.transactionRepo.UpdateStatus(transaction.ID, "cancelled", nil); err != nil {
+		s.log.Error("Failed to update payment transaction status to cancelled", zap.Error(err), zap.String("transaction_id", transaction.ID.String()))
+		return response.NewInternalServerError("Failed to update payment transaction status")
+	}
+
+	s.log.Info("Payment transaction cancelled successfully",
+		zap.String("transaction_id", transaction.ID.String()),
+		zap.String("partner_reference_no", transaction.PartnerReferenceNo),
+	)
+
+	return nil
+}
+
 // GetOrganizationID retrieves the organization ID for a given user
 func (s *paymentTransactionService) GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
 	org, err := s.organizationRepo.GetByUserID(userID)
@@ -168,6 +218,91 @@ func (s *paymentTransactionService) GetOrganizationID(ctx context.Context, userI
 		return uuid.Nil, response.NewInternalServerError("Failed to retrieve organization information")
 	}
 	return org.ID, nil
+}
+
+// ListPayments retrieves a paginated list of payment transactions for an organization
+func (s *paymentTransactionService) ListPayments(
+	ctx context.Context,
+	organizationID uuid.UUID,
+	limit, offset int,
+) (*dto.PaginatedPaymentTransactionResponse, error) {
+	transactions, total, err := s.transactionRepo.ListByOrganizationID(organizationID, limit, offset)
+	if err != nil {
+		s.log.Error("Failed to list payment transactions", zap.Error(err), zap.String("organization_id", organizationID.String()))
+		return nil, response.NewInternalServerError("Failed to retrieve payment transactions")
+	}
+
+	var data []dto.PaymentTransactionResponse
+	for _, tx := range transactions {
+		amountInUSD := float64(tx.Amount) / 100.0 // Convert cents to USD
+		data = append(data, dto.PaymentTransactionResponse{
+			ID:                 tx.ID,
+			OrganizationID:     tx.OrganizationID,
+			Amount:             amountInUSD,
+			Currency:           tx.Currency,
+			Status:             tx.Status,
+			PaymentMethod:      tx.PaymentMethod,
+			Type:               tx.Type,
+			PartnerReferenceNo: tx.PartnerReferenceNo,
+			CreatedAt:          tx.CreatedAt,
+			PaidAt:             tx.PaidAt,
+		})
+	}
+
+	totalPages := 0
+	if limit > 0 {
+		totalPages = int((total + int64(limit) - 1) / int64(limit))
+	}
+
+	return &dto.PaginatedPaymentTransactionResponse{
+		Data:       data,
+		Total:      total,
+		Limit:      limit,
+		Offset:     offset,
+		TotalPages: totalPages,
+	}, nil
+}
+
+// GetQRISData retrieves the QRIS data for an existing pending transaction
+func (s *paymentTransactionService) GetQRISData(
+	ctx context.Context,
+	organizationID, transactionID uuid.UUID,
+) (*dto.QRISDataResponse, error) {
+	// Get transaction from database
+	transaction, err := s.transactionRepo.FindByID(transactionID)
+	if err != nil {
+		s.log.Error("Failed to find payment transaction", zap.Error(err), zap.String("transaction_id", transactionID.String()))
+		return nil, response.NewNotFound("Payment transaction not found")
+	}
+
+	// Verify organization ownership
+	if transaction.OrganizationID != organizationID {
+		return nil, response.NewForbidden("You do not have permission to access this transaction")
+	}
+
+	// Validate status and method
+	if transaction.Status != "pending" {
+		return nil, response.NewBadRequest(fmt.Sprintf("Transaction is not pending (status: %s)", transaction.Status))
+	}
+	if transaction.PaymentMethod != "qris" {
+		return nil, response.NewBadRequest("Transaction is not a QRIS payment")
+	}
+
+	amountInUSD := float64(transaction.Amount) / 100.0 // Convert cents to USD
+
+	return &dto.QRISDataResponse{
+		ID:                 transaction.ID,
+		TransactionID:      transaction.ProviderTransactionID,
+		PartnerReferenceNo: transaction.PartnerReferenceNo,
+		QRCode:             transaction.QRCode,
+		QRCodeURL:          transaction.QRCodeURL,
+		QRCodeImage:        transaction.QRCodeImage,
+		Amount:             amountInUSD,
+		Currency:           transaction.Currency,
+		Status:             transaction.Status,
+		ExpiresAt:          transaction.ExpiresAt,
+		CreatedAt:          transaction.CreatedAt,
+	}, nil
 }
 
 // mapTransactionToStatusResponse maps a payment transaction to status response DTO
