@@ -1,3 +1,11 @@
+# [1.4.0](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.3.0...v1.4.0) (2026-03-03)
+
+
+### Features
+
+* **admin:** implement admin seeding, API endpoints, and dashboard ([992b351](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/992b35128c17a64c85617ef1129e1bfccf3e1418))
+* Implement internationalization support. ([2a71c73](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/2a71c734847f5ca4379587649897fffcad9fb139))
+
 # [1.3.0](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.2.0...v1.3.0) (2026-03-03)
 
 
