@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.0.0...v1.1.0) (2026-03-03)
+
+
+### Features
+
+* introduce comprehensive security configuration and client-side JWT token refresh with automatic 401 handling. ([078bf18](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/078bf18514002b065b62a326cf49df460a09b13b))
+
 # 1.0.0 (2026-03-02)
 
 
