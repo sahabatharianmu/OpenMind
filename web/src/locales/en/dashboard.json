@@ -1,0 +1,112 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "patients": "Patients",
+    "appointments": "Appointments",
+    "notes": "Notes",
+    "billing": "Billing",
+    "auditLogs": "Audit Logs",
+    "teams": "Teams",
+    "settings": "Settings"
+  },
+  "stats": {
+    "totalPatients": "Total Patients",
+    "upcomingAppointments": "Upcoming Appointments",
+    "pendingNotes": "Pending Notes",
+    "monthlyRevenue": "Monthly Revenue"
+  },
+  "patients": {
+    "title": "Patients",
+    "search": "Search patients...",
+    "addPatient": "Add Patient",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "lastVisit": "Last Visit",
+    "noPatients": "No patients found.",
+    "profile": "Profile",
+    "newNote": "New Note",
+    "newAppointment": "New Appointment",
+    "newInvoice": "New Invoice",
+    "viewProfile": "View Profile"
+  },
+  "appointments": {
+    "title": "Appointments",
+    "schedule": "Schedule Appointment",
+    "date": "Date",
+    "time": "Time",
+    "patient": "Patient",
+    "status": "Status",
+    "type": "Type",
+    "noAppointments": "No appointments found."
+  },
+  "notes": {
+    "title": "Clinical Notes",
+    "newNote": "New Note",
+    "search": "Search notes...",
+    "patient": "Patient",
+    "date": "Date",
+    "type": "Type",
+    "noNotes": "No notes found.",
+    "edit": "Edit Note",
+    "view": "View Note",
+    "save": "Save Note",
+    "saving": "Saving...",
+    "deleteConfirm": "Are you sure you want to delete this note?"
+  },
+  "billing": {
+    "title": "Billing",
+    "createInvoice": "Create Invoice",
+    "totalOutstanding": "Outstanding",
+    "totalPaid": "Total Paid",
+    "invoices": "Invoices",
+    "amount": "Amount",
+    "status": "Status",
+    "dueDate": "Due Date",
+    "paidDate": "Paid Date",
+    "patient": "Patient",
+    "revenue": "Revenue",
+    "noInvoices": "No invoices found."
+  },
+  "settings": {
+    "title": "Settings",
+    "organization": "Organization",
+    "orgName": "Organization Name",
+    "currency": "Currency",
+    "locale": "Display Locale",
+    "language": "Language",
+    "timezone": "Timezone",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "saved": "Settings saved successfully.",
+    "createdAt": "Created At"
+  },
+  "teams": {
+    "title": "Teams",
+    "invite": "Invite Member",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "joined": "Joined",
+    "noMembers": "No team members found."
+  },
+  "auditLogs": {
+    "title": "Audit Logs",
+    "action": "Action",
+    "user": "User",
+    "timestamp": "Timestamp",
+    "details": "Details",
+    "noLogs": "No audit logs found."
+  },
+  "onboarding": {
+    "welcome": "Welcome to OpenMind",
+    "setupOrg": "Set up your organization",
+    "orgName": "Organization Name",
+    "orgNamePlaceholder": "My Practice",
+    "skip": "Skip for now",
+    "continue": "Continue"
+  },
+  "pricing": {
+    "free": "Free"
+  }
+}

@@ -1,4 +1,5 @@
 import { ReactNode, useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Users, 
@@ -34,14 +35,14 @@ interface DashboardLayoutProps {
 }
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", roles: [] },
-  { icon: Users, label: "Patients", path: "/dashboard/patients", roles: [] },
-  { icon: Calendar, label: "Appointments", path: "/dashboard/appointments", roles: [] },
-  { icon: FileText, label: "Notes", path: "/dashboard/notes", roles: [] },
-  { icon: Receipt, label: "Billing", path: "/dashboard/billing", roles: [] },
-  { icon: Shield, label: "Audit Logs", path: "/dashboard/audit-logs", roles: ["admin", "owner"] },
-  { icon: UserCog, label: "Teams", path: "/dashboard/teams", roles: ["admin", "owner"] },
-  { icon: Settings, label: "Settings", path: "/dashboard/settings", roles: [] },
+  { icon: LayoutDashboard, labelKey: "sidebar.dashboard", path: "/dashboard", roles: [] },
+  { icon: Users, labelKey: "sidebar.patients", path: "/dashboard/patients", roles: [] },
+  { icon: Calendar, labelKey: "sidebar.appointments", path: "/dashboard/appointments", roles: [] },
+  { icon: FileText, labelKey: "sidebar.notes", path: "/dashboard/notes", roles: [] },
+  { icon: Receipt, labelKey: "sidebar.billing", path: "/dashboard/billing", roles: [] },
+  { icon: Shield, labelKey: "sidebar.auditLogs", path: "/dashboard/audit-logs", roles: ["admin", "owner"] },
+  { icon: UserCog, labelKey: "sidebar.teams", path: "/dashboard/teams", roles: ["admin", "owner"] },
+  { icon: Settings, labelKey: "sidebar.settings", path: "/dashboard/settings", roles: [] },
 ];
 
 interface SidebarContentProps {
@@ -66,7 +67,10 @@ const SidebarContent = ({
   handleSignOut,
   initials,
   setCollapsed,
-}: SidebarContentProps) => (
+}: SidebarContentProps) => {
+  const { t } = useTranslation('dashboard');
+  const { t: tc } = useTranslation('common');
+  return (
   <div className="flex flex-col h-full">
     {/* Logo */}
     <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border flex-shrink-0">
@@ -112,7 +116,7 @@ const SidebarContent = ({
                 )}
               >
                 <item.icon className="w-5 h-5 flex-shrink-0" />
-                {(!collapsed || isMobile) && <span>{item.label}</span>}
+                {(!collapsed || isMobile) && <span>{t(item.labelKey)}</span>}
               </Button>
             </Link>
           );
@@ -149,7 +153,8 @@ const SidebarContent = ({
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);

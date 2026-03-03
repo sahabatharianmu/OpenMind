@@ -59,6 +59,8 @@ import { RevenueChart } from "@/components/billing/RevenueChart";
 import { exportInvoicesToCSV } from "@/components/billing/exportInvoices";
 import { organizationService, Organization } from "@/services/organizationService";
 import { Invoice, Patient, Appointment } from "@/types";
+import { useTranslation } from "react-i18next";
+import { useFormatters } from "@/hooks/useFormatters";
 
 // Extended types for UI
 interface UIInvoice extends Invoice {
@@ -76,6 +78,8 @@ const Billing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation('dashboard');
+  const { formatCurrency: fmtCurrency } = useFormatters();
   const [invoices, setInvoices] = useState<UIInvoice[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -295,10 +299,7 @@ const Billing = () => {
   });
 
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat(organization?.locale || "en-US", {
-      style: "currency",
-      currency: organization?.currency || "USD",
-    }).format(cents / 100);
+    return fmtCurrency(cents, organization?.currency || "USD");
   };
 
   const getStatusBadge = (status: string) => {
@@ -337,7 +338,7 @@ const Billing = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold">Billing</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold">{t('billing.title')}</h1>
             <p className="text-muted-foreground mt-1">
               Manage invoices and payments
             </p>
@@ -351,7 +352,7 @@ const Billing = () => {
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="w-4 h-4" />
-                  Create Invoice
+                  {t('billing.createInvoice')}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
@@ -446,7 +447,7 @@ const Billing = () => {
                   <DollarSign className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Outstanding</p>
+                  <p className="text-sm text-muted-foreground">{t('billing.totalOutstanding')}</p>
                   <p className="text-xl font-bold">{formatCurrency(totalOutstanding)}</p>
                 </div>
               </div>
@@ -542,10 +543,10 @@ const Billing = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Patient</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Due Date</TableHead>
+                    <TableHead>{t('billing.patient')}</TableHead>
+                    <TableHead>{t('billing.amount')}</TableHead>
+                    <TableHead>{t('billing.status')}</TableHead>
+                    <TableHead>{t('billing.dueDate')}</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>

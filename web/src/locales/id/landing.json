@@ -1,0 +1,64 @@
+{
+  "hero": {
+    "badge": "EMR Kesehatan Mental yang Mengutamakan Privasi",
+    "headline1": "Praktik Anda.",
+    "headline2": "Data Anda.",
+    "headline3": "Kendali Anda.",
+    "subheadline": "Platform manajemen praktik yang aman dan dapat di-hosting sendiri untuk profesional kesehatan mental. Enkripsi end-to-end memastikan hanya Anda yang dapat membaca catatan klinis.",
+    "freeForever": "Gratis Selamanya - Tanpa Kartu Kredit",
+    "ctaStart": "Mulai Gratis Selamanya",
+    "ctaPricing": "Lihat Harga",
+    "ctaSecurity": "Dokumen Keamanan",
+    "benefit1": "10 pasien gratis selamanya",
+    "benefit2": "Tanpa kartu kredit",
+    "benefit3": "Akses penuh ke semua fitur"
+  },
+  "trust": {
+    "hipaa": "Sesuai HIPAA",
+    "gdpr": "Siap GDPR",
+    "openSource": "Open Source (AGPLv3)"
+  },
+  "features": {
+    "title": "Semua yang Anda butuhkan untuk menjalankan praktik",
+    "subtitle": "Dibuat untuk profesional kesehatan mental yang serius soal privasi.",
+    "emr": "Rekam Medis Elektronik",
+    "emrDesc": "Catatan klinis yang aman dan terenkripsi dengan penyimpanan sesuai HIPAA.",
+    "scheduling": "Penjadwalan Cerdas",
+    "schedulingDesc": "Manajemen janji temu dengan pengingat otomatis.",
+    "billing": "Penagihan & Faktur",
+    "billingDesc": "Buat faktur dan lacak pembayaran dengan mudah.",
+    "encryption": "Enkripsi End-to-End",
+    "encryptionDesc": "Hanya Anda yang bisa membaca catatan klinis. Arsitektur zero-knowledge.",
+    "selfHost": "Dapat Di-hosting Sendiri",
+    "selfHostDesc": "Deploy di infrastruktur Anda sendiri untuk kendali penuh.",
+    "teams": "Manajemen Tim",
+    "teamsDesc": "Dukungan multi-praktisi dengan akses berbasis peran."
+  },
+  "pricing": {
+    "title": "Harga Sederhana dan Transparan",
+    "subtitle": "Tanpa biaya tersembunyi. Tanpa kejutan. Turunkan atau batalkan kapan saja.",
+    "monthly": "Bulanan",
+    "annually": "Tahunan",
+    "perMonth": "/bln",
+    "currentPlan": "Paket Saat Ini",
+    "getStarted": "Mulai",
+    "popular": "Populer",
+    "features": "Fitur",
+    "free": "Gratis Selamanya"
+  },
+  "footer": {
+    "tagline": "Manajemen praktik yang mengutamakan privasi untuk profesional kesehatan mental.",
+    "product": "Produk",
+    "resources": "Sumber Daya",
+    "legal": "Legal",
+    "documentation": "Dokumentasi",
+    "apiReference": "Referensi API",
+    "selfHosting": "Panduan Self-Hosting",
+    "features": "Fitur",
+    "security": "Keamanan",
+    "roadmap": "Peta Jalan",
+    "privacy": "Kebijakan Privasi",
+    "terms": "Syarat Layanan",
+    "copyright": "© {{year}} Closaf. Semua hak dilindungi."
+  }
+}

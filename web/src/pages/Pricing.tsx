@@ -11,6 +11,8 @@ import UpgradeModal from "@/components/payment/UpgradeModal";
 import { subscriptionService, UsageStats } from "@/services/subscriptionService";
 import { publicPlanService } from "@/services/publicPlanService";
 import { SubscriptionPlan } from "@/services/adminPlanService";
+import { useFormatters } from "@/hooks/useFormatters";
+import { useTranslation } from "react-i18next";
 
 const Pricing = () => {
   const { user } = useAuth();
@@ -21,6 +23,8 @@ const Pricing = () => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  const { formatCurrency } = useFormatters();
+  const { i18n, t } = useTranslation('dashboard');
 
   // const planPrice = 29; // Monthly price in USD - Now dynamic
 
@@ -169,9 +173,15 @@ const Pricing = () => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          {plans.map((plan) => {
+          {(() => {
+            const activeCurrency = i18n.language.startsWith('id') ? 'IDR' : 'USD';
+
+            return plans.map((plan) => {
+             const priceInSubunits = (plan.prices && plan.prices[activeCurrency]) !== undefined 
+                ? plan.prices[activeCurrency] 
+                : plan.price;
              const isCurrentPlan = false; // TODO: Match with current subscription ID from org
-             const isPlanFree = plan.price === 0;
+             const isPlanFree = priceInSubunits === 0;
 
              // Aesthetic decision: Highlight the first paid plan or a specific "Pro" plan
              const isHighlighted = !isPlanFree; 
@@ -204,7 +214,7 @@ const Pricing = () => {
 
                 <div className="mb-6 flex items-baseline gap-1">
                   <span className="text-4xl font-extrabold font-heading text-foreground">
-                      {(plan.price / 100).toLocaleString('en-US', { style: 'currency', currency: plan.currency })}
+                      {isPlanFree ? t('pricing.free') : formatCurrency(priceInSubunits, activeCurrency).replace(/\.00$/, '')}
                   </span>
                   <span className="text-sm font-medium text-muted-foreground">/month</span>
                 </div>
@@ -244,7 +254,8 @@ const Pricing = () => {
                 </div>
               </div>
              );
-          })}
+            })
+          })()}
         </div>
 
         <div className="bg-slate-50 border border-border/50 rounded-2xl p-8 text-center max-w-2xl mx-auto">

@@ -28,6 +28,7 @@ type CreatePlanRequest struct {
 	Description string                 `json:"description"`
 	Price       int64                  `json:"price" validate:"gte=0"`
 	Currency    string                 `json:"currency" validate:"required,len=3"`
+	Prices      map[string]interface{} `json:"prices"`
 	Limits      map[string]interface{} `json:"limits"`
 	IsActive    bool                   `json:"is_active"`
 }
@@ -37,6 +38,7 @@ type UpdatePlanRequest struct {
 	Description string                 `json:"description"`
 	Price       int64                  `json:"price" validate:"gte=0"`
 	Currency    string                 `json:"currency" validate:"len=3"`
+	Prices      map[string]interface{} `json:"prices"`
 	Limits      map[string]interface{} `json:"limits"`
 	IsActive    *bool                  `json:"is_active"`
 }
@@ -56,11 +58,20 @@ func (h *AdminPlanHandler) CreatePlan(ctx context.Context, c *app.RequestContext
 		}
 	}
 
+	var pricesJSON datatypes.JSON
+	if req.Prices != nil {
+		bytes, err := json.Marshal(req.Prices)
+		if err == nil {
+			pricesJSON = datatypes.JSON(bytes)
+		}
+	}
+
 	plan := &entity.SubscriptionPlan{
 		Name:        req.Name,
 		Description: req.Description,
 		Price:       req.Price,
 		Currency:    req.Currency,
+		Prices:      pricesJSON,
 		Limits:      limitsJSON,
 		IsActive:    req.IsActive,
 	}
@@ -109,6 +120,12 @@ func (h *AdminPlanHandler) UpdatePlan(ctx context.Context, c *app.RequestContext
 	if req.Currency != "" {
 		plan.Currency = req.Currency
 	}
+	if req.Prices != nil {
+		bytes, err := json.Marshal(req.Prices)
+		if err == nil {
+			plan.Prices = datatypes.JSON(bytes)
+		}
+	}
 	if req.Limits != nil {
 		bytes, err := json.Marshal(req.Limits)
 		if err == nil {
@@ -125,6 +142,22 @@ func (h *AdminPlanHandler) UpdatePlan(ctx context.Context, c *app.RequestContext
 	}
 
 	c.JSON(consts.StatusOK, response.Success("Plan updated successfully", plan))
+}
+
+func (h *AdminPlanHandler) DeletePlan(ctx context.Context, c *app.RequestContext) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid plan ID", nil)
+		return
+	}
+
+	if err := h.service.DeletePlan(id); err != nil {
+		response.InternalServerError(c, "Failed to delete plan")
+		return
+	}
+
+	c.JSON(consts.StatusOK, response.Success("Plan deleted successfully", nil))
 }
 
 func (h *AdminPlanHandler) ListPlans(ctx context.Context, c *app.RequestContext) {

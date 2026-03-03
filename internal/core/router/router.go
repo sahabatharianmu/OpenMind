@@ -115,6 +115,7 @@ func RegisterRoutes(
 			plans.GET("", adminPlanHandler.ListPlans)
 			plans.GET("/:id", adminPlanHandler.GetPlan)
 			plans.PUT("/:id", adminPlanHandler.UpdatePlan)
+			plans.DELETE("/:id", adminPlanHandler.DeletePlan)
 		}
 
 		admin.GET("/stats", adminStatsHandler.GetStats)

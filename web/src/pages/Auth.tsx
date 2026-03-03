@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Shield, Lock, Eye, EyeOff, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import api from "@/api/client";
 
@@ -42,6 +43,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const { user, signIn, signUp, loading } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation('auth');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [defaultTab, setDefaultTab] = useState<"login" | "signup">("login");
@@ -94,13 +96,13 @@ const Auth = () => {
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
           toast({
-            title: "Login Failed",
-            description: "Invalid email or password. Please try again.",
+            title: t('login.failed'),
+            description: t('login.invalidCredentials'),
             variant: "destructive",
           });
         } else {
           toast({
-            title: "Login Failed",
+            title: t('login.failed'),
             description: error.message,
             variant: "destructive",
           });
@@ -118,7 +120,7 @@ const Auth = () => {
     } catch (err) {
       if (err instanceof z.ZodError) {
         toast({
-          title: "Validation Error",
+          title: t('validation.validationError'),
           description: err.errors[0].message,
           variant: "destructive",
         });
@@ -449,33 +451,33 @@ const Auth = () => {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <img src="/logo_text_vertical.svg" alt="Closaf" className="h-16 mx-auto mb-4 lg:hidden" />
-            <CardTitle className="text-2xl">Welcome</CardTitle>
+            <CardTitle className="text-2xl">{t('login.title')}</CardTitle>
             <CardDescription>
-              Sign in to your account or create a new practice
+              {t('login.subtitle')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue={defaultTab} value={defaultTab} onValueChange={(v) => setDefaultTab(v as "login" | "signup")} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="login">{t('tab.login')}</TabsTrigger>
+                <TabsTrigger value="signup">{t('tab.register')}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
+                    <Label htmlFor="login-email">{t('login.email')}</Label>
                     <Input
                       id="login-email"
                       type="email"
-                      placeholder="dr.smith@practice.com"
+                      placeholder={t('login.emailPlaceholder')}
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
+                    <Label htmlFor="login-password">{t('login.password')}</Label>
                     <div className="relative">
                       <Input
                         id="login-password"
@@ -505,12 +507,12 @@ const Auth = () => {
                       className="px-0 h-auto text-sm text-muted-foreground hover:text-primary"
                       onClick={() => setMode("forgot")}
                     >
-                      Forgot password?
+                      {t('login.forgotPassword')}
                     </Button>
                   </div>
 
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? "Signing in..." : "Sign In"}
+                    {isSubmitting ? t('login.submitting') : t('login.submit')}
                   </Button>
                 </form>
               </TabsContent>
@@ -525,11 +527,11 @@ const Auth = () => {
                 )}
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name">{t('register.fullName')}</Label>
                     <Input
                       id="signup-name"
                       type="text"
-                      placeholder="Dr. Jane Smith"
+                      placeholder={t('register.fullNamePlaceholder')}
                       value={signupFullName}
                       onChange={(e) => setSignupFullName(e.target.value)}
                       required
@@ -547,7 +549,7 @@ const Auth = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email">{t('register.email')}</Label>
                     <Input
                       id="signup-email"
                       type="email"
@@ -558,7 +560,7 @@ const Auth = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password">{t('register.password')}</Label>
                     <Input
                       id="signup-password"
                       type="password"
@@ -569,7 +571,7 @@ const Auth = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-confirm">Confirm Password</Label>
+                    <Label htmlFor="signup-confirm">{t('register.confirmPassword')}</Label>
                     <Input
                       id="signup-confirm"
                       type="password"
@@ -580,7 +582,7 @@ const Auth = () => {
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? "Creating account..." : "Create Account"}
+                    {isSubmitting ? t('register.submitting') : t('register.submit')}
                   </Button>
                 </form>
               </TabsContent>

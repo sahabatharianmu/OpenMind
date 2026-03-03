@@ -1,0 +1,38 @@
+{
+  "dashboard": {
+    "title": "Admin Dashboard",
+    "totalTenants": "Total Tenants",
+    "totalUsers": "Total Users",
+    "activeSubscriptions": "Active Subscriptions",
+    "monthlyRevenue": "Monthly Revenue",
+    "recentOrgs": "Recent Organizations",
+    "recentUsers": "Recent Users",
+    "noOrgs": "No organizations yet.",
+    "noUsers": "No users yet."
+  },
+  "tenants": {
+    "title": "Tenants",
+    "subtitle": "Manage registered organizations.",
+    "orgList": "Organization List",
+    "total": "{{count}} total",
+    "name": "Name",
+    "plan": "Plan",
+    "members": "Members",
+    "joined": "Joined",
+    "noOrgs": "No organizations found."
+  },
+  "users": {
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "joined": "Joined"
+  },
+  "plans": {
+    "title": "Subscription Plans",
+    "name": "Plan Name",
+    "price": "Price",
+    "interval": "Interval",
+    "status": "Status",
+    "createPlan": "Create Plan"
+  }
+}

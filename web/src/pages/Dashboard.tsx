@@ -8,10 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { X, Sparkles, Users, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation('dashboard');
   const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
   const [tier, setTier] = useState<string>("free");
 
@@ -43,9 +45,9 @@ const Dashboard = () => {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return t('greeting.morning', { defaultValue: 'Good morning' });
+    if (hour < 18) return t('greeting.afternoon', { defaultValue: 'Good afternoon' });
+    return t('greeting.evening', { defaultValue: 'Good evening' });
   };
 
   const firstName = user?.full_name?.split(" ")[0] || "there";
@@ -112,7 +114,7 @@ const Dashboard = () => {
             {getGreeting()}, {firstName}
           </h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            Here's what's happening in your practice today.
+            {t('greeting.whatsHappening', { defaultValue: "Here's what's happening in your practice today." })}
           </p>
         </div>
 

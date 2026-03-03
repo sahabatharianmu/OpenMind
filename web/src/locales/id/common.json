@@ -1,0 +1,50 @@
+{
+  "nav": {
+    "features": "Fitur",
+    "pricing": "Harga",
+    "docs": "Dokumen",
+    "github": "GitHub",
+    "signIn": "Masuk",
+    "startFree": "Mulai Gratis"
+  },
+  "buttons": {
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "edit": "Edit",
+    "create": "Buat",
+    "close": "Tutup",
+    "back": "Kembali",
+    "next": "Berikutnya",
+    "previous": "Sebelumnya",
+    "loading": "Memuat...",
+    "submit": "Kirim",
+    "confirm": "Konfirmasi",
+    "viewAll": "Lihat semua",
+    "signOut": "Keluar",
+    "upgrade": "Tingkatkan"
+  },
+  "pagination": {
+    "page": "Halaman {{current}} dari {{total}}",
+    "previous": "Sebelumnya",
+    "next": "Berikutnya"
+  },
+  "table": {
+    "name": "Nama",
+    "email": "Email",
+    "status": "Status",
+    "date": "Tanggal",
+    "actions": "Aksi",
+    "noResults": "Tidak ada hasil."
+  },
+  "status": {
+    "active": "Aktif",
+    "inactive": "Tidak Aktif",
+    "pending": "Menunggu"
+  },
+  "language": {
+    "en": "English",
+    "id": "Bahasa Indonesia",
+    "label": "Bahasa"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "docs": "Docs",
+    "github": "GitHub",
+    "signIn": "Sign In",
+    "startFree": "Start Free"
+  },
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "viewAll": "View all",
+    "signOut": "Sign Out",
+    "upgrade": "Upgrade"
+  },
+  "pagination": {
+    "page": "Page {{current}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "table": {
+    "name": "Name",
+    "email": "Email",
+    "status": "Status",
+    "date": "Date",
+    "actions": "Actions",
+    "noResults": "No results found."
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending"
+  },
+  "language": {
+    "en": "English",
+    "id": "Bahasa Indonesia",
+    "label": "Language"
+  }
+}

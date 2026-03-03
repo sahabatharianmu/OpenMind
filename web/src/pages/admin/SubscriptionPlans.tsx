@@ -4,10 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { adminPlanService, SubscriptionPlan } from "@/services/adminPlanService";
 import { CreatePlanDialog } from "@/components/subscription/CreatePlanDialog";
+import { EditPlanDialog } from "@/components/subscription/EditPlanDialog";
+import { useFormatters } from "@/hooks/useFormatters";
+import { Trash2 } from "lucide-react";
 
 export default function SubscriptionPlans() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const { formatCurrency } = useFormatters();
   
   const fetchPlans = useCallback(async () => {
     try {
@@ -20,6 +24,18 @@ export default function SubscriptionPlans() {
       setLoading(false);
     }
   }, []);
+
+  const handleDelete = async (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to delete the plan "${name}"?`)) {
+      try {
+        await adminPlanService.deletePlan(id);
+        fetchPlans();
+      } catch (error) {
+        console.error("Failed to delete plan", error);
+        // TODO: show toast
+      }
+    }
+  };
 
   useEffect(() => {
     fetchPlans();
@@ -47,7 +63,7 @@ export default function SubscriptionPlans() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold mb-4">
-                  {(plan.price / 100).toLocaleString('en-US', { style: 'currency', currency: plan.currency })}
+                  {formatCurrency(plan.price, plan.currency).replace(/\.00$/, '')}
                   <span className="text-sm font-normal text-muted-foreground">/mo</span>
                 </div>
                 <ul className="list-disc list-inside text-sm space-y-1 mb-4">
@@ -55,7 +71,18 @@ export default function SubscriptionPlans() {
                   <li>Patients: {plan.limits?.patient_limit === -1 ? "Unlimited" : plan.limits?.patient_limit}</li>
                   <li>Clinicians: {plan.limits?.clinician_limit === -1 ? "Unlimited" : plan.limits?.clinician_limit}</li>
                 </ul>
-                <Button variant="outline" className="w-full">Edit Plan</Button>
+                <div className="flex gap-2 mt-4">
+                  <div className="flex-1">
+                    <EditPlanDialog plan={plan} onPlanUpdated={fetchPlans} />
+                  </div>
+                  <Button 
+                    variant="destructive" 
+                    size="icon"
+                    onClick={() => handleDelete(plan.id, plan.name)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

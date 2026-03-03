@@ -5,6 +5,7 @@ export interface SubscriptionPlan {
   name: string;
   price: number;
   currency: string;
+  prices?: Record<string, number>;
   is_active: boolean;
   limits: any;
   created_at: string;
@@ -15,6 +16,7 @@ export interface CreatePlanRequest {
   name: string;
   price: number;
   currency: string;
+  prices?: Record<string, number>;
   is_active: boolean;
   limits?: any;
 }
@@ -38,5 +40,10 @@ export const adminPlanService = {
   getPlan: async (id: string) => {
     const response = await api.get<{ data: SubscriptionPlan }>(`/admin/plans/${id}`);
     return response.data.data;
+  },
+
+  deletePlan: async (id: string) => {
+    const response = await api.delete(`/admin/plans/${id}`);
+    return response.data;
   }
 };

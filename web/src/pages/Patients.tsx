@@ -40,11 +40,13 @@ import { format } from "date-fns";
 import { Patient } from "@/types";
 import { subscriptionService, UpgradePrompt as UpgradePromptType } from "@/services/subscriptionService";
 import UpgradePrompt from "@/components/subscription/UpgradePrompt";
+import { useTranslation } from "react-i18next";
 
 const Patients = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation('dashboard');
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -182,7 +184,7 @@ const Patients = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Patients</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">{t('patients.title')}</h1>
             <p className="text-muted-foreground mt-1 text-sm sm:text-base">
               {activeCount} active patient{activeCount !== 1 ? "s" : ""} in your practice
             </p>
@@ -194,7 +196,7 @@ const Patients = () => {
                 disabled={usageStats && subscriptionService.isAtLimit(usageStats.patient_count, usageStats.patient_limit)}
               >
                 <Plus className="w-4 h-4" />
-                Add Patient
+                {t('patients.addPatient')}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">

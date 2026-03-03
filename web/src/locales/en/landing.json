@@ -1,0 +1,64 @@
+{
+  "hero": {
+    "badge": "Privacy-First Mental Health EMR",
+    "headline1": "Your Practice.",
+    "headline2": "Your Data.",
+    "headline3": "Your Control.",
+    "subheadline": "A secure, self-hostable practice management platform for mental health professionals. End-to-end encryption ensures only you can read your clinical notes.",
+    "freeForever": "Free Forever - No Credit Card Required",
+    "ctaStart": "Start Free Forever",
+    "ctaPricing": "See Pricing",
+    "ctaSecurity": "Security Docs",
+    "benefit1": "10 patients free forever",
+    "benefit2": "No credit card required",
+    "benefit3": "Full access to all features"
+  },
+  "trust": {
+    "hipaa": "HIPAA Compliant",
+    "gdpr": "GDPR Ready",
+    "openSource": "Open Source (AGPLv3)"
+  },
+  "features": {
+    "title": "Everything you need to run your practice",
+    "subtitle": "Built for mental health professionals who take privacy seriously.",
+    "emr": "Electronic Medical Records",
+    "emrDesc": "Secure, encrypted clinical notes with HIPAA-compliant storage.",
+    "scheduling": "Smart Scheduling",
+    "schedulingDesc": "Appointment management with automated reminders.",
+    "billing": "Billing & Invoicing",
+    "billingDesc": "Generate invoices and track payments effortlessly.",
+    "encryption": "End-to-End Encryption",
+    "encryptionDesc": "Only you can read your clinical notes. Zero-knowledge architecture.",
+    "selfHost": "Self-Hostable",
+    "selfHostDesc": "Deploy on your own infrastructure for complete control.",
+    "teams": "Team Management",
+    "teamsDesc": "Multi-practitioner support with role-based access."
+  },
+  "pricing": {
+    "title": "Simple, Transparent Pricing",
+    "subtitle": "No hidden fees. No surprises. Downgrade or cancel anytime.",
+    "monthly": "Monthly",
+    "annually": "Annually",
+    "perMonth": "/mo",
+    "currentPlan": "Current Plan",
+    "getStarted": "Get Started",
+    "popular": "Popular",
+    "features": "Features",
+    "free": "Free Forever"
+  },
+  "footer": {
+    "tagline": "Privacy-first practice management for mental health professionals.",
+    "product": "Product",
+    "resources": "Resources",
+    "legal": "Legal",
+    "documentation": "Documentation",
+    "apiReference": "API Reference",
+    "selfHosting": "Self-Hosting Guide",
+    "features": "Features",
+    "security": "Security",
+    "roadmap": "Roadmap",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "copyright": "© {{year}} Closaf. All rights reserved."
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "sidebar": {
+    "dashboard": "Dasbor",
+    "patients": "Pasien",
+    "appointments": "Janji Temu",
+    "notes": "Catatan",
+    "billing": "Tagihan",
+    "auditLogs": "Log Audit",
+    "teams": "Tim",
+    "settings": "Pengaturan"
+  },
+  "stats": {
+    "totalPatients": "Total Pasien",
+    "upcomingAppointments": "Janji Temu Mendatang",
+    "pendingNotes": "Catatan Tertunda",
+    "monthlyRevenue": "Pendapatan Bulanan"
+  },
+  "patients": {
+    "title": "Pasien",
+    "search": "Cari pasien...",
+    "addPatient": "Tambah Pasien",
+    "name": "Nama",
+    "email": "Email",
+    "phone": "Telepon",
+    "lastVisit": "Kunjungan Terakhir",
+    "noPatients": "Tidak ada pasien ditemukan.",
+    "profile": "Profil",
+    "newNote": "Catatan Baru",
+    "newAppointment": "Janji Temu Baru",
+    "newInvoice": "Faktur Baru",
+    "viewProfile": "Lihat Profil"
+  },
+  "appointments": {
+    "title": "Janji Temu",
+    "schedule": "Jadwalkan Janji Temu",
+    "date": "Tanggal",
+    "time": "Waktu",
+    "patient": "Pasien",
+    "status": "Status",
+    "type": "Tipe",
+    "noAppointments": "Tidak ada janji temu ditemukan."
+  },
+  "notes": {
+    "title": "Catatan Klinis",
+    "newNote": "Catatan Baru",
+    "search": "Cari catatan...",
+    "patient": "Pasien",
+    "date": "Tanggal",
+    "type": "Tipe",
+    "noNotes": "Tidak ada catatan ditemukan.",
+    "edit": "Edit Catatan",
+    "view": "Lihat Catatan",
+    "save": "Simpan Catatan",
+    "saving": "Menyimpan...",
+    "deleteConfirm": "Apakah Anda yakin ingin menghapus catatan ini?"
+  },
+  "billing": {
+    "title": "Tagihan",
+    "createInvoice": "Buat Faktur",
+    "totalOutstanding": "Belum Dibayar",
+    "totalPaid": "Total Dibayar",
+    "invoices": "Faktur",
+    "amount": "Jumlah",
+    "status": "Status",
+    "dueDate": "Jatuh Tempo",
+    "paidDate": "Tanggal Bayar",
+    "patient": "Pasien",
+    "revenue": "Pendapatan",
+    "noInvoices": "Tidak ada faktur ditemukan."
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "organization": "Organisasi",
+    "orgName": "Nama Organisasi",
+    "currency": "Mata Uang",
+    "locale": "Lokal Tampilan",
+    "language": "Bahasa",
+    "timezone": "Zona Waktu",
+    "save": "Simpan Perubahan",
+    "saving": "Menyimpan...",
+    "saved": "Pengaturan berhasil disimpan.",
+    "createdAt": "Dibuat Pada"
+  },
+  "teams": {
+    "title": "Tim",
+    "invite": "Undang Anggota",
+    "name": "Nama",
+    "email": "Email",
+    "role": "Peran",
+    "joined": "Bergabung",
+    "noMembers": "Tidak ada anggota tim ditemukan."
+  },
+  "auditLogs": {
+    "title": "Log Audit",
+    "action": "Aksi",
+    "user": "Pengguna",
+    "timestamp": "Waktu",
+    "details": "Detail",
+    "noLogs": "Tidak ada log audit ditemukan."
+  },
+  "onboarding": {
+    "welcome": "Selamat Datang di OpenMind",
+    "setupOrg": "Siapkan organisasi Anda",
+    "orgName": "Nama Organisasi",
+    "orgNamePlaceholder": "Praktik Saya",
+    "skip": "Lewati untuk sekarang",
+    "continue": "Lanjutkan"
+  },
+  "pricing": {
+    "free": "Gratis"
+  }
+}

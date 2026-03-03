@@ -33,10 +33,12 @@ import { organizationService, type TeamMember } from "@/services/organizationSer
 import { Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import TeamManagement from "@/components/team/TeamManagement";
+import { useTranslation } from "react-i18next";
 
 const Teams = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation('dashboard');
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
@@ -134,7 +136,7 @@ const Teams = () => {
     <DashboardLayout>
       <div className="p-6 lg:p-8 max-w-6xl">
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold">Team Management</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold">{t('teams.title')}</h1>
           <p className="text-muted-foreground mt-1">
             Manage your team members, roles, and invitations
           </p>
@@ -165,10 +167,10 @@ const Teams = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Joined</TableHead>
+                        <TableHead>{t('teams.name')}</TableHead>
+                        <TableHead>{t('teams.email')}</TableHead>
+                        <TableHead>{t('teams.role')}</TableHead>
+                        <TableHead>{t('teams.joined')}</TableHead>
                         {canEdit && <TableHead className="text-right">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>

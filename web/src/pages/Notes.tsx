@@ -22,6 +22,7 @@ import {
 import clinicalNoteService from "@/services/clinicalNoteService";
 import patientService from "@/services/patientService";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import {
   Select,
@@ -39,6 +40,7 @@ interface UIClinicalNote extends ClinicalNote {
 const Notes = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation('dashboard');
   const [notes, setNotes] = useState<UIClinicalNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -95,14 +97,14 @@ const Notes = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold">Clinical Notes</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold">{t('notes.title')}</h1>
             <p className="text-muted-foreground mt-1">
               Manage and review your clinical documentation
             </p>
           </div>
           <Button className="gap-2" onClick={() => navigate("/dashboard/notes/new")}>
             <Plus className="w-4 h-4" />
-            New Note
+            {t('notes.newNote')}
           </Button>
         </div>
 

@@ -5,12 +5,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { adminService, type TenantListItem, type TenantListResponse } from "@/services/adminService";
+import { useFormatters } from "@/hooks/useFormatters";
 
 export default function Tenants() {
   const [data, setData] = useState<TenantListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const { t } = useTranslation('admin');
+  const { t: tc } = useTranslation('common');
+  const { formatDate } = useFormatters();
 
   const fetchTenants = useCallback(async (p: number) => {
     try {
@@ -28,9 +33,6 @@ export default function Tenants() {
     fetchTenants(page);
   }, [fetchTenants, page]);
 
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-
   const tierBadge = (tier: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       free: "outline",
@@ -44,15 +46,15 @@ export default function Tenants() {
   return (
     <AdminLayout>
       <div className="mb-6">
-        <h2 className="text-3xl font-bold tracking-tight">Tenants</h2>
-        <p className="text-muted-foreground">Manage registered organizations.</p>
+        <h2 className="text-3xl font-bold tracking-tight">{t('tenants.title')}</h2>
+        <p className="text-muted-foreground">{t('tenants.subtitle')}</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>
-            Organization List
-            {data && <span className="ml-2 text-sm font-normal text-muted-foreground">({data.total} total)</span>}
+            {t('tenants.orgList')}
+            {data && <span className="ml-2 text-sm font-normal text-muted-foreground">({t('tenants.total', { count: data.total })})</span>}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -62,26 +64,26 @@ export default function Tenants() {
             </div>
           ) : !data || data.tenants.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              No organizations found.
+              {t('tenants.noOrgs')}
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead className="text-right">Members</TableHead>
-                    <TableHead>Joined</TableHead>
+                    <TableHead>{t('tenants.name')}</TableHead>
+                    <TableHead>{t('tenants.plan')}</TableHead>
+                    <TableHead className="text-right">{t('tenants.members')}</TableHead>
+                    <TableHead>{t('tenants.joined')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.tenants.map((t: TenantListItem) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-medium">{t.name}</TableCell>
-                      <TableCell>{tierBadge(t.subscription_tier)}</TableCell>
-                      <TableCell className="text-right">{t.member_count}</TableCell>
-                      <TableCell>{formatDate(t.created_at)}</TableCell>
+                  {data.tenants.map((tenant: TenantListItem) => (
+                    <TableRow key={tenant.id}>
+                      <TableCell className="font-medium">{tenant.name}</TableCell>
+                      <TableCell>{tierBadge(tenant.subscription_tier)}</TableCell>
+                      <TableCell className="text-right">{tenant.member_count}</TableCell>
+                      <TableCell>{formatDate(tenant.created_at)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -91,7 +93,7 @@ export default function Tenants() {
               {data.total_pages > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-muted-foreground">
-                    Page {data.page} of {data.total_pages}
+                    {tc('pagination.page', { current: data.page, total: data.total_pages })}
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -100,7 +102,7 @@ export default function Tenants() {
                       disabled={page <= 1}
                       onClick={() => setPage((p) => p - 1)}
                     >
-                      <ChevronLeft className="h-4 w-4" /> Previous
+                      <ChevronLeft className="h-4 w-4" /> {tc('pagination.previous')}
                     </Button>
                     <Button
                       variant="outline"
@@ -108,7 +110,7 @@ export default function Tenants() {
                       disabled={page >= data.total_pages}
                       onClick={() => setPage((p) => p + 1)}
                     >
-                      Next <ChevronRight className="h-4 w-4" />
+                      {tc('pagination.next')} <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

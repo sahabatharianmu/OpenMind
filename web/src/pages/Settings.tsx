@@ -21,11 +21,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, FileText, AlertCircle, CheckCircle2, XCircle, Download } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useTranslation } from "react-i18next";
 
 const Settings = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { t } = useTranslation('dashboard');
   
   // Check if user can edit organization settings (admin or owner only)
   const canEditOrganization = user?.role === "admin" || user?.role === "owner";

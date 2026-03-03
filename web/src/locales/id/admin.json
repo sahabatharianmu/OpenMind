@@ -1,0 +1,38 @@
+{
+  "dashboard": {
+    "title": "Dasbor Admin",
+    "totalTenants": "Total Penyewa",
+    "totalUsers": "Total Pengguna",
+    "activeSubscriptions": "Langganan Aktif",
+    "monthlyRevenue": "Pendapatan Bulanan",
+    "recentOrgs": "Organisasi Terbaru",
+    "recentUsers": "Pengguna Terbaru",
+    "noOrgs": "Belum ada organisasi.",
+    "noUsers": "Belum ada pengguna."
+  },
+  "tenants": {
+    "title": "Penyewa",
+    "subtitle": "Kelola organisasi terdaftar.",
+    "orgList": "Daftar Organisasi",
+    "total": "{{count}} total",
+    "name": "Nama",
+    "plan": "Paket",
+    "members": "Anggota",
+    "joined": "Bergabung",
+    "noOrgs": "Tidak ada organisasi ditemukan."
+  },
+  "users": {
+    "name": "Nama",
+    "email": "Email",
+    "role": "Peran",
+    "joined": "Bergabung"
+  },
+  "plans": {
+    "title": "Paket Langganan",
+    "name": "Nama Paket",
+    "price": "Harga",
+    "interval": "Interval",
+    "status": "Status",
+    "createPlan": "Buat Paket"
+  }
+}

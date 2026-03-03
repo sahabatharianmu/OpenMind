@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,28 +13,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { adminPlanService, CreatePlanRequest } from "@/services/adminPlanService";
-import { Plus, Loader2 } from "lucide-react";
+import { adminPlanService, CreatePlanRequest, SubscriptionPlan } from "@/services/adminPlanService";
+import { Loader2 } from "lucide-react";
 
-interface CreatePlanDialogProps {
-  onPlanCreated: () => void;
+interface EditPlanDialogProps {
+  plan: SubscriptionPlan;
+  onPlanUpdated: () => void;
 }
 
-export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
+export function EditPlanDialog({ plan, onPlanUpdated }: EditPlanDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [priceUSD, setPriceUSD] = useState(0);
   const [priceIDR, setPriceIDR] = useState(0);
   const [formData, setFormData] = useState<CreatePlanRequest>({
-    name: "",
-    price: 0,
-    currency: "USD",
-    is_active: true,
-    limits: {
+    name: plan.name,
+    price: plan.price,
+    currency: plan.currency,
+    is_active: plan.is_active,
+    limits: plan.limits || {
       patient_limit: 10,
       clinician_limit: 1,
     }
   });
+
+  // Initialize prices when dialog opens or plan changes
+  useEffect(() => {
+    if (plan.prices) {
+      setPriceUSD((plan.prices.USD || 0) / 100);
+      setPriceIDR((plan.prices.IDR || 0) / 100);
+    } else {
+        // Fallback to base price if prices json is missing
+        if (plan.currency === 'USD') setPriceUSD(plan.price / 100);
+        if (plan.currency === 'IDR') setPriceIDR(plan.price / 100);
+    }
+  }, [plan]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,22 +66,9 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
           prices: prices
       };
       
-      await adminPlanService.createPlan(payload);
+      await adminPlanService.updatePlan(plan.id, payload);
       setOpen(false);
-      onPlanCreated();
-      // Reset form
-      setPriceUSD(0);
-      setPriceIDR(0);
-      setFormData({
-        name: "",
-        price: 0,
-        currency: "USD",
-        is_active: true,
-        limits: {
-            patient_limit: 10,
-            clinician_limit: 1,
-        }
-      });
+      onPlanUpdated();
     } catch (error) {
       console.error("Failed to create plan", error);
       // TODO: Show toast error
@@ -80,15 +80,15 @@ export function CreatePlanDialog({ onPlanCreated }: CreatePlanDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Create Plan
+        <Button variant="outline" className="w-full relative">
+          Edit Plan
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create Subscription Plan</DialogTitle>
+          <DialogTitle>Edit Subscription Plan</DialogTitle>
           <DialogDescription>
-            Add a new plan to your offering. Click save when you're done.
+            Update the plan pricing or limits. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>

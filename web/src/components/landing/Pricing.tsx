@@ -4,10 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { publicPlanService } from "@/services/publicPlanService";
 import { SubscriptionPlan } from "@/services/adminPlanService";
+import { useFormatters } from "@/hooks/useFormatters";
+import { useTranslation } from "react-i18next";
 
 const Pricing = () => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const { formatCurrency } = useFormatters();
+  const { i18n, t } = useTranslation('landing');
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -58,8 +62,14 @@ const Pricing = () => {
            </div>
         ) : (
             <div className={`grid grid-cols-1 gap-8 max-w-5xl mx-auto ${plans.length > 1 ? 'md:grid-cols-' + Math.min(plans.length, 3) : 'md:grid-cols-1'}`}>
-            {plans.map((plan) => {
-                const isPlanFree = plan.price === 0;
+            {(() => {
+                const activeCurrency = i18n.language.startsWith('id') ? 'IDR' : 'USD';
+
+                return plans.map((plan) => {
+                    const priceInSubunits = (plan.prices && plan.prices[activeCurrency]) !== undefined 
+                        ? plan.prices[activeCurrency] 
+                        : plan.price;
+                    const isPlanFree = priceInSubunits === 0;
                 // Highlight paid plans as "Most Popular" or generic highlight
                 // Simplified: if there are 2 plans, highlight the paid one.
                 const isHighlighted = !isPlanFree;
@@ -92,7 +102,7 @@ const Pricing = () => {
 
                     <div className="mb-8 flex items-baseline gap-1">
                     <span className="text-5xl font-extrabold font-heading text-foreground tracking-tight">
-                        {(plan.price / 100).toLocaleString('en-US', { style: 'currency', currency: plan.currency, minimumFractionDigits: 0 })}
+                        {isPlanFree ? t('pricing.free') : formatCurrency(priceInSubunits, activeCurrency).replace(/\.00$/, '')}
                     </span>
                     <span className="text-lg font-medium text-muted-foreground">/mo</span>
                     </div>
@@ -129,7 +139,8 @@ const Pricing = () => {
                     </Link>
                 </div>
                 );
-            })}
+                })
+            })()}
             </div>
         )}
       </div>
