@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.4.0...v1.5.0) (2026-03-03)
+
+
+### Features
+
+* **billing:** implement subscription billing history and resumable payment flow ([80fa8da](https://github.com/sahabatharianmu/OpenMind-Cloud/commit/80fa8daf953dc9d37fab9ffcdeab1c64831f19d7))
+
 # [1.4.0](https://github.com/sahabatharianmu/OpenMind-Cloud/compare/v1.3.0...v1.4.0) (2026-03-03)
 
 
