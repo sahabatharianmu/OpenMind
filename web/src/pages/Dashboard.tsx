@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import StatsCards from "@/components/dashboard/StatsCards";
 import PatientList from "@/components/dashboard/PatientList";
@@ -15,19 +14,17 @@ const Dashboard = () => {
     return "Good evening";
   };
 
-  // Use user's full_name from context, defaulting to "there"
-  // Note: user.full_name might be "User" if not set in token/context correctly yet.
   const firstName = user?.full_name?.split(" ")[0] || "there";
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl lg:text-3xl font-bold">
+        <div className="mb-4 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
             {getGreeting()}, {firstName}
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Here's what's happening in your practice today.
           </p>
         </div>

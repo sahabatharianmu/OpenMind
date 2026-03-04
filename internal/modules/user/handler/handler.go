@@ -55,3 +55,13 @@ func (h *AuthHandler) Login(_ context.Context, c *app.RequestContext) {
 
 	c.JSON(consts.StatusOK, response.Success("Login successful", resp))
 }
+
+func (h *AuthHandler) SetupStatus(_ context.Context, c *app.RequestContext) {
+	resp, err := h.svc.SetupStatus()
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.JSON(consts.StatusOK, response.Success("Setup status retrieved", resp))
+}

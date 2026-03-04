@@ -5,34 +5,64 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	appointmentRepo "github.com/sahabatharianmu/OpenMind/internal/modules/appointment/repository"
+	clinicalNoteRepo "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/repository"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/invoice/dto"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/invoice/entity"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/invoice/repository"
+	organizationRepo "github.com/sahabatharianmu/OpenMind/internal/modules/organization/repository"
+	patientRepo "github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
+	"github.com/sahabatharianmu/OpenMind/pkg/response"
 )
 
 type InvoiceService interface {
 	Create(ctx context.Context, req dto.CreateInvoiceRequest, organizationID uuid.UUID) (*dto.InvoiceResponse, error)
-	Update(ctx context.Context, id uuid.UUID, req dto.UpdateInvoiceRequest) (*dto.InvoiceResponse, error)
-	Delete(ctx context.Context, id uuid.UUID) error
-	Get(ctx context.Context, id uuid.UUID) (*dto.InvoiceResponse, error)
+	Update(
+		ctx context.Context,
+		id uuid.UUID,
+		organizationID uuid.UUID,
+		req dto.UpdateInvoiceRequest,
+	) (*dto.InvoiceResponse, error)
+	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
+	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.InvoiceResponse, error)
 	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.InvoiceResponse, int64, error)
+	GenerateSuperbill(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) ([]byte, error)
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
 
 type invoiceService struct {
-	repo repository.InvoiceRepository
-	log  logger.Logger
+	repo             repository.InvoiceRepository
+	orgRepo          organizationRepo.OrganizationRepository
+	patientRepo      patientRepo.PatientRepository
+	appointmentRepo  appointmentRepo.AppointmentRepository
+	clinicalNoteRepo clinicalNoteRepo.ClinicalNoteRepository
+	log              logger.Logger
 }
 
-func NewInvoiceService(repo repository.InvoiceRepository, log logger.Logger) InvoiceService {
+func NewInvoiceService(
+	repo repository.InvoiceRepository,
+	orgRepo organizationRepo.OrganizationRepository,
+	patientRepo patientRepo.PatientRepository,
+	appointmentRepo appointmentRepo.AppointmentRepository,
+	clinicalNoteRepo clinicalNoteRepo.ClinicalNoteRepository,
+	log logger.Logger,
+) InvoiceService {
 	return &invoiceService{
-		repo: repo,
-		log:  log,
+		repo:             repo,
+		orgRepo:          orgRepo,
+		patientRepo:      patientRepo,
+		appointmentRepo:  appointmentRepo,
+		clinicalNoteRepo: clinicalNoteRepo,
+		log:              log,
 	}
 }
 
-func (s *invoiceService) Create(ctx context.Context, req dto.CreateInvoiceRequest, organizationID uuid.UUID) (*dto.InvoiceResponse, error) {
+func (s *invoiceService) Create(
+	ctx context.Context,
+	req dto.CreateInvoiceRequest,
+	organizationID uuid.UUID,
+) (*dto.InvoiceResponse, error) {
 	status := "pending"
 	if req.Status != "" {
 		status = req.Status
@@ -76,10 +106,19 @@ func (s *invoiceService) Create(ctx context.Context, req dto.CreateInvoiceReques
 	return s.mapEntityToResponse(invoice), nil
 }
 
-func (s *invoiceService) Update(ctx context.Context, id uuid.UUID, req dto.UpdateInvoiceRequest) (*dto.InvoiceResponse, error) {
+func (s *invoiceService) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	organizationID uuid.UUID,
+	req dto.UpdateInvoiceRequest,
+) (*dto.InvoiceResponse, error) {
 	invoice, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
+	}
+
+	if invoice.OrganizationID != organizationID {
+		return nil, response.ErrNotFound
 	}
 
 	if req.AmountCents != nil {
@@ -116,19 +155,41 @@ func (s *invoiceService) Update(ctx context.Context, id uuid.UUID, req dto.Updat
 	return s.mapEntityToResponse(invoice), nil
 }
 
-func (s *invoiceService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *invoiceService) Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error {
+	invoice, err := s.repo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	if invoice.OrganizationID != organizationID {
+		return response.ErrNotFound
+	}
+
 	return s.repo.Delete(id)
 }
 
-func (s *invoiceService) Get(ctx context.Context, id uuid.UUID) (*dto.InvoiceResponse, error) {
+func (s *invoiceService) Get(
+	ctx context.Context,
+	id uuid.UUID,
+	organizationID uuid.UUID,
+) (*dto.InvoiceResponse, error) {
 	invoice, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
+
+	if invoice.OrganizationID != organizationID {
+		return nil, response.ErrNotFound
+	}
+
 	return s.mapEntityToResponse(invoice), nil
 }
 
-func (s *invoiceService) List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.InvoiceResponse, int64, error) {
+func (s *invoiceService) List(
+	ctx context.Context,
+	organizationID uuid.UUID,
+	page, pageSize int,
+) ([]dto.InvoiceResponse, int64, error) {
 	offset := (page - 1) * pageSize
 	invoices, total, err := s.repo.List(organizationID, pageSize, offset)
 	if err != nil {

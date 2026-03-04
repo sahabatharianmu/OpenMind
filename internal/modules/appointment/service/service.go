@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,13 +10,23 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/entity"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/repository"
 	"github.com/sahabatharianmu/OpenMind/pkg/logger"
+	"github.com/sahabatharianmu/OpenMind/pkg/response"
 )
 
 type AppointmentService interface {
-	Create(ctx context.Context, req dto.CreateAppointmentRequest, organizationID uuid.UUID) (*dto.AppointmentResponse, error)
-	Update(ctx context.Context, id uuid.UUID, req dto.UpdateAppointmentRequest) (*dto.AppointmentResponse, error)
-	Delete(ctx context.Context, id uuid.UUID) error
-	Get(ctx context.Context, id uuid.UUID) (*dto.AppointmentResponse, error)
+	Create(
+		ctx context.Context,
+		req dto.CreateAppointmentRequest,
+		organizationID uuid.UUID,
+	) (*dto.AppointmentResponse, error)
+	Update(
+		ctx context.Context,
+		id uuid.UUID,
+		organizationID uuid.UUID,
+		req dto.UpdateAppointmentRequest,
+	) (*dto.AppointmentResponse, error)
+	Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error
+	Get(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) (*dto.AppointmentResponse, error)
 	List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.AppointmentResponse, int64, error)
 	GetOrganizationID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
@@ -32,7 +43,11 @@ func NewAppointmentService(repo repository.AppointmentRepository, log logger.Log
 	}
 }
 
-func (s *appointmentService) Create(ctx context.Context, req dto.CreateAppointmentRequest, organizationID uuid.UUID) (*dto.AppointmentResponse, error) {
+func (s *appointmentService) Create(
+	ctx context.Context,
+	req dto.CreateAppointmentRequest,
+	organizationID uuid.UUID,
+) (*dto.AppointmentResponse, error) {
 	startTime, err := time.Parse(time.RFC3339, req.StartTime)
 	if err != nil {
 		return nil, err
@@ -60,6 +75,17 @@ func (s *appointmentService) Create(ctx context.Context, req dto.CreateAppointme
 		Notes:          req.Notes,
 	}
 
+	// Conflict Detection
+	overlap, err := s.repo.CheckOverlap(organizationID, req.ClinicianID, startTime, endTime, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for schedule conflicts: %w", err)
+	}
+	if overlap {
+		return nil, response.NewConflict(
+			"Scheduling conflict: This clinician already has an appointment during this time.",
+		)
+	}
+
 	if err := s.repo.Create(appointment); err != nil {
 		return nil, err
 	}
@@ -67,10 +93,19 @@ func (s *appointmentService) Create(ctx context.Context, req dto.CreateAppointme
 	return s.mapEntityToResponse(appointment), nil
 }
 
-func (s *appointmentService) Update(ctx context.Context, id uuid.UUID, req dto.UpdateAppointmentRequest) (*dto.AppointmentResponse, error) {
+func (s *appointmentService) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	organizationID uuid.UUID,
+	req dto.UpdateAppointmentRequest,
+) (*dto.AppointmentResponse, error) {
 	appointment, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
+	}
+
+	if appointment.OrganizationID != organizationID {
+		return nil, response.NewNotFound("Appointment not found")
 	}
 
 	if req.StartTime != nil {
@@ -100,6 +135,23 @@ func (s *appointmentService) Update(ctx context.Context, id uuid.UUID, req dto.U
 		appointment.Notes = req.Notes
 	}
 
+	// Conflict Detection for Update
+	overlap, err := s.repo.CheckOverlap(
+		organizationID,
+		appointment.ClinicianID,
+		appointment.StartTime,
+		appointment.EndTime,
+		&id,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for schedule conflicts: %w", err)
+	}
+	if overlap {
+		return nil, response.NewConflict(
+			"Scheduling conflict: This clinician already has an appointment during this time.",
+		)
+	}
+
 	if err := s.repo.Update(appointment); err != nil {
 		return nil, err
 	}
@@ -107,19 +159,41 @@ func (s *appointmentService) Update(ctx context.Context, id uuid.UUID, req dto.U
 	return s.mapEntityToResponse(appointment), nil
 }
 
-func (s *appointmentService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *appointmentService) Delete(ctx context.Context, id uuid.UUID, organizationID uuid.UUID) error {
+	appointment, err := s.repo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	if appointment.OrganizationID != organizationID {
+		return response.ErrNotFound
+	}
+
 	return s.repo.Delete(id)
 }
 
-func (s *appointmentService) Get(ctx context.Context, id uuid.UUID) (*dto.AppointmentResponse, error) {
+func (s *appointmentService) Get(
+	ctx context.Context,
+	id uuid.UUID,
+	organizationID uuid.UUID,
+) (*dto.AppointmentResponse, error) {
 	appointment, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
+
+	if appointment.OrganizationID != organizationID {
+		return nil, response.ErrNotFound
+	}
+
 	return s.mapEntityToResponse(appointment), nil
 }
 
-func (s *appointmentService) List(ctx context.Context, organizationID uuid.UUID, page, pageSize int) ([]dto.AppointmentResponse, int64, error) {
+func (s *appointmentService) List(
+	ctx context.Context,
+	organizationID uuid.UUID,
+	page, pageSize int,
+) ([]dto.AppointmentResponse, int64, error) {
 	offset := (page - 1) * pageSize
 	appointments, total, err := s.repo.List(organizationID, pageSize, offset)
 	if err != nil {

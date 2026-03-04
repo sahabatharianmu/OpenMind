@@ -7,21 +7,21 @@ import (
 )
 
 type CreateInvoiceRequest struct {
-	PatientID     uuid.UUID  `json:"patient_id" validate:"required"`
+	PatientID     uuid.UUID  `json:"patient_id"     validate:"required"`
 	AppointmentID *uuid.UUID `json:"appointment_id"`
-	AmountCents   int        `json:"amount_cents" validate:"required,min=0"`
-	Status        string     `json:"status" validate:"omitempty,oneof=pending paid void overdue"`
-	DueDate       *string    `json:"due_date" validate:"omitempty"`
-	PaidAt        *string    `json:"paid_at" validate:"omitempty"`
+	AmountCents   int        `json:"amount_cents"   validate:"required,min=0"`
+	Status        string     `json:"status"         validate:"omitempty,oneof=pending paid void overdue"`
+	DueDate       *string    `json:"due_date"       validate:"omitempty"`
+	PaidAt        *string    `json:"paid_at"        validate:"omitempty"`
 	PaymentMethod *string    `json:"payment_method"`
 	Notes         *string    `json:"notes"`
 }
 
 type UpdateInvoiceRequest struct {
-	AmountCents   *int    `json:"amount_cents" validate:"omitempty,min=0"`
-	Status        string  `json:"status" validate:"omitempty,oneof=pending paid void overdue"`
-	DueDate       *string `json:"due_date" validate:"omitempty"`
-	PaidAt        *string `json:"paid_at" validate:"omitempty"`
+	AmountCents   *int    `json:"amount_cents"   validate:"omitempty,min=0"`
+	Status        string  `json:"status"         validate:"omitempty,oneof=pending paid void overdue"`
+	DueDate       *string `json:"due_date"       validate:"omitempty"`
+	PaidAt        *string `json:"paid_at"        validate:"omitempty"`
 	PaymentMethod *string `json:"payment_method"`
 	Notes         *string `json:"notes"`
 }

@@ -7,22 +7,22 @@ import (
 )
 
 type CreateAppointmentRequest struct {
-	PatientID   uuid.UUID `json:"patient_id" validate:"required"`
-	ClinicianID uuid.UUID `json:"clinician_id" validate:"required"`
-	StartTime   string    `json:"start_time" validate:"required,datetime=2006-01-02T15:04:05Z07:00"` // RFC3339
-	EndTime     string    `json:"end_time" validate:"required,datetime=2006-01-02T15:04:05Z07:00"`   // RFC3339
-	Status      string    `json:"status" validate:"omitempty,oneof=scheduled completed cancelled no-show"`
+	PatientID   uuid.UUID `json:"patient_id"       validate:"required"`
+	ClinicianID uuid.UUID `json:"clinician_id"     validate:"required"`
+	StartTime   string    `json:"start_time"       validate:"required,datetime=2006-01-02T15:04:05Z07:00"` // RFC3339
+	EndTime     string    `json:"end_time"         validate:"required,datetime=2006-01-02T15:04:05Z07:00"` // RFC3339
+	Status      string    `json:"status"           validate:"omitempty,oneof=scheduled completed cancelled no-show"`
 	Type        string    `json:"appointment_type" validate:"required"`
-	Mode        string    `json:"mode" validate:"required,oneof=in-person video phone"`
+	Mode        string    `json:"mode"             validate:"required,oneof=in-person video phone"`
 	Notes       *string   `json:"notes"`
 }
 
 type UpdateAppointmentRequest struct {
-	StartTime *string `json:"start_time" validate:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
-	EndTime   *string `json:"end_time" validate:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
-	Status    string  `json:"status" validate:"omitempty,oneof=scheduled completed cancelled no-show"`
+	StartTime *string `json:"start_time"       validate:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
+	EndTime   *string `json:"end_time"         validate:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
+	Status    string  `json:"status"           validate:"omitempty,oneof=scheduled completed cancelled no-show"`
 	Type      string  `json:"appointment_type"`
-	Mode      string  `json:"mode" validate:"omitempty,oneof=in-person video phone"`
+	Mode      string  `json:"mode"             validate:"omitempty,oneof=in-person video phone"`
 	Notes     *string `json:"notes"`
 }
 

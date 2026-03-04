@@ -5,12 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { 
   Plus, 
   Search, 
   FileText, 
   Clock, 
-  CheckCircle2
+  CheckCircle2,
+  Lock
 } from "lucide-react";
 import clinicalNoteService from "@/services/clinicalNoteService";
 import patientService from "@/services/patientService";
@@ -201,9 +208,23 @@ const Notes = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <Badge variant={note.is_signed ? "default" : "secondary"}>
-                        {note.is_signed ? "Signed" : "Draft"}
-                      </Badge>
+                      {note.is_signed ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge className="gap-1 bg-green-600 hover:bg-green-700">
+                                <Lock className="w-3 h-3" />
+                                Signed & Locked
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>This note is signed and locked. It cannot be edited for compliance.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <Badge variant="secondary">Draft</Badge>
+                      )}
                       {note.is_signed && note.signed_at && (
                         <p className="text-xs text-muted-foreground mt-1">
                           Signed {format(new Date(note.signed_at), "MMM d")}

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/cloudwego/hertz/pkg/app"
@@ -91,6 +92,19 @@ func (h *ClinicalNoteHandler) List(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *ClinicalNoteHandler) Get(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -98,7 +112,7 @@ func (h *ClinicalNoteHandler) Get(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Get(context.Background(), id)
+	resp, err := h.svc.Get(context.Background(), id, orgID)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -108,6 +122,19 @@ func (h *ClinicalNoteHandler) Get(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *ClinicalNoteHandler) Update(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -121,7 +148,7 @@ func (h *ClinicalNoteHandler) Update(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Update(context.Background(), id, req)
+	resp, err := h.svc.Update(context.Background(), id, orgID, req)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -131,6 +158,19 @@ func (h *ClinicalNoteHandler) Update(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *ClinicalNoteHandler) Delete(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -138,10 +178,138 @@ func (h *ClinicalNoteHandler) Delete(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	if err := h.svc.Delete(context.Background(), id); err != nil {
+	if err := h.svc.Delete(context.Background(), id, orgID); err != nil {
 		response.HandleError(c, err)
 		return
 	}
 
 	c.JSON(consts.StatusOK, response.Success("Clinical note deleted successfully", nil))
+}
+
+func (h *ClinicalNoteHandler) AddAddendum(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
+	idStr := c.Param("id")
+	noteID, err := uuid.Parse(idStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid clinical note ID", nil)
+		return
+	}
+
+	var req dto.AddAddendumRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		response.BadRequest(c, "Invalid request body", map[string]interface{}{"error": err.Error()})
+		return
+	}
+
+	// Override clinician_id with current user for security
+	req.ClinicianID = userID
+
+	resp, err := h.svc.AddAddendum(context.Background(), noteID, orgID, req)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.JSON(consts.StatusCreated, response.Success("Addendum added successfully", resp))
+}
+
+func (h *ClinicalNoteHandler) UploadAttachment(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
+	idStr := c.Param("id")
+	noteID, err := uuid.Parse(idStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid clinical note ID", nil)
+		return
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		response.BadRequest(c, "No file uploaded", nil)
+		return
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		response.InternalServerError(c, "Failed to open file")
+		return
+	}
+	defer f.Close()
+
+	// Read file data into memory
+	data := make([]byte, file.Size)
+	if _, err := f.Read(data); err != nil {
+		response.InternalServerError(c, "Failed to read file")
+		return
+	}
+
+	resp, err := h.svc.UploadAttachment(
+		context.Background(),
+		noteID,
+		orgID,
+		file.Filename,
+		file.Header.Get("Content-Type"),
+		data,
+	)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.JSON(consts.StatusCreated, response.Success("Attachment uploaded successfully", resp))
+}
+
+func (h *ClinicalNoteHandler) DownloadAttachment(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
+	attachmentIDStr := c.Param("attachment_id")
+	attachmentID, err := uuid.Parse(attachmentIDStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid attachment ID", nil)
+		return
+	}
+
+	fileName, data, contentType, err := h.svc.DownloadAttachment(context.Background(), attachmentID, orgID)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.Header("Content-Type", contentType)
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	c.Write(data)
 }

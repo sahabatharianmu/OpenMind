@@ -1,5 +1,6 @@
 import api from "@/api/client";
 import { ClinicalNote } from "@/types";
+import type { PaginatedResponse } from "@/types/api";
 
 export interface CreateClinicalNoteRequest {
   patient_id: string;
@@ -18,7 +19,7 @@ export interface UpdateClinicalNoteRequest extends Partial<CreateClinicalNoteReq
 
 const clinicalNoteService = {
   list: async () => {
-    const response = await api.get<{ data: { items: ClinicalNote[] } }>("/clinical-notes");
+    const response = await api.get<{ data: PaginatedResponse<ClinicalNote> }>("/clinical-notes");
     return response.data.data.items;
   },
 
@@ -35,6 +36,27 @@ const clinicalNoteService = {
   update: async (id: string, data: UpdateClinicalNoteRequest) => {
     const response = await api.put<{ data: ClinicalNote }>(`/clinical-notes/${id}`, data);
     return response.data.data;
+  },
+
+  addAddendum: async (id: string, content: string) => {
+    const response = await api.post<{ data: any }>(`/clinical-notes/${id}/addendums`, { content });
+    return response.data.data;
+  },
+
+  uploadAttachment: async (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.post<{ data: any }>(`/clinical-notes/${id}/attachments`, formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return response.data.data;
+  },
+
+  downloadAttachment: async (attachmentId: string) => {
+    const response = await api.get(`/clinical-notes/attachments/${attachmentId}`, {
+      responseType: "blob"
+    });
+    return response.data;
   },
 
   delete: async (id: string) => {

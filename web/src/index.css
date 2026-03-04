@@ -10,6 +10,15 @@ All colors MUST be HSL.
 */
 
 @layer base {
+  /* Mobile touch optimizations */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+  }
+  
   :root {
     --background: 240 4% 95%;
     --foreground: 240 5% 10%;

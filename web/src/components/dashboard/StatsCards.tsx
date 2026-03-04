@@ -2,6 +2,8 @@ import { Users, Calendar, FileText, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { isSameDay, parseISO, subDays, isWithinInterval, startOfMonth } from "date-fns";
 import { usePatients, useAppointments, useClinicalNotes, useInvoices } from "@/hooks/useDashboardQueries";
+import { useEffect, useState } from "react";
+import { organizationService, Organization } from "@/services/organizationService";
 
 interface Stats {
   activePatients: number;
@@ -15,6 +17,11 @@ const StatsCards = () => {
   const { data: appointments, isLoading: appointmentsLoading } = useAppointments();
   const { data: notes, isLoading: notesLoading } = useClinicalNotes();
   const { data: invoices, isLoading: invoicesLoading } = useInvoices();
+  const [organization, setOrganization] = useState<Organization | null>(null);
+
+  useEffect(() => {
+    organizationService.getMyOrganization().then(setOrganization).catch(console.error);
+  }, []);
 
   const loading = patientsLoading || appointmentsLoading || notesLoading || invoicesLoading;
 
@@ -78,7 +85,10 @@ const StatsCards = () => {
     },
     {
       label: "Revenue (MTD)",
-      value: `$${monthlyRevenue.toLocaleString()}`,
+      value: new Intl.NumberFormat(organization?.locale || "en-US", {
+        style: "currency",
+        currency: organization?.currency || "USD",
+      }).format(monthlyRevenue),
       icon: DollarSign,
       color: "text-chart-1",
       bg: "bg-chart-1/10",
@@ -86,19 +96,19 @@ const StatsCards = () => {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {statsConfig.map((stat, index) => (
         <Card key={index} className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className="text-3xl font-bold mt-1">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.label}</p>
+                <p className="text-2xl sm:text-3xl font-bold mt-1 break-words">
                   {loading ? "..." : stat.value}
                 </p>
               </div>
-              <div className={`p-3 rounded-lg ${stat.bg}`}>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+              <div className={`p-2 sm:p-3 rounded-lg ${stat.bg} flex-shrink-0 ml-2`}>
+                <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
               </div>
             </div>
           </CardContent>

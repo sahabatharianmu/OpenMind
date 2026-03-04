@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/entity"
@@ -16,6 +17,12 @@ type AppointmentRepository interface {
 	Delete(id uuid.UUID) error
 	FindByID(id uuid.UUID) (*entity.Appointment, error)
 	List(organizationID uuid.UUID, limit, offset int) ([]entity.Appointment, int64, error)
+	CheckOverlap(
+		organizationID uuid.UUID,
+		clinicianID uuid.UUID,
+		startTime, endTime time.Time,
+		excludeID *uuid.UUID,
+	) (bool, error)
 	GetOrganizationID(userID uuid.UUID) (uuid.UUID, error)
 }
 
@@ -83,6 +90,31 @@ func (r *appointmentRepository) List(organizationID uuid.UUID, limit, offset int
 	}
 
 	return appointments, total, nil
+}
+
+func (r *appointmentRepository) CheckOverlap(
+	organizationID uuid.UUID,
+	clinicianID uuid.UUID,
+	startTime, endTime time.Time,
+	excludeID *uuid.UUID,
+) (bool, error) {
+	var count int64
+	query := r.db.Model(&entity.Appointment{}).
+		Where("organization_id = ?", organizationID).
+		Where("clinician_id = ?", clinicianID).
+		Where("status != ?", "cancelled").
+		Where("((start_time < ? AND end_time > ?) OR (start_time < ? AND end_time > ?) OR (start_time >= ? AND end_time <= ?))",
+			endTime, startTime, endTime, startTime, startTime, endTime)
+
+	if excludeID != nil {
+		query = query.Where("id != ?", *excludeID)
+	}
+
+	if err := query.Count(&count).Error; err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
 
 func (r *appointmentRepository) GetOrganizationID(userID uuid.UUID) (uuid.UUID, error) {

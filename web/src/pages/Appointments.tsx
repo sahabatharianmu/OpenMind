@@ -32,6 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfWeek, addDays, isSameDay, parseISO, addWeeks, subWeeks } from "date-fns";
 import { Appointment, Patient } from "@/types";
+import { cn } from "@/lib/utils";
 
 // Extended Appointment type for UI to include resolved patient details
 interface UIAppointment extends Appointment {
@@ -55,6 +56,7 @@ const Appointments = () => {
   const [duration, setDuration] = useState("50");
   const [appointmentType, setAppointmentType] = useState("session");
   const [mode, setMode] = useState("in-person");
+  const [cptCode, setCptCode] = useState("90837");
 
   useEffect(() => {
     fetchData();
@@ -118,6 +120,7 @@ const Appointments = () => {
         end_time: endTime.toISOString(),
         appointment_type: appointmentType,
         mode: mode,
+        cpt_code: cptCode,
         status: 'scheduled'
       });
 
@@ -128,10 +131,12 @@ const Appointments = () => {
       setIsAddDialogOpen(false);
       resetForm();
       fetchData();
-    } catch (error) {
+    } catch (error: unknown) {
+       const err = error as { response?: { data?: { error?: { message?: string } } }; message?: string };
+       const message = err.response?.data?.error?.message || err.message || "Failed to schedule appointment";
        toast({
         title: "Error",
-        description: "Failed to schedule appointment.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -156,18 +161,18 @@ const Appointments = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold">Appointments</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Appointments</h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
               Manage your practice schedule
             </p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 h-11 min-h-[44px] w-full sm:w-auto">
                 <Plus className="w-4 h-4" />
                 New Appointment
               </Button>
@@ -203,6 +208,7 @@ const Appointments = () => {
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
                       required
+                      className="h-11 min-h-[44px]"
                     />
                   </div>
                   <div className="space-y-2">
@@ -212,6 +218,7 @@ const Appointments = () => {
                       value={selectedTime}
                       onChange={(e) => setSelectedTime(e.target.value)}
                       required
+                      className="h-11 min-h-[44px]"
                     />
                   </div>
                 </div>
@@ -219,7 +226,7 @@ const Appointments = () => {
                   <div className="space-y-2">
                     <Label>Duration</Label>
                     <Select value={duration} onValueChange={setDuration}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11 min-h-[44px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -232,7 +239,7 @@ const Appointments = () => {
                   <div className="space-y-2">
                     <Label>Type</Label>
                     <Select value={appointmentType} onValueChange={setAppointmentType}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11 min-h-[44px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -244,19 +251,31 @@ const Appointments = () => {
                     </Select>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Mode</Label>
-                  <Select value={mode} onValueChange={setMode}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="in-person">In-person</SelectItem>
-                      <SelectItem value="video">Video Call</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Mode</Label>
+                    <Select value={mode} onValueChange={setMode}>
+                      <SelectTrigger className="h-11 min-h-[44px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="in-person">In-person</SelectItem>
+                        <SelectItem value="video">Video Call</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cptCode">CPT Code</Label>
+                    <Input
+                      id="cptCode"
+                      placeholder="e.g. 90837"
+                      value={cptCode}
+                      onChange={(e) => setCptCode(e.target.value)}
+                      className="h-11 min-h-[44px]"
+                    />
+                  </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button type="submit" className="w-full h-11 min-h-[44px]" disabled={isSubmitting}>
                   {isSubmitting ? "Scheduling..." : "Schedule Appointment"}
                 </Button>
               </form>
@@ -265,23 +284,32 @@ const Appointments = () => {
         </div>
 
         {/* Week Navigation */}
-        <Card className="mb-6">
+        <Card className="mb-4 sm:mb-6">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <Button
                 variant="outline"
                 size="icon"
+                className="h-11 w-11 min-h-[44px] min-w-[44px]"
                 onClick={() => setCurrentWeekStart(subWeeks(currentWeekStart, 1))}
+                aria-label="Previous week"
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <h2 className="font-semibold">
-                {format(currentWeekStart, "MMMM d")} - {format(addDays(currentWeekStart, 6), "MMMM d, yyyy")}
+              <h2 className="font-semibold text-sm sm:text-base text-center flex-1">
+                <span className="hidden sm:inline">
+                  {format(currentWeekStart, "MMMM d")} - {format(addDays(currentWeekStart, 6), "MMMM d, yyyy")}
+                </span>
+                <span className="sm:hidden">
+                  {format(currentWeekStart, "MMM d")} - {format(addDays(currentWeekStart, 6), "MMM d")}
+                </span>
               </h2>
               <Button
                 variant="outline"
                 size="icon"
+                className="h-11 w-11 min-h-[44px] min-w-[44px]"
                 onClick={() => setCurrentWeekStart(addWeeks(currentWeekStart, 1))}
+                aria-label="Next week"
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -295,20 +323,24 @@ const Appointments = () => {
             Loading appointments...
           </div>
         ) : (
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
             {weekDays.map((day) => {
               const dayAppointments = getAppointmentsForDay(day);
               const isToday = isSameDay(day, new Date());
 
               return (
-                <Card key={day.toISOString()} className={isToday ? "border-primary" : ""}>
-                  <CardHeader className="p-3 pb-2">
-                    <CardTitle className={`text-sm font-medium ${isToday ? "text-primary" : ""}`}>
-                      <div>{format(day, "EEE")}</div>
-                      <div className="text-2xl">{format(day, "d")}</div>
+                <Card key={day.toISOString()} className={cn(
+                  isToday ? "border-primary border-2" : "",
+                  "min-w-[80px] sm:min-w-0"
+                )}>
+                  <CardHeader className="p-2 sm:p-3 pb-1 sm:pb-2">
+                    <CardTitle className={`text-xs sm:text-sm font-medium ${isToday ? "text-primary" : ""}`}>
+                      <div className="hidden sm:block">{format(day, "EEE")}</div>
+                      <div className="sm:hidden">{format(day, "EEEEE")}</div>
+                      <div className="text-lg sm:text-2xl">{format(day, "d")}</div>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-2 pt-0 space-y-2 min-h-[200px]">
+                  <CardContent className="p-1 sm:p-2 pt-0 space-y-1 sm:space-y-2 min-h-[120px] sm:min-h-[200px]">
                     {dayAppointments.length === 0 ? (
                       <p className="text-xs text-muted-foreground text-center py-4">
                         No appointments
@@ -317,12 +349,12 @@ const Appointments = () => {
                       dayAppointments.map((apt) => (
                         <div
                           key={apt.id}
-                          className="p-2 rounded bg-primary/10 border border-primary/20 text-xs cursor-pointer hover:bg-primary/20 transition-colors"
+                          className="p-1.5 sm:p-2 rounded bg-primary/10 border border-primary/20 text-xs cursor-pointer hover:bg-primary/20 active:bg-primary/30 transition-colors touch-manipulation"
                         >
                           <div className="font-medium text-primary">
                             {format(parseISO(apt.start_time), "h:mm a")}
                           </div>
-                          <div className="truncate">
+                          <div className="truncate text-[10px] sm:text-xs">
                             {apt.patient?.first_name} {apt.patient?.last_name?.[0]}.
                           </div>
                           <div className="flex items-center gap-1 mt-1 text-muted-foreground">

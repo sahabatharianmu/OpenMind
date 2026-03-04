@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/cloudwego/hertz/pkg/app"
@@ -87,6 +88,19 @@ func (h *InvoiceHandler) List(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *InvoiceHandler) Get(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -94,7 +108,7 @@ func (h *InvoiceHandler) Get(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Get(context.Background(), id)
+	resp, err := h.svc.Get(context.Background(), id, orgID)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -104,6 +118,19 @@ func (h *InvoiceHandler) Get(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *InvoiceHandler) Update(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -117,7 +144,7 @@ func (h *InvoiceHandler) Update(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	resp, err := h.svc.Update(context.Background(), id, req)
+	resp, err := h.svc.Update(context.Background(), id, orgID, req)
 	if err != nil {
 		response.HandleError(c, err)
 		return
@@ -127,6 +154,19 @@ func (h *InvoiceHandler) Update(_ context.Context, c *app.RequestContext) {
 }
 
 func (h *InvoiceHandler) Delete(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -134,10 +174,42 @@ func (h *InvoiceHandler) Delete(_ context.Context, c *app.RequestContext) {
 		return
 	}
 
-	if err := h.svc.Delete(context.Background(), id); err != nil {
+	if err := h.svc.Delete(context.Background(), id, orgID); err != nil {
 		response.HandleError(c, err)
 		return
 	}
 
 	c.JSON(consts.StatusOK, response.Success("Invoice deleted successfully", nil))
+}
+
+func (h *InvoiceHandler) DownloadSuperbill(_ context.Context, c *app.RequestContext) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	orgID, err := h.svc.GetOrganizationID(context.Background(), userID)
+	if err != nil {
+		response.InternalServerError(c, "Failed to retrieve organization")
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		response.BadRequest(c, "Invalid invoice ID", nil)
+		return
+	}
+
+	pdfBytes, err := h.svc.GenerateSuperbill(context.Background(), id, orgID)
+	if err != nil {
+		response.HandleError(c, err)
+		return
+	}
+
+	c.Header("Content-Type", "application/pdf")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=superbill-%s.pdf", id.String()[:8]))
+	c.Write(pdfBytes)
 }

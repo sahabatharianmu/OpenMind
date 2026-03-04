@@ -1,5 +1,6 @@
 import api from "@/api/client";
 import { Invoice } from "@/types";
+import type { PaginatedResponse } from "@/types/api";
 
 export interface CreateInvoiceRequest {
   patient_id: string;
@@ -17,7 +18,7 @@ export interface UpdateInvoiceRequest extends Partial<CreateInvoiceRequest> {
 
 const invoiceService = {
   list: async () => {
-    const response = await api.get<{ data: { items: Invoice[] } }>("/invoices");
+    const response = await api.get<{ data: PaginatedResponse<Invoice> }>("/invoices");
     return response.data.data.items;
   },
 
@@ -38,6 +39,13 @@ const invoiceService = {
 
   delete: async (id: string) => {
     const response = await api.delete(`/invoices/${id}`);
+    return response.data;
+  },
+
+  downloadSuperbill: async (id: string) => {
+    const response = await api.get(`/invoices/${id}/superbill`, {
+      responseType: 'blob'
+    });
     return response.data;
   },
 };

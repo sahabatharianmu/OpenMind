@@ -12,12 +12,22 @@ import (
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/handler"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/repository"
 	"github.com/sahabatharianmu/OpenMind/internal/modules/appointment/service"
+	auditLogHandler "github.com/sahabatharianmu/OpenMind/internal/modules/audit_log/handler"
+	auditLogRepository "github.com/sahabatharianmu/OpenMind/internal/modules/audit_log/repository"
+	auditLogService "github.com/sahabatharianmu/OpenMind/internal/modules/audit_log/service"
 	clinicalNoteHandler "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/handler"
 	clinicalNoteRepository "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/repository"
 	clinicalNoteService "github.com/sahabatharianmu/OpenMind/internal/modules/clinical_note/service"
+	exportHandler "github.com/sahabatharianmu/OpenMind/internal/modules/export/handler"
+	exportService "github.com/sahabatharianmu/OpenMind/internal/modules/export/service"
+	importHandler "github.com/sahabatharianmu/OpenMind/internal/modules/import/handler"
+	importService "github.com/sahabatharianmu/OpenMind/internal/modules/import/service"
 	invoiceHandler "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/handler"
 	invoiceRepository "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/repository"
 	invoiceService "github.com/sahabatharianmu/OpenMind/internal/modules/invoice/service"
+	organizationHandler "github.com/sahabatharianmu/OpenMind/internal/modules/organization/handler"
+	organizationRepository "github.com/sahabatharianmu/OpenMind/internal/modules/organization/repository"
+	organizationService "github.com/sahabatharianmu/OpenMind/internal/modules/organization/service"
 	patientHandler "github.com/sahabatharianmu/OpenMind/internal/modules/patient/handler"
 	patientRepository "github.com/sahabatharianmu/OpenMind/internal/modules/patient/repository"
 	patientService "github.com/sahabatharianmu/OpenMind/internal/modules/patient/service"
@@ -55,23 +65,61 @@ func main() {
 	appointmentRepo := repository.NewAppointmentRepository(db, appLogger)
 	clinicalNoteRepo := clinicalNoteRepository.NewClinicalNoteRepository(db, appLogger)
 	invoiceRepo := invoiceRepository.NewInvoiceRepository(db, appLogger)
+	auditLogRepo := auditLogRepository.NewAuditLogRepository(db, appLogger)
+	organizationRepo := organizationRepository.NewOrganizationRepository(db, appLogger)
 
 	jwtService := security.NewJWTService(cfg)
 	passwordService := crypto.NewPasswordService(cfg)
+	encryptService := crypto.NewEncryptionService(cfg)
 
 	authService := userService.NewAuthService(userRepo, jwtService, passwordService, appLogger)
+	userSvc := userService.NewUserService(userRepo, appLogger)
 	patientSvc := patientService.NewPatientService(patientRepo, appLogger)
 	appointmentSvc := service.NewAppointmentService(appointmentRepo, appLogger)
-	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, appLogger)
-	invoiceSvc := invoiceService.NewInvoiceService(invoiceRepo, appLogger)
+	clinicalNoteSvc := clinicalNoteService.NewClinicalNoteService(clinicalNoteRepo, encryptService, appLogger)
+	invoiceSvc := invoiceService.NewInvoiceService(
+		invoiceRepo,
+		organizationRepo,
+		patientRepo,
+		appointmentRepo,
+		clinicalNoteRepo,
+		appLogger,
+	)
+	auditLogSvc := auditLogService.NewAuditLogService(auditLogRepo, appLogger)
+	organizationSvc := organizationService.NewOrganizationService(organizationRepo, appLogger)
+	exportSvc := exportService.NewExportService(
+		organizationRepo,
+		patientRepo,
+		appointmentRepo,
+		clinicalNoteSvc,
+		invoiceRepo,
+		auditLogSvc,
+		appLogger,
+	)
+	importSvc := importService.NewImportService(
+		patientRepo,
+		clinicalNoteRepo,
+		patientSvc,
+		clinicalNoteSvc,
+		encryptService,
+		db,
+		appLogger,
+	)
 
 	authHandler := userHandler.NewAuthHandler(authService)
+	userHdlr := userHandler.NewUserHandler(userSvc, authService)
 	patientHdlr := patientHandler.NewPatientHandler(patientSvc)
 	appointmentHdlr := handler.NewAppointmentHandler(appointmentSvc)
 	clinicalNoteHdlr := clinicalNoteHandler.NewClinicalNoteHandler(clinicalNoteSvc)
 	invoiceHdlr := invoiceHandler.NewInvoiceHandler(invoiceSvc)
+	auditLogHdlr := auditLogHandler.NewAuditLogHandler(auditLogSvc)
+	organizationHdlr := organizationHandler.NewOrganizationHandler(organizationSvc)
+	exportHdlr := exportHandler.NewExportHandler(exportSvc)
+	importHdlr := importHandler.NewImportHandler(importSvc)
 
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
+	auditMiddleware := middleware.NewAuditMiddleware(auditLogSvc)
+	rbacMiddleware := middleware.NewRBACMiddleware()
 
 	h := server.New(
 		server.WithHostPorts(fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)),
@@ -81,7 +129,22 @@ func main() {
 		server.WithExitWaitTime(cfg.Server.ExitTimeout),
 	)
 
-	router.RegisterRoutes(h, authHandler, patientHdlr, appointmentHdlr, clinicalNoteHdlr, invoiceHdlr, authMiddleware)
+	router.RegisterRoutes(
+		h,
+		authHandler,
+		userHdlr,
+		patientHdlr,
+		appointmentHdlr,
+		clinicalNoteHdlr,
+		invoiceHdlr,
+		auditLogHdlr,
+		organizationHdlr,
+		exportHdlr,
+		importHdlr,
+		authMiddleware,
+		auditMiddleware,
+		rbacMiddleware,
+	)
 
 	h.OnShutdown = append(h.OnShutdown, func(_ context.Context) {
 		appLogger.Info("Shutting down server gracefully...")
