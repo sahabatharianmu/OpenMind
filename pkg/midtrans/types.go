@@ -137,8 +137,7 @@ type PaymentAction struct {
 // CancelQRISPaymentRequest represents the request for canceling a QRIS payment using BI-SNAP
 type CancelQRISPaymentRequest struct {
 	OriginalPartnerReferenceNo string `json:"originalPartnerReferenceNo"`
-	MerchantID                 string `json:"merchantId"`
-	ServiceCode                string `json:"serviceCode"`
+	MerchantID                 string `json:"merchantId,omitempty"`
 }
 
 // CancelPaymentResponse represents the response from BI-SNAP payment cancellation

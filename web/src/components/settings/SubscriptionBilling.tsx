@@ -163,10 +163,21 @@ export default function SubscriptionBilling({ organization }: SubscriptionBillin
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold tracking-tight">{formatCurrencyRaw(20, 'USD')}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Due on Dec 1st, 2026
-            </p>
+            {organization?.subscription_tier === 'free' ? (
+              <>
+                <div className="text-2xl font-bold tracking-tight">{formatCurrencyRaw(0, organization?.currency || 'USD')}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  No upcoming charges
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold tracking-tight">{formatCurrencyRaw(20, organization?.currency || 'USD')}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Due on next billing cycle
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -177,10 +188,21 @@ export default function SubscriptionBilling({ organization }: SubscriptionBillin
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold tracking-tight">QRIS</div>
-            <p className="text-xs text-muted-foreground mt-1 cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-1">
-              Manage methods <ExternalLink className="w-3 h-3" />
-            </p>
+            {organization?.subscription_tier === 'free' ? (
+              <>
+                <div className="text-2xl font-bold tracking-tight">None</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Not required for free tier
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold tracking-tight">QRIS</div>
+                <p className="text-xs text-muted-foreground mt-1 cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-1">
+                  Manage methods <ExternalLink className="w-3 h-3" />
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

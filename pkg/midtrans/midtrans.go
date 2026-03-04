@@ -734,7 +734,6 @@ func (m *Service) CancelQRISPayment(
 	requestBody := CancelQRISPaymentRequest{
 		OriginalPartnerReferenceNo: transactionID,
 		MerchantID:                 m.midtransConf.BISnapPartnerID,
-		ServiceCode:                "47", // QRIS payment service code
 	}
 
 	requestJSON, err := sonic.Marshal(requestBody)
